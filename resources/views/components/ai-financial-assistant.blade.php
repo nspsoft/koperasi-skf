@@ -4,7 +4,7 @@
 
 @if($config['enabled'] && auth()->user()->hasAdminAccess())
 <div x-data="aiFinancialAssistant()" 
-     class="fixed bottom-24 right-6 z-50 flex flex-col items-end"
+     class="fixed bottom-44 right-6 z-50 flex flex-col items-end"
      x-cloak>
     
     <!-- Chat Window -->
