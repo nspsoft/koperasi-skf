@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -12,7 +14,7 @@ class RoleController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::with('member');
+        $query = User::with(['member', 'roleModel']);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -28,80 +30,118 @@ class RoleController extends Controller
 
         $users = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
         
-        // Role definitions with permissions
-        $roles = [
-            'admin' => [
-                'label' => 'Administrator',
-                'description' => 'Akses penuh ke semua fitur sistem, termasuk pengaturan dan manajemen user',
-                'permissions' => [
-                    'Kelola Anggota (CRUD)',
-                    'Kelola Simpanan (CRUD)',
-                    'Kelola Pinjaman (CRUD)',
-                    'Approve/Reject Pinjaman',
-                    'Kelola Pembayaran Angsuran',
-                    'Lihat Semua Laporan',
-                    'Export Data (Excel/PDF)',
-                    'Import Data (Excel)',
-                    'Kelola POS Mart & Produk',
-                    'Kelola Inventory & Stok',
-                    'Kelola Supplier & Purchasing',
-                    'Hitung & Distribusi SHU',
-                    'Kelola Pengumuman',
-                    'Kelola Pengaturan Sistem',
-                    'Kelola Role & User',
-                    'Akses Audit Log',
-                    'Backup & Restore Data',
-                ]
-            ],
-            'pengurus' => [
-                'label' => 'Pengurus',
-                'description' => 'Mengelola operasional koperasi, verifikasi keuangan, dan memantau laporan',
-                'permissions' => [
-                    'Lihat Data Simpanan Anggota',
-                    'Lihat Data Pinjaman Anggota',
-                    'Approve/Reject Pinjaman',
-                    'Lihat Pembayaran Angsuran',
-                    'Lihat Laporan Keuangan & Akuntansi',
-                    'Export Laporan (Excel/PDF)',
-                    'Kelola POS Kasir Mart',
-                    'Kelola Produk & Stok Mart',
-                    'Kelola Supplier & Purchasing',
-                ]
-            ],
-            'manager_toko' => [
-                'label' => 'Manager Toko',
-                'description' => 'Mengelola operasional toko/mart dan transaksi harian',
-                'permissions' => [
-                    'Akses POS Kasir',
-                    'Kelola Transaksi Penjualan',
-                    'Kelola Produk & Kategori',
-                    'Kelola Stok & Inventory',
-                    'Lihat Laporan Penjualan',
-                    'Kelola Supplier',
-                    'Input Purchase Order',
-                    'Lihat Data Anggota (Read Only)',
-                    'Proses Pembayaran Kredit',
-                ]
-            ],
-            'member' => [
-                'label' => 'Anggota',
-                'description' => 'Akses ke dashboard pribadi dan data diri sendiri',
-                'permissions' => [
-                    'Lihat Dashboard Pribadi',
-                    'Lihat Simpanan Pribadi',
-                    'Lihat Riwayat Pinjaman',
-                    'Ajukan Pinjaman Baru',
-                    'Lihat Kartu Anggota Digital',
-                    'Edit Profil Sendiri',
-                    'Belanja di Mart (Tunai/Kredit)',
-                    'Lihat Riwayat Kredit Mart',
-                    'Ajukan Penarikan Simpanan',
-                    'Lihat Pembagian SHU',
-                ]
-            ]
-        ];
+        // Get all roles from database
+        $roles = Role::withCount('users')->with('permissions')->get();
         
         return view('roles.index', compact('users', 'roles'));
+    }
+
+    /**
+     * Show form to create a new role
+     */
+    public function create()
+    {
+        $permissions = Permission::orderBy('group')->orderBy('label')->get()->groupBy('group');
+        
+        return view('roles.create', compact('permissions'));
+    }
+
+    /**
+     * Store a new role
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:50|unique:roles,name|regex:/^[a-z_]+$/',
+            'label' => 'required|string|max:100',
+            'description' => 'nullable|string|max:500',
+            'color' => 'required|string|max:20',
+            'permissions' => 'required|array|min:1',
+            'permissions.*' => 'exists:permissions,id',
+        ], [
+            'name.regex' => 'Nama role hanya boleh huruf kecil dan underscore (contoh: kasir_senior)',
+        ]);
+
+        $role = Role::create([
+            'name' => $request->name,
+            'label' => $request->label,
+            'description' => $request->description,
+            'color' => $request->color,
+            'is_system' => false,
+        ]);
+
+        $role->permissions()->sync($request->permissions);
+
+        \App\Models\AuditLog::log('create', "Membuat role baru: {$role->label}");
+
+        return redirect()->route('roles.index')->with('success', "Role '{$role->label}' berhasil dibuat!");
+    }
+
+    /**
+     * Show form to edit a role
+     */
+    public function edit(Role $role)
+    {
+        $permissions = Permission::orderBy('group')->orderBy('label')->get()->groupBy('group');
+        $rolePermissions = $role->permissions->pluck('id')->toArray();
+        
+        return view('roles.edit', compact('role', 'permissions', 'rolePermissions'));
+    }
+
+    /**
+     * Update a role
+     */
+    public function update(Request $request, Role $role)
+    {
+        $request->validate([
+            'label' => 'required|string|max:100',
+            'description' => 'nullable|string|max:500',
+            'color' => 'required|string|max:20',
+            'permissions' => 'required|array|min:1',
+            'permissions.*' => 'exists:permissions,id',
+        ]);
+
+        // Don't allow editing system role name
+        $updateData = [
+            'label' => $request->label,
+            'description' => $request->description,
+            'color' => $request->color,
+        ];
+
+        if (!$role->is_system) {
+            $request->validate([
+                'name' => 'required|string|max:50|unique:roles,name,' . $role->id . '|regex:/^[a-z_]+$/',
+            ]);
+            $updateData['name'] = $request->name;
+        }
+
+        $role->update($updateData);
+        $role->permissions()->sync($request->permissions);
+
+        \App\Models\AuditLog::log('update', "Mengupdate role: {$role->label}");
+
+        return redirect()->route('roles.index')->with('success', "Role '{$role->label}' berhasil diupdate!");
+    }
+
+    /**
+     * Delete a role
+     */
+    public function destroy(Role $role)
+    {
+        if ($role->is_system) {
+            return back()->with('error', 'Role sistem tidak dapat dihapus!');
+        }
+
+        if ($role->users()->count() > 0) {
+            return back()->with('error', "Role '{$role->label}' masih digunakan oleh " . $role->users()->count() . " user!");
+        }
+
+        $label = $role->label;
+        $role->delete();
+
+        \App\Models\AuditLog::log('delete', "Menghapus role: {$label}");
+
+        return redirect()->route('roles.index')->with('success', "Role '{$label}' berhasil dihapus!");
     }
 
     /**
@@ -110,55 +150,32 @@ class RoleController extends Controller
     public function updateRole(Request $request, User $user)
     {
         $request->validate([
-            'role' => 'required|in:admin,pengurus,manager_toko,member'
+            'role_id' => 'required|exists:roles,id'
         ]);
 
+        $role = Role::find($request->role_id);
+
         $user->update([
-            'role' => $request->role
+            'role' => $role->name,
+            'role_id' => $role->id,
         ]);
 
         \App\Models\AuditLog::log(
             'update', 
-            "Mengubah role user {$user->name} menjadi " . ucfirst($request->role)
+            "Mengubah role user {$user->name} menjadi {$role->label}"
         );
 
-        return redirect()->back()->with('success', 'Role user berhasil diubah menjadi ' . ucfirst($request->role));
+        return redirect()->back()->with('success', "Role user berhasil diubah menjadi {$role->label}");
     }
 
     /**
      * Get role permissions (for AJAX)
      */
-    public function getPermissions($role)
+    public function getPermissions(Role $role)
     {
-        $permissions = match($role) {
-            'admin' => [
-                'Kelola Anggota (CRUD)', 'Kelola Simpanan (CRUD)', 'Kelola Pinjaman (CRUD)',
-                'Approve/Reject Pinjaman', 'Kelola Pembayaran Angsuran', 'Lihat Semua Laporan',
-                'Export Data (Excel/PDF)', 'Import Data (Excel)', 'Kelola POS Mart & Produk',
-                'Kelola Inventory & Stok', 'Kelola Supplier & Purchasing', 'Hitung & Distribusi SHU',
-                'Kelola Pengumuman', 'Kelola Pengaturan Sistem', 'Kelola Role & User',
-                'Akses Audit Log', 'Backup & Restore Data'
-            ],
-            'pengurus' => [
-                'Lihat Data Simpanan Anggota', 'Lihat Data Pinjaman Anggota',
-                'Approve/Reject Pinjaman', 'Lihat Pembayaran Angsuran', 'Lihat Laporan Keuangan & Akuntansi',
-                'Export Laporan (Excel/PDF)', 'Kelola POS Kasir Mart', 'Kelola Produk & Stok Mart',
-                'Kelola Supplier & Purchasing'
-            ],
-            'manager_toko' => [
-                'Akses POS Kasir', 'Kelola Transaksi Penjualan', 'Kelola Produk & Kategori',
-                'Kelola Stok & Inventory', 'Lihat Laporan Penjualan', 'Kelola Supplier',
-                'Input Purchase Order', 'Lihat Data Anggota (Read Only)', 'Proses Pembayaran Kredit'
-            ],
-            'member' => [
-                'Lihat Dashboard Pribadi', 'Lihat Simpanan Pribadi', 'Lihat Riwayat Pinjaman',
-                'Ajukan Pinjaman Baru', 'Lihat Kartu Anggota Digital', 'Edit Profil Sendiri',
-                'Belanja di Mart (Tunai/Kredit)', 'Lihat Riwayat Kredit Mart',
-                'Ajukan Penarikan Simpanan', 'Lihat Pembagian SHU'
-            ],
-            default => []
-        };
-
-        return response()->json(['permissions' => $permissions]);
+        return response()->json([
+            'role' => $role,
+            'permissions' => $role->permissions->pluck('label')->toArray()
+        ]);
     }
 }

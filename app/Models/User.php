@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'role_id',
         'phone',
         'avatar',
         'is_active',
@@ -52,11 +53,50 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the role relationship
+     */
+    public function roleModel()
+    {
+        return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    /**
      * Get the member profile associated with this user.
      */
     public function member()
     {
         return $this->hasOne(Member::class);
+    }
+
+    /**
+     * Check if user has a specific permission
+     */
+    public function hasPermission(string $permission): bool
+    {
+        // Admin has all permissions
+        if ($this->role === 'admin') {
+            return true;
+        }
+
+        // Check via role model if available
+        if ($this->role_id && $this->roleModel) {
+            return $this->roleModel->hasPermission($permission);
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if user has any of the given permissions
+     */
+    public function hasAnyPermission(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if ($this->hasPermission($permission)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -114,4 +154,41 @@ class User extends Authenticatable
     {
         return $this->hasMany(AuditLog::class);
     }
+
+    /**
+     * Get role label for display
+     */
+    public function getRoleLabelAttribute(): string
+    {
+        if ($this->roleModel) {
+            return $this->roleModel->label;
+        }
+        
+        return match($this->role) {
+            'admin' => 'Administrator',
+            'pengurus' => 'Pengurus',
+            'manager_toko' => 'Manager Toko',
+            'member' => 'Anggota',
+            default => ucfirst($this->role ?? 'Unknown'),
+        };
+    }
+
+    /**
+     * Get role color for badge display
+     */
+    public function getRoleColorAttribute(): string
+    {
+        if ($this->roleModel) {
+            return $this->roleModel->color;
+        }
+        
+        return match($this->role) {
+            'admin' => '#ef4444',
+            'pengurus' => '#f59e0b',
+            'manager_toko' => '#10b981',
+            'member' => '#6366f1',
+            default => '#6b7280',
+        };
+    }
 }
+

@@ -369,7 +369,13 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
 
             // Roles & Permissions
             Route::get('roles', [App\Http\Controllers\RoleController::class, 'index'])->name('roles.index');
-            Route::put('roles/{user}', [App\Http\Controllers\RoleController::class, 'updateRole'])->name('roles.update');
+            Route::get('roles/create', [App\Http\Controllers\RoleController::class, 'create'])->name('roles.create');
+            Route::post('roles', [App\Http\Controllers\RoleController::class, 'store'])->name('roles.store');
+            Route::get('roles/{role}/edit', [App\Http\Controllers\RoleController::class, 'edit'])->name('roles.edit');
+            Route::put('roles/{role}', [App\Http\Controllers\RoleController::class, 'update'])->name('roles.update');
+            Route::delete('roles/{role}', [App\Http\Controllers\RoleController::class, 'destroy'])->name('roles.destroy');
+            Route::put('roles/user/{user}', [App\Http\Controllers\RoleController::class, 'updateRole'])->name('roles.update-user');
+            Route::get('roles/{role}/permissions', [App\Http\Controllers\RoleController::class, 'getPermissions'])->name('roles.permissions');
 
             // System Settings
             Route::get('settings', [SettingController::class, 'index'])->name('settings.index');

@@ -8,6 +8,12 @@
             <h1 class="page-title">Kelola Role & Hak Akses</h1>
             <p class="page-subtitle">Atur role dan permission untuk setiap user</p>
         </div>
+        <a href="{{ route('roles.create') }}" class="btn-primary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Buat Role Baru
+        </a>
     </div>
 
     @if(session('success'))
@@ -16,46 +22,51 @@
         </div>
     @endif
 
+    @if(session('error'))
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {{ session('error') }}
+        </div>
+    @endif
+
     {{-- Role Information Cards --}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        @foreach($roles as $roleKey => $roleData)
-        <div class="glass-card-solid p-6 {{ $roleKey === 'admin' ? 'border-l-4 border-red-500' : ($roleKey === 'pengurus' ? 'border-l-4 border-blue-500' : ($roleKey === 'manager_toko' ? 'border-l-4 border-purple-500' : 'border-l-4 border-green-500')) }}">
-            <div class="flex items-center mb-4">
-                <div class="w-12 h-12 rounded-full {{ $roleKey === 'admin' ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' : ($roleKey === 'pengurus' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : ($roleKey === 'manager_toko' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400')) }} flex items-center justify-center">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        @if($roleKey === 'admin')
+        @foreach($roles as $role)
+        <div class="glass-card-solid p-6 border-l-4 hover:shadow-lg transition-shadow cursor-pointer" 
+             style="border-left-color: {{ $role->color }}"
+             onclick="window.location='{{ route('roles.edit', $role) }}'">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background-color: {{ $role->color }}20; color: {{ $role->color }}">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                        @elseif($roleKey === 'pengurus')
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
-                        @else
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        @endif
-                    </svg>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="font-bold text-lg text-gray-900 dark:text-white">{{ $role->label }}</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ $role->name }}</p>
+                    </div>
                 </div>
-                <div class="ml-3">
-                    <h3 class="font-bold text-lg text-gray-900 dark:text-white">{{ $roleData['label'] }}</h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ ucfirst($roleKey) }}</p>
-                </div>
+                @if($role->is_system)
+                <span class="badge badge-secondary text-xs">Sistem</span>
+                @endif
             </div>
-            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">{{ $roleData['description'] }}</p>
-            <div class="border-t border-gray-200 dark:border-gray-700 pt-3">
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">{{ $role->description ?? 'Tidak ada deskripsi' }}</p>
+            <div class="flex items-center justify-between text-xs text-gray-500">
+                <span>{{ $role->users_count ?? 0 }} user</span>
+                <span>{{ $role->permissions->count() }} permissions</span>
+            </div>
+            <div class="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
                 <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Permissions:</p>
                 <ul class="space-y-1" x-data="{ expanded: false }">
-                    @foreach($roleData['permissions'] as $index => $permission)
-                    <li class="text-xs text-gray-600 dark:text-gray-400 flex items-center" 
-                        x-show="{{ $loop->index }} < 4 || expanded" 
-                        x-transition.opacity>
+                    @foreach($role->permissions->take(4) as $permission)
+                    <li class="text-xs text-gray-600 dark:text-gray-400 flex items-center">
                         <svg class="w-3 h-3 mr-1 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
-                        {{ $permission }}
+                        {{ $permission->label }}
                     </li>
                     @endforeach
-                    
-                    @if(count($roleData['permissions']) > 4)
+                    @if($role->permissions->count() > 4)
                     <li class="pt-1">
-                        <button @click="expanded = !expanded" class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium focus:outline-none flex items-center gap-1 transition-colors">
-                            <span x-show="!expanded">+{{ count($roleData['permissions']) - 4 }} lainnya... (Lihat Semua)</span>
-                            <span x-show="expanded" class="text-red-500">Tutup</span>
-                        </button>
+                        <span class="text-xs text-primary-600 font-medium">+{{ $role->permissions->count() - 4 }} lainnya</span>
                     </li>
                     @endif
                 </ul>
@@ -80,10 +91,9 @@
                     </div>
                     <select name="role" class="form-input w-full md:w-40">
                         <option value="">Semua Role</option>
-                        <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
-                        <option value="pengurus" {{ request('role') == 'pengurus' ? 'selected' : '' }}>Pengurus</option>
-                        <option value="manager_toko" {{ request('role') == 'manager_toko' ? 'selected' : '' }}>Manager Toko</option>
-                        <option value="member" {{ request('role') == 'member' ? 'selected' : '' }}>Member</option>
+                        @foreach($roles as $role)
+                        <option value="{{ $role->name }}" {{ request('role') == $role->name ? 'selected' : '' }}>{{ $role->label }}</option>
+                        @endforeach
                     </select>
                     <button type="submit" class="btn-primary">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,32 +131,19 @@
                             @endif
                         </td>
                         <td>
-                            @php
-                                $badgeClass = match($user->role) {
-                                    'admin' => 'badge-danger',
-                                    'pengurus' => 'badge-info',
-                                    'manager_toko' => 'badge-purple',
-                                    default => 'badge-success'
-                                };
-                                $roleLabel = match($user->role) {
-                                    'manager_toko' => 'Manager Toko',
-                                    default => ucfirst($user->role)
-                                };
-                            @endphp
-                            <span class="badge {{ $badgeClass }}">
-                                {{ $roleLabel }}
+                            <span class="badge" style="background-color: {{ $user->role_color }}20; color: {{ $user->role_color }}">
+                                {{ $user->role_label }}
                             </span>
                         </td>
                         <td>
                             <div class="flex items-center justify-center gap-2">
-                                <form action="{{ route('roles.update', $user) }}" method="POST" class="inline">
+                                <form action="{{ route('roles.update-user', $user) }}" method="POST" class="inline">
                                     @csrf
                                     @method('PUT')
-                                    <select name="role" onchange="this.form.submit()" class="form-input text-xs py-1">
-                                        <option value="admin" {{ $user->role === 'admin' ? 'selected' : '' }}>Admin</option>
-                                        <option value="pengurus" {{ $user->role === 'pengurus' ? 'selected' : '' }}>Pengurus</option>
-                                        <option value="manager_toko" {{ $user->role === 'manager_toko' ? 'selected' : '' }}>Manager Toko</option>
-                                        <option value="member" {{ $user->role === 'member' ? 'selected' : '' }}>Member</option>
+                                    <select name="role_id" onchange="this.form.submit()" class="form-input text-xs py-1">
+                                        @foreach($roles as $role)
+                                        <option value="{{ $role->id }}" {{ $user->role_id == $role->id ? 'selected' : '' }}>{{ $role->label }}</option>
+                                        @endforeach
                                     </select>
                                 </form>
                             </div>
