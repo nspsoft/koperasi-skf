@@ -11,6 +11,9 @@ if (!isset($_GET['key']) || $_GET['key'] !== $secretKey) {
     die('Akses ditolak. Tambahkan ?key=' . $secretKey . ' di URL');
 }
 
+// Fix CWD: Pindah ke root project (asumsi file ini ada di folder /public)
+chdir(__DIR__ . '/..');
+
 // Function to run shell command
 function runCmd($cmd) {
     $output = [];
@@ -25,18 +28,19 @@ function runCmd($cmd) {
 echo "<pre style='font-family: monospace; background: #1a1a2e; color: #fff; padding: 20px; border-radius: 10px; white-space: pre-wrap;'>";
 echo "===========================================\n";
 echo "🚀 AUTO DEPLOYMENT & MIGRATION RUNNER\n";
-echo "===========================================\n\n";
+echo "===========================================\n";
+echo "📂 Working Directory: " . getcwd() . "\n\n";
 
 // Step 0: Try Git Pull
 echo "📦 Step 0: Attempting Git Pull...\n";
 if (runCmd('git pull origin master')) {
     echo "✅ Git Pull successful!\n\n";
 } else {
-    echo "⚠️ Git Pull failed (might need manual pull or SSH keys).\nAttempting to continue with PHP updates...\n\n";
+    echo "⚠️ Git Pull failed. Lanjut ke migration...\n\n";
 }
 
-require __DIR__.'/vendor/autoload.php';
-$app = require_once __DIR__.'/bootstrap/app.php';
+require 'vendor/autoload.php';
+$app = require_once 'bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
@@ -80,6 +84,7 @@ try {
     
 } catch (Exception $e) {
     echo "❌ ERROR: " . $e->getMessage() . "\n";
+    echo "Trace: " . $e->getTraceAsString() . "\n";
 }
 
 echo "</pre>";
