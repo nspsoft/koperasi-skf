@@ -296,10 +296,16 @@
             </button>
             
             <div x-show="openGroup === 'reports' && sidebarOpen" x-collapse class="pl-4 mt-1 space-y-1">
-                <a href="{{ route('reports.index') }}" class="{{ request()->routeIs('reports.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
-                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('reports.*') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
+                <a href="{{ route('reports.index') }}" class="{{ request()->routeIs('reports.*') && !request()->routeIs('reports.financial-health') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
+                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('reports.*') && !request()->routeIs('reports.financial-health') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
                     {{ __('messages.sidebar.all_reports') }}
                 </a>
+                @if(auth()->user()->hasAdminAccess())
+                <a href="{{ route('reports.financial-health') }}" class="{{ request()->routeIs('reports.financial-health') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
+                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('reports.financial-health') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
+                    📊 Kesehatan Keuangan
+                </a>
+                @endif
                 <a href="{{ route('announcements.index') }}" class="{{ request()->routeIs('announcements.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('announcements.*') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
                     {{ __('messages.sidebar.announcements') }}
