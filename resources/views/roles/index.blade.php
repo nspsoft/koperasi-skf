@@ -30,43 +30,71 @@
 
     {{-- Role Information Cards --}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        @foreach($roles as $role)
+        @foreach($roles as $roleKey => $role)
+        @php
+            $roleLabel = data_get($role, 'label');
+            $roleName = is_object($role) ? $role->name : $roleKey;
+            $roleColor = data_get($role, 'color', '#6366f1');
+            $roleDesc = data_get($role, 'description', 'Tidak ada deskripsi');
+            $usersCount = is_object($role) ? ($role->users_count ?? 0) : 0;
+            $permissions = is_object($role) ? $role->permissions : collect(data_get($role, 'permissions', []));
+            $isSystem = is_object($role) ? $role->is_system : true; // Old array key roles are system roles
+            
+            // Generate link
+            $editLink = is_object($role) ? route('roles.edit', $role) : '#';
+            $cardStyle = is_object($role) 
+                ? 'border-left-color: ' . $roleColor 
+                : 'border-l-4 ' . match($roleKey) {
+                    'admin' => 'border-red-500',
+                    'pengurus' => 'border-blue-500',
+                    'manager_toko' => 'border-purple-500',
+                    default => 'border-green-500'
+                };
+        @endphp
         <div class="glass-card-solid p-6 border-l-4 hover:shadow-lg transition-shadow cursor-pointer" 
-             style="border-left-color: {{ $role->color }}"
-             onclick="window.location='{{ route('roles.edit', $role) }}'">
+             style="border-left-color: {{ $roleColor }}"
+             onclick="window.location='{{ $editLink }}'">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center">
-                    <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background-color: {{ $role->color }}20; color: {{ $role->color }}">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background-color: {{ $roleColor }}20; color: {{ $roleColor }}">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                            @if($roleName === 'admin')
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                            @elseif($roleName === 'pengurus')
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                            @elseif(in_array($roleName, ['manager_toko', 'kasir']))
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            @else
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            @endif
                         </svg>
                     </div>
                     <div class="ml-3">
-                        <h3 class="font-bold text-lg text-gray-900 dark:text-white">{{ $role->label }}</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ $role->name }}</p>
+                        <h3 class="font-bold text-lg text-gray-900 dark:text-white">{{ $roleLabel }}</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ $roleName }}</p>
                     </div>
                 </div>
-                @if($role->is_system)
+                @if($isSystem)
                 <span class="badge badge-secondary text-xs">Sistem</span>
                 @endif
             </div>
-            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">{{ $role->description ?? 'Tidak ada deskripsi' }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">{{ $roleDesc }}</p>
             <div class="flex items-center justify-between text-xs text-gray-500">
-                <span>{{ $role->users_count ?? 0 }} user</span>
-                <span>{{ $role->permissions->count() }} permissions</span>
+                <span>{{ $usersCount }} user</span>
+                <span>{{ count($permissions) }} permissions</span>
             </div>
             <div class="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3">
                 <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Permissions:</p>
-                <ul class="space-y-1" x-data="{ expanded: false }">
-                    @foreach($role->permissions->take(4) as $permission)
+                <ul class="space-y-1">
+                    @foreach($permissions->take(4) as $permission)
                     <li class="text-xs text-gray-600 dark:text-gray-400 flex items-center">
                         <svg class="w-3 h-3 mr-1 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
-                        {{ $permission->label }}
+                        {{ is_string($permission) ? $permission : $permission->label }}
                     </li>
                     @endforeach
-                    @if($role->permissions->count() > 4)
+                    @if(count($permissions) > 4)
                     <li class="pt-1">
-                        <span class="text-xs text-primary-600 font-medium">+{{ $role->permissions->count() - 4 }} lainnya</span>
+                        <span class="text-xs text-primary-600 font-medium">+{{ count($permissions) - 4 }} lainnya</span>
                     </li>
                     @endif
                 </ul>
