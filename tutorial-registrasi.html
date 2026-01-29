@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial Pendaftaran Anggota - Koperasi SKF</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #009640;
+            --secondary: #0054a6;
+            --accent: #facc15;
+            --dark: #0f172a;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top left, #1e293b, #0f172a);
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+        }
+
+        .step-active {
+            filter: drop-shadow(0 0 15px rgba(0, 150, 64, 0.6));
+        }
+
+        .field-highlight {
+            border: 2px solid var(--primary);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(0, 150, 64, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(0, 150, 64, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(0, 150, 64, 0);
+            }
+        }
+
+        .typing::after {
+            content: '|';
+            animation: blink 0.7s infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        .hidden-step {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .tooltip {
+            position: absolute;
+            background: var(--primary);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 20px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: var(--primary) transparent transparent transparent;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col items-center justify-center p-4">
+
+    <!-- Progress Top -->
+    <div class="fixed top-8 left-0 w-full flex justify-center gap-4 z-50">
+        <div class="w-24 h-2 rounded-full bg-gray-700 overflow-hidden">
+            <div id="prog-1" class="h-full bg-green-500 w-0 transition-all duration-500"></div>
+        </div>
+        <div class="w-24 h-2 rounded-full bg-gray-700 overflow-hidden">
+            <div id="prog-2" class="h-full bg-green-500 w-0 transition-all duration-500"></div>
+        </div>
+        <div class="w-24 h-2 rounded-full bg-gray-700 overflow-hidden">
+            <div id="prog-3" class="h-full bg-green-500 w-0 transition-all duration-500"></div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center mt-12">
+
+        <!-- Left Illustration / Mockup -->
+        <div class="relative order-2 md:order-1">
+            <div class="glass-card p-6 border-2 border-white/10 shadow-2xl overflow-hidden relative" id="mockup">
+                <div class="flex items-center gap-2 mb-6 border-b border-white/10 pb-4">
+                    <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                    <span class="text-[10px] text-gray-400 ml-4 font-mono">koperasi.id/register</span>
+                </div>
+
+                <!-- Simulation Elements -->
+                <div id="sim-step-1" class="space-y-4">
+                    <div class="h-8 w-40 bg-gray-700/50 rounded-lg mb-4"></div>
+                    <div class="field w-full h-12 bg-gray-800 rounded-xl border border-white/10 flex items-center px-4"
+                        id="sim-id-card">
+                        <span class="text-gray-500 text-sm">NIK KTP</span>
+                    </div>
+                    <div class="field w-full h-12 bg-gray-800 rounded-xl border border-white/10 flex items-center px-4"
+                        id="sim-name">
+                        <span class="text-gray-500 text-sm">Nama Lengkap</span>
+                    </div>
+                </div>
+
+                <div id="sim-step-2" class="space-y-4 hidden-step">
+                    <div class="h-8 w-40 bg-gray-700/50 rounded-lg mb-4"></div>
+                    <div class="field w-full h-12 bg-gray-800 rounded-xl border border-white/10 flex items-center px-4"
+                        id="sim-employee-id">
+                        <span class="text-gray-500 text-sm">NIK Karyawan</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="h-12 bg-gray-800 rounded-xl border border-white/10 flex items-center px-4">
+                            <span class="text-gray-500 text-sm">Departemen</span>
+                        </div>
+                        <div class="h-12 bg-gray-800 rounded-xl border border-white/10 flex items-center px-4">
+                            <span class="text-gray-500 text-sm">Jabatan</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="sim-step-3" class="space-y-4 hidden-step">
+                    <div class="h-8 w-40 bg-gray-700/50 rounded-lg mb-4"></div>
+                    <div class="field w-full h-12 bg-gray-800 rounded-xl border border-white/10 flex items-center px-4">
+                        <span class="text-gray-500 text-sm">Email</span>
+                    </div>
+                    <div class="field w-full h-12 bg-gray-800 rounded-xl border border-white/10 flex items-center px-4">
+                        <span class="text-gray-500 text-sm">Password</span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-4">
+                        <div class="w-5 h-5 rounded bg-green-500/20 border border-green-500"></div>
+                        <div class="h-4 w-32 bg-gray-700/50 rounded"></div>
+                    </div>
+                </div>
+
+                <!-- Cursor Overlay -->
+                <div id="cursor" class="absolute pointer-events-none z-50 transition-all duration-300"
+                    style="left: 50%; top: 50%;">
+                    <svg class="w-8 h-8 text-white drop-shadow-md" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M7 2l12 11.2L14.5 14.5l3.5 6-3 1.5-3.5-6L7 21V2z" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Floating Decoration -->
+            <div class="absolute -top-10 -left-10 w-32 h-32 bg-green-500/20 blur-3xl rounded-full"></div>
+            <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-500/20 blur-3xl rounded-full"></div>
+        </div>
+
+        <!-- Right Content / Instructions -->
+        <div class="order-1 md:order-2">
+            <div class="mb-4">
+                <span class="text-green-400 font-bold tracking-widest text-sm uppercase">Tutorial Interaktif</span>
+                <h1 class="text-4xl md:text-5xl font-extrabold mt-2 leading-tight">Mulai Bergabung Dengan Koperasi</h1>
+            </div>
+
+            <!-- Step Cards -->
+            <div id="instr-step-0" class="instr-card transition-all duration-500">
+                <p class="text-lg text-gray-400 mb-8 max-w-md">Ikuti petunjuk langkah demi langkah ini untuk
+                    mendaftarkan diri Anda sebagai anggota resmi koperasi secara online.</p>
+                <button onclick="startTutorial()"
+                    class="group relative px-8 py-4 bg-green-600 rounded-2xl font-bold text-lg hover:bg-green-500 transition-all overflow-hidden shadow-lg shadow-green-500/20">
+                    Mulai Belajar Sekarang
+                    <div
+                        class="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-[-20deg]">
+                    </div>
+                </button>
+            </div>
+
+            <div id="instr-step-1" class="instr-card hidden-step">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center font-bold text-xl">1
+                    </div>
+                    <h2 class="text-2xl font-bold">Data Pribadi & OCR</h2>
+                </div>
+                <div class="glass-card p-5 border-l-4 border-green-500 mb-6">
+                    <p class="text-gray-300 leading-relaxed">
+                        Masukkan <span class="text-green-400 font-bold">Nama</span> dan <span
+                            class="text-green-400 font-bold">NIK KTP</span>.
+                        Tersedia fitur <b>OCR</b>: Cukup upload foto KTP, sistem akan otomatis membaca data Anda!
+                    </p>
+                </div>
+                <button onclick="goToStep(2)"
+                    class="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all">Lanjut ke Data
+                    Karyawan →</button>
+            </div>
+
+            <div id="instr-step-2" class="instr-card hidden-step">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center font-bold text-xl">2
+                    </div>
+                    <h2 class="text-2xl font-bold">Identitas Karyawan</h2>
+                </div>
+                <div class="glass-card p-5 border-l-4 border-blue-500 mb-6">
+                    <p class="text-gray-300 leading-relaxed">
+                        Masukkan <span class="text-blue-400 font-bold">NIK Karyawan</span> (SKF) Anda.
+                        Pilih <b>Departemen</b> dan <b>Jabatan</b> sesuai penempatan di perusahaan.
+                    </p>
+                </div>
+                <button onclick="goToStep(3)"
+                    class="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all">Lanjut ke Akun &
+                    Password →</button>
+            </div>
+
+            <div id="instr-step-3" class="instr-card hidden-step">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-yellow-500 flex items-center justify-center font-bold text-xl">3
+                    </div>
+                    <h2 class="text-2xl font-bold">Keamanan & Akun</h2>
+                </div>
+                <div class="glass-card p-5 border-l-4 border-yellow-500 mb-6">
+                    <p class="text-gray-300 leading-relaxed">
+                        Tentukan <span class="text-yellow-400 font-bold">Email</span> dan <span
+                            class="text-yellow-400 font-bold">Password</span> minimal 8 karakter.
+                        Jangan lupa centang persetujuan AD-ART Koperasi.
+                    </p>
+                </div>
+                <button onclick="finishTutorial()"
+                    class="px-8 py-4 bg-green-600 rounded-2xl font-bold shadow-xl shadow-green-500/20 hover:scale-105 transition-all">Daftar
+                    Sekarang! ✨</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confetti Canvas -->
+    <canvas id="canvas" class="fixed inset-0 pointer-events-none z-[100]"></canvas>
+
+    <script>
+        let currentStep = 0;
+
+        function startTutorial() {
+            goToStep(1);
+        }
+
+        function goToStep(step) {
+            // Hide previous instr
+            gsap.to(`#instr-step-${currentStep}`, { opacity: 0, y: -20, duration: 0.3, display: 'none' });
+
+            // Show new instr
+            gsap.fromTo(`#instr-step-${step}`,
+                { opacity: 0, y: 20, display: 'block' },
+                { opacity: 1, y: 0, duration: 0.5, delay: 0.3 }
+            );
+
+            // Simulation Anims
+            if (step === 1) {
+                gsap.set("#prog-1", { width: "100%" });
+                animateStep1();
+            } else if (step === 2) {
+                gsap.set("#prog-2", { width: "100%" });
+                animateStep2();
+            } else if (step === 3) {
+                gsap.set("#prog-3", { width: "100%" });
+                animateStep3();
+            }
+
+            currentStep = step;
+        }
+
+        function animateStep1() {
+            gsap.to("#sim-step-1", { display: 'block', opacity: 1, duration: 0.5 });
+
+            // Move Cursor to ID Card
+            const cursor = document.getElementById('cursor');
+            const target = document.getElementById('sim-id-card');
+
+            gsap.to(cursor, {
+                left: "30%", top: "45%", duration: 1, delay: 0.5,
+                onComplete: () => {
+                    target.classList.add('field-highlight');
+                    simulateTyping(target.querySelector('span'), "3201234567890001");
+                }
+            });
+
+            gsap.to(cursor, {
+                left: "40%", top: "60%", duration: 1, delay: 3,
+                onComplete: () => {
+                    target.classList.remove('field-highlight');
+                    const target2 = document.getElementById('sim-name');
+                    target2.classList.add('field-highlight');
+                    simulateTyping(target2.querySelector('span'), "AGUS SETIAWAN");
+                }
+            });
+        }
+
+        function animateStep2() {
+            gsap.to("#sim-step-1", { opacity: 0, display: 'none', duration: 0.3 });
+            gsap.fromTo("#sim-step-2", { opacity: 0, display: 'block', y: 20 }, { opacity: 1, y: 0, duration: 0.5 });
+
+            const cursor = document.getElementById('cursor');
+            gsap.to(cursor, {
+                left: "50%", top: "45%", duration: 1, delay: 0.5,
+                onComplete: () => {
+                    const target = document.getElementById('sim-employee-id');
+                    target.classList.add('field-highlight');
+                    simulateTyping(target.querySelector('span'), "SP-2024-001");
+                }
+            });
+        }
+
+        function animateStep3() {
+            gsap.to("#sim-step-2", { opacity: 0, display: 'none', duration: 0.3 });
+            gsap.fromTo("#sim-step-3", { opacity: 0, display: 'block', y: 20 }, { opacity: 1, y: 0, duration: 0.5 });
+
+            const cursor = document.getElementById('cursor');
+            gsap.to(cursor, {
+                left: "20%", top: "80%", duration: 1, delay: 0.5,
+                onComplete: () => {
+                    // Simulating Checkbox click
+                }
+            });
+        }
+
+        function simulateTyping(el, text) {
+            el.textContent = "";
+            el.classList.add('typing');
+            let i = 0;
+            const interval = setInterval(() => {
+                el.textContent += text[i];
+                i++;
+                if (i >= text.length) {
+                    clearInterval(interval);
+                    el.classList.remove('typing');
+                    el.classList.add('text-white');
+                }
+            }, 50)
+        }
+
+        function finishTutorial() {
+            // Confetti
+            initConfetti();
+            alert("Tutorial Selesai! Klik OK untuk menuju halaman registrasi sebenarnya.");
+            // Optional: window.location.href = "/register";
+        }
+
+        // CONFETTI LOGIC (Simple)
+        function initConfetti() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            let particles = [];
+            const colors = ['#009640', '#0054a6', '#facc15', '#ffffff'];
+
+            for (let i = 0; i < 100; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    size: Math.random() * 8 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    speed: Math.random() * 5 + 2,
+                    angle: Math.random() * 2 * Math.PI
+                });
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, p.size, p.size);
+                    p.y += p.speed;
+                    p.x += Math.sin(p.angle) * 2;
+                    if (p.y > canvas.height) p.y = -20;
+                });
+                requestAnimationFrame(draw);
+            }
+            draw();
+        }
+    </script>
+</body>
+
+</html>

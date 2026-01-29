@@ -1,0 +1,38 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('meetings', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');
+            $table->string('type'); // RAT, Rapat Pengurus, Rapat Luar Biasa
+            $table->dateTime('scheduled_at');
+            $table->string('location')->nullable();
+            $table->text('agenda')->nullable();
+            $table->text('notes')->nullable(); // Notulen
+            $table->string('status')->default('scheduled'); // scheduled, ongoing, completed, cancelled
+            $table->json('attendance_list')->nullable(); // List of user_ids present
+            $table->string('attachment_path')->nullable(); // Uploaded document path
+            $table->foreignId('created_by')->constrained('users');
+            $table->timestamps();
+            $table->softDeletes();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('meetings');
+    }
+};

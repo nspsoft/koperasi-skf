@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panduan Update Hosting - Koperasi SKF</title>
+    <style>
+        :root {
+            --primary: #0f766e;
+            /* Teal 700 */
+            --primary-light: #14b8a6;
+            /* Teal 500 */
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --code-bg: #1e293b;
+            --code-text: #e2e8f0;
+            --warning-bg: #fff7ed;
+            --warning-border: #fdba74;
+            --warning-text: #c2410c;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: sticky;
+            top: 2rem;
+            height: fit-content;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--primary);
+            border-left-color: var(--primary);
+            background: #f1f5f9;
+        }
+
+        .nav-link.active {
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        .main-content {
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
+        }
+
+        /* Typography */
+        h1 {
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+            font-size: 2rem;
+        }
+
+        h2 {
+            margin-top: 2.5rem;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            margin-top: 1.5rem;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: #475569;
+        }
+
+        /* Components */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-easy {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .badge-medium {
+            background: #fef9c3;
+            color: #a16207;
+        }
+
+        .badge-hard {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .alert {
+            background-color: var(--warning-bg);
+            border: 1px solid var(--warning-border);
+            color: var(--warning-text);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            display: flex;
+            align-items: start;
+            gap: 1rem;
+        }
+
+        .alert-icon {
+            font-size: 1.5rem;
+        }
+
+        .step-list {
+            list-style: none;
+            padding: 0;
+            counter-reset: step;
+        }
+
+        .step-item {
+            position: relative;
+            padding-left: 3.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .step-item::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 2.5rem;
+            height: 2.5rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 2.5rem;
+            font-weight: bold;
+        }
+
+        code {
+            background: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #ec4899;
+            /* Pinkish red for inline code */
+            font-size: 0.9rem;
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Consolas', monospace;
+        }
+
+        .path {
+            color: #2563eb;
+            font-weight: 500;
+        }
+
+        .path-danger {
+            color: #dc2626;
+            font-weight: 700;
+            text-decoration: underline;
+        }
+
+        .footer {
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <nav class="sidebar">
+            <h3 style="padding-left:1rem; margin-top:0;">Navigasi</h3>
+            <a href="#intro" class="nav-link active">Pendahuluan</a>
+            <a href="#rules" class="nav-link">Aturan Emas (WAJIB)</a>
+            <a href="#scenario1" class="nav-link">Skenario 1: Update Rutin</a>
+            <a href="#scenario2" class="nav-link">Skenario 2: Update Aset</a>
+            <a href="#scenario3" class="nav-link">Skenario 3: Major Update</a>
+            <a href="#scenario4" class="nav-link">Skenario 4: Update Database</a>
+            <a href="#troubleshoot" class="nav-link">Troubleshooting</a>
+        </nav>
+
+        <main class="main-content">
+            <section id="intro">
+                <h1>Panduan Update Hosting</h1>
+                <p>Dokumen ini berisi panduan langkah demi langkah untuk memperbarui aplikasi <strong>Koperasi
+                        SKF</strong> di hosting (cPanel) dengan aman dan mudah.</p>
+                <p><strong>Status Deployment:</strong> Secure Deployment (Folder Inti Terpisah).</p>
+            </section>
+
+            <section id="rules">
+                <h2>🥇 Aturan Emas (Golden Rules)</h2>
+                <div class="alert">
+                    <span class="alert-icon">⚠️</span>
+                    <div>
+                        <strong>JANGAN PERNAH MENIMPA (OVERWRITE) 2 FILE INI:</strong><br>
+                        1. <span class="path-danger">public_html/index.php</span><br>
+                        2. <span class="path-danger">kopkarskf/.env</span><br>
+                        <br>
+                        <em>Kedua file tersebut berisi konfigurasi kunci ("Pondasi") agar aplikasi berjalan. Jika
+                            tertimpa file dari laptop, website akan mati.</em>
+                    </div>
+                </div>
+            </section>
+
+            <section id="scenario1">
+                <h2>Skenario 1: Update Rutin (Kodingan) <span class="badge badge-easy">Mudah • 5 Menit</span></h2>
+                <p>Gunakan cara ini jika Anda hanya mengubah **Fitur, Controller, Route, atau View** (tanpa menambah
+                    library baru).</p>
+
+                <ol class="step-list">
+                    <li class="step-item">
+                        <strong>Persiapan di Laptop</strong>
+                        <p>Pilih folder utama aplikasi Anda (biasanya di <code>C:\laragon\www\Koperasi</code>). Pilih
+                            folder-folder berikut lalu jadikan file <strong>.ZIP</strong>:</p>
+                        <ul>
+                            <li><code>app</code></li>
+                            <li><code>config</code></li>
+                            <li><code>resources</code></li>
+                            <li><code>routes</code></li>
+                        </ul>
+                    </li>
+                    <li class="step-item">
+                        <strong>Upload ke Hosting</strong>
+                        <p>Buka File Manager cPanel, masuk ke folder <span class="path">kopkarskf</span>.</p>
+                        <p>Klik tombol <strong>Upload</strong> -> Pilih file ZIP tadi.</p>
+                    </li>
+                    <li class="step-item">
+                        <strong>Ekstrak & Timpa</strong>
+                        <p>Klik kanan file ZIP yang sudah terupload -> <strong>Extract</strong>.</p>
+                        <p>Saat ditanya, pastikan path tujuannya adalah folder <span class="path">kopkarskf</span>.</p>
+                        <p>Biarkan proses *overwrite* selesai.</p>
+                    </li>
+                </ol>
+            </section>
+
+            <section id="scenario2">
+                <h2>Skenario 2: Update Tampilan (Assets) <span class="badge badge-easy">Mudah</span></h2>
+                <p>Lakukan ini jika Anda mengubah desain CSS, Javascript, atau menjalankan perintah
+                    <code>npm run build</code> di laptop.</p>
+                <ol class="step-list">
+                    <li class="step-item">
+                        <strong>Zip Folder Build</strong>
+                        <p>Di laptop, masuk ke folder <code>public</code>. Zip folder bernama
+                            <strong><code>build</code></strong>.</p>
+                    </li>
+                    <li class="step-item">
+                        <strong>Upload, Extract, Overwrite</strong>
+                        <p>Upload ke folder <span class="path">public_html</span>. Extract di sana.</p>
+                    </li>
+                </ol>
+            </section>
+
+            <section id="scenario3">
+                <h2>Skenario 3: Major Update (Library Baru) <span class="badge badge-medium">Agak Lama</span></h2>
+                <p>Gunakan ini HANYA jika Anda menginstal package baru via Composer.</p>
+                <ul>
+                    <li>Sama seperti Skenario 1, tapi IKUTKAN folder <strong><code>vendor</code></strong> ke dalam ZIP.
+                    </li>
+                    <li>Setelah ekstract, cek Permission folder <code>koppkarskf/vendor</code> harus
+                        <strong>755</strong> dan file di dalamnya <strong>644</strong>.</li>
+                </ul>
+            </section>
+
+            <section id="scenario4">
+                <h2>Skenario 4: Update Database (Migrasi) <span class="badge badge-medium">Penting</span></h2>
+                <p>Karena hosting cPanel tidak menyediakan Terminal (SSH), Anda tidak bisa menjalankan
+                    <code>php artisan migrate</code> secara langsung. Gunakan salah satu cara ini jika Anda mengubah
+                    tabel database.</p>
+
+                <h3>Cara Otomatis (Pakai Script Migrator)</h3>
+                <ol class="step-list">
+                    <li class="step-item">
+                        <strong>Upload Kode Database</strong>
+                        <p>Pastikan Anda sudah mengupload folder <code>database</code> di Skenario 1.</p>
+                    </li>
+                    <li class="step-item">
+                        <strong>Buat Pemicu (Script)</strong>
+                        <p>Buat file baru bernama <strong><code>migrator.php</code></strong> di dalam folder <span
+                                class="path">public_html</span>. Isi dengan kode ini:</p>
+                        <div class="code-block">
+                            &lt;?php
+                            error_reporting(E_ALL);
+                            ini_set('display_errors', 1);
+
+                            // Load Laravel
+                            require __DIR__ . '/../kopkarskf/vendor/autoload.php';
+                            $app = require_once __DIR__ . '/../kopkarskf/bootstrap/app.php';
+
+                            echo "&lt;h2&gt;Menjalankan Migrasi Database...&lt;/h2&gt;";
+
+                            try {
+                            $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+                            $kernel-&gt;call('migrate', ['--force' =&gt; true]);
+
+                            echo "&lt;pre&gt;" . $kernel-&gt;output() . "&lt;/pre&gt;";
+                            echo "&lt;h3 style='color:green'&gt;SUKSES! Database Terupdate.&lt;/h3&gt;";
+                            } catch (Exception $e) {
+                            echo "&lt;h3 style='color:red'&gt;GAGAL:&lt;/h3&gt;";
+                            echo $e-&gt;getMessage();
+                            }
+                            ?&gt;
+                        </div>
+                    </li>
+                    <li class="step-item">
+                        <strong>Jalankan</strong>
+                        <p>Buka browser: <code>kopkarskf.com/migrator.php</code>.</p>
+                        <p><strong>PENTING:</strong> Segera hapus file <code>migrator.php</code> setelah selesai
+                            dipakai.</p>
+                    </li>
+                </ol>
+            </section>
+
+            <section id="troubleshoot">
+                <h2>🛠️ Troubleshooting</h2>
+                <h3>Aplikasi Error setelah Update?</h3>
+                <p>Langkah pertolongan pertama (P3K) paling ampuh adalah <strong>Membersihkan Cache</strong>.</p>
+                <ol>
+                    <li>Buka File Manager -> <code>kopkarskf/bootstrap/cache/</code>.</li>
+                    <li>Hapus semua file PHP di dalamnya (kecuali <code>.gitignore</code>).</li>
+                    <li>Refresh website.</li>
+                </ol>
+            </section>
+
+            <div class="footer">
+                <p>Dibuat oleh AI Assistant - Januari 2026<br>Koperasi SKF Digital Team</p>
+            </div>
+        </main>
+    </div>
+
+</body>
+
+</html>

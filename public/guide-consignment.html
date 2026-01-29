@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Fitur Konsinyasi (Titip Jual) - Koperasi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Animation Utilities */
+        @keyframes floatIn {
+            0% {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .animate-float-in {
+            animation: floatIn 0.5s ease-out forwards;
+        }
+
+        .coin-animation {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: #F59E0B;
+            /* Amber-500 */
+            border-radius: 50%;
+            border: 2px solid #D97706;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            z-index: 50;
+            pointer-events: none;
+            transition: all 1s ease-in-out;
+        }
+
+        .box-animation {
+            position: absolute;
+            font-size: 20px;
+            z-index: 50;
+            transition: all 0.8s ease-in-out;
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Hero Section -->
+    <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white pb-24 relative overflow-hidden">
+        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10">
+        </div>
+        <div class="container mx-auto px-6 pt-12 relative z-10">
+            <div class="flex justify-between items-center mb-12">
+                <div class="font-bold text-2xl tracking-tight">Koperasi Digital</div>
+                <a href="/dashboard"
+                    class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm transition font-medium backdrop-blur-sm">Kembali
+                    ke Dashboard</a>
+            </div>
+            <div class="max-w-3xl">
+                <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">
+                    Panduan & Simulator <br>
+                    <span class="text-blue-200">Fitur Konsinyasi (Titip Jual)</span>
+                </h1>
+                <p class="text-lg text-blue-100 leading-relaxed mb-8 max-w-2xl">
+                    Pahami bagaimana alur barang titipan, penjualan, hingga pembagian hasil (settlement) bekerja tanpa
+                    resiko. <br>
+                    <span class="font-bold text-yellow-300">UPDATE: Termasuk fitur Auto-Debet ke Simpanan
+                        Sukarela!</span>
+                </p>
+                <div class="flex gap-4">
+                    <a href="#simulator"
+                        class="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold px-8 py-3 rounded-xl shadow-lg shadow-yellow-500/20 transition transform hover:-translate-y-1">
+                        Mulai Simulasi 🎮
+                    </a>
+                    <a href="#explanation"
+                        class="bg-white/10 hover:bg-white/20 text-white font-semibold px-8 py-3 rounded-xl backdrop-blur-sm transition">
+                        Pelajari Konsep 📖
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Curve Divider -->
+        <div class="absolute bottom-0 left-0 w-full overflow-hidden leading-[0]">
+            <svg class="relative block w-[calc(110%+1.3px)] h-[60px]" data-name="Layer 1"
+                xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                <path
+                    d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z"
+                    class="fill-slate-50"></path>
+            </svg>
+        </div>
+    </header>
+
+    <!-- Concept Section -->
+    <section id="explanation" class="py-16 container mx-auto px-6">
+        <h2 class="text-3xl font-bold text-center mb-16 text-slate-800">Bagaimana Konsep Konsinyasi Bekerja?</h2>
+
+        <div class="grid md:grid-cols-3 gap-8">
+            <!-- Step 1 -->
+            <div
+                class="bg-white p-8 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 hover:border-blue-200 transition group relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-blue-500">1</div>
+                <div
+                    class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-6 text-2xl group-hover:scale-110 transition">
+                    📦</div>
+                <h3 class="text-xl font-bold mb-3 text-slate-800">Terima Barang (Inbound)</h3>
+                <p class="text-slate-600 leading-relaxed">
+                    Barang diterima dari Mitra (Supplier/Anggota). Stok bertambah di gudang, tapi
+                    <span class="font-bold text-blue-600">belum muncul hutang</span>. Koperasi belum membayar apa-apa.
+                </p>
+            </div>
+
+            <!-- Step 2 -->
+            <div
+                class="bg-white p-8 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 hover:border-green-200 transition group relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-green-500">2</div>
+                <div
+                    class="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-6 text-2xl group-hover:scale-110 transition">
+                    🛒</div>
+                <h3 class="text-xl font-bold mb-3 text-slate-800">Penjualan (Sales)</h3>
+                <p class="text-slate-600 leading-relaxed">
+                    Saat barang laku, Koperasi menerima Uang Tunai penuh dari pembeli.
+                    Sistem mencatat: "Barang ini milik Mitra X, kita harus bayar nanti".
+                </p>
+            </div>
+
+            <!-- Step 3 -->
+            <div
+                class="bg-white p-8 rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 hover:border-purple-200 transition group relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10 font-black text-6xl text-purple-500">3</div>
+                <div
+                    class="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mb-6 text-2xl group-hover:scale-110 transition">
+                    💰</div>
+                <h3 class="text-xl font-bold mb-3 text-slate-800">Settlement (Bagi Hasil)</h3>
+                <p class="text-slate-600 leading-relaxed">
+                    Di akhir periode, lakukan Settlement. Pilih metode bayar:
+                    <span class="font-bold text-red-600">Tunai/Transfer</span> atau
+                    <span class="font-bold text-green-600">Masuk Tabungan</span> (Jika Anggota).
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Simulator Section -->
+    <section id="simulator" class="py-12 bg-slate-100 border-t border-slate-200">
+        <div class="container mx-auto px-6">
+            <div class="max-w-5xl mx-auto">
+                <div class="text-center mb-10">
+                    <span
+                        class="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Interactive
+                        Lab</span>
+                    <h2 class="text-3xl font-bold mt-2 text-slate-800">Simulator Konsinyasi</h2>
+                    <p class="text-slate-500">Coba transaksikan barang di bawah ini untuk melihat aliran dananya.</p>
+                </div>
+
+                <!-- Simulator Controls & Dashboard -->
+                <div class="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+
+                    <!-- Top Bar: Product Config -->
+                    <div
+                        class="bg-slate-800 text-slate-300 p-6 flex flex-wrap gap-8 justify-center border-b border-slate-700 text-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded bg-slate-700 flex items-center justify-center text-xl">🍪
+                            </div>
+                            <div>
+                                <div class="text-xs uppercase tracking-wide text-slate-500">Produk</div>
+                                <div class="font-bold text-white">Keripik Balado</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded bg-slate-700 flex items-center justify-center text-xl">👤
+                            </div>
+                            <div>
+                                <div class="text-xs uppercase tracking-wide text-slate-500">Pemilik (Mitra)</div>
+                                <div class="font-bold text-white">Bu Siti (Anggota)</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 pl-8 border-l border-slate-700">
+                            <div>
+                                <div class="text-xs uppercase tracking-wide text-slate-500">Harga Jual</div>
+                                <div class="font-bold text-green-400">Rp 15.000</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div>
+                                <div class="text-xs uppercase tracking-wide text-slate-500">Setor ke Mitra (HPP)</div>
+                                <div class="font-bold text-red-400">Rp 12.000</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div>
+                                <div class="text-xs uppercase tracking-wide text-slate-500">Profit Koperasi</div>
+                                <div class="font-bold text-blue-400">Rp 3.000</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Stage -->
+                    <div class="p-8 relative min-h-[500px] bg-slate-50">
+
+                        <!-- Visual Container -->
+                        <div class="grid grid-cols-3 gap-8 h-full">
+
+                            <!-- AREA 1: SUPPLIER & INBOUND -->
+                            <div class="flex flex-col gap-4">
+                                <div
+                                    class="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm flex-1 flex flex-col items-center justify-center relative">
+                                    <h4 class="absolute top-4 left-4 font-bold text-xs text-slate-400 uppercase">Mitra /
+                                        Supplier</h4>
+                                    <div class="text-6xl mb-4">👩🏻‍🍳</div>
+                                    <button onclick="simInbound()" id="btn-inbound"
+                                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full shadow-lg shadow-blue-500/30 transform transition active:scale-95 flex items-center gap-2">
+                                        <span>+</span> Terima 5 Unit
+                                    </button>
+                                    <p class="text-xs text-center text-slate-400 mt-2 max-w-[200px]">Klik untuk menambah
+                                        stok gudang</p>
+                                </div>
+                            </div>
+
+                            <!-- AREA 2: WAREHOUSE & SHOP -->
+                            <div class="flex flex-col gap-4">
+                                <!-- Warehouse -->
+                                <div id="warehouse-zone"
+                                    class="p-6 bg-slate-200 rounded-2xl border-2 border-dashed border-slate-300 shadow-inner flex-1 flex flex-col items-center relative">
+                                    <h4
+                                        class="font-bold text-xs text-slate-500 uppercase w-full text-center border-b border-slate-300 pb-2 mb-4">
+                                        Gudang & Toko (Stock)</h4>
+                                    <div id="stock-container"
+                                        class="grid grid-cols-5 gap-2 w-full h-full content-start justify-items-center p-2">
+                                        <!-- Boxes go here -->
+                                        <div class="text-slate-400 text-sm italic col-span-5 mt-10"
+                                            id="empty-stock-msg">Gudang Kosong</div>
+                                    </div>
+                                    <div
+                                        class="absolute bottom-4 right-4 text-xs font-bold bg-white px-2 py-1 rounded shadow text-slate-600">
+                                        Total: <span id="stock-count">0</span>
+                                    </div>
+                                </div>
+
+                                <!-- Action: Sell -->
+                                <button onclick="simSell()" id="btn-sell"
+                                    class="bg-green-600 hover:bg-green-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-green-500/30 transform transition active:scale-95 w-full flex justify-center items-center gap-2">
+                                    🛒 Jual 1 Unit (Rp 15k)
+                                </button>
+                            </div>
+
+                            <!-- AREA 3: CASH & SETTLEMENT -->
+                            <div class="flex flex-col gap-4">
+                                <!-- Cash Register -->
+                                <div
+                                    class="p-6 bg-emerald-50 rounded-2xl border border-emerald-100 shadow-sm h-40 flex flex-col relative">
+                                    <h4 class="font-bold text-xs text-emerald-700 uppercase mb-2">Kasir (Uang Masuk)
+                                    </h4>
+                                    <div class="flex-1 flex items-center justify-center">
+                                        <div class="text-3xl font-bold text-emerald-600" id="cash-display">Rp 0</div>
+                                    </div>
+                                    <div class="absolute top-4 right-4 text-2xl opacity-20">💵</div>
+                                </div>
+
+                                <!-- Liability Tracker -->
+                                <div
+                                    class="p-4 bg-red-50 rounded-xl border border-red-100 flex justify-between items-center">
+                                    <div>
+                                        <div class="text-xs font-bold text-red-700 uppercase">Hutang ke Mitra</div>
+                                        <div class="text-xs text-red-400">Belum dibayar</div>
+                                    </div>
+                                    <div class="text-xl font-bold text-red-600" id="liability-display">Rp 0</div>
+                                </div>
+
+                                <!-- Settlement Action -->
+                                <div class="space-y-2">
+                                    <select id="payment-method"
+                                        class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white">
+                                        <option value="cash">Metode: Tunai / Transfer</option>
+                                        <option value="savings">Metode: Simpanan Sukarela (Auto)</option>
+                                    </select>
+                                    <button onclick="simSettlement()" id="btn-settle"
+                                        class="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-purple-500/30 transform transition active:scale-95 w-full mt-auto">
+                                        💸 Proses Settlement
+                                    </button>
+                                </div>
+
+                                <!-- Final Wallets -->
+                                <div class="grid grid-cols-2 gap-2 mt-2">
+                                    <!-- Partner Wallet (Split for logic) -->
+                                    <div class="p-2 bg-white rounded border border-slate-200">
+                                        <div class="text-[10px] text-slate-400 uppercase">Tunai Mitra</div>
+                                        <div class="font-bold text-slate-700" id="partner-wallet">Rp 0</div>
+                                    </div>
+                                    <!-- Savings Wallet -->
+                                    <div class="p-2 bg-green-50 rounded border border-green-200">
+                                        <div class="text-[10px] text-green-600 uppercase font-bold">Saldo Simpanan</div>
+                                        <div class="font-bold text-green-700" id="savings-wallet">Rp 0</div>
+                                    </div>
+                                    <!-- Profit -->
+                                    <div
+                                        class="col-span-2 p-2 bg-blue-50 rounded border border-blue-100 flex justify-between items-center">
+                                        <div class="text-[10px] text-blue-400 uppercase">Profit Koperasi</div>
+                                        <div class="font-bold text-blue-700" id="coop-wallet">Rp 0</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Sim Log -->
+                    <div class="bg-slate-900 text-slate-400 p-4 text-xs font-mono h-32 overflow-y-auto border-t border-slate-800"
+                        id="sim-log">
+                        <div>> Simulator siap. Silahkan mulai dengan 'Terima Barang'.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-slate-400 py-12 border-t border-slate-700 mt-12">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2026 Koperasi Digital Simulator. All code logic runs locally in your browser.</p>
+        </div>
+    </footer>
+
+    <!-- LOGIC SCRIPT -->
+    <script>
+        // State
+        const STATE = {
+            stock: 0,
+            cash: 0,
+            liability: 0, // Hutang ke mitra
+            partnerWallet: 0, // Cash Payout
+            savingsWallet: 0, // Savings Payout
+            coopWallet: 0,
+
+            // Config
+            priceSell: 15000,
+            priceCost: 12000,
+            priceProfit: 3000
+        };
+
+        // DOM Elements
+        const els = {
+            stockCount: document.getElementById('stock-count'),
+            stockContainer: document.getElementById('stock-container'),
+            emptyMsg: document.getElementById('empty-stock-msg'),
+            cashDisplay: document.getElementById('cash-display'),
+            liabilityDisplay: document.getElementById('liability-display'),
+            partnerWallet: document.getElementById('partner-wallet'),
+            savingsWallet: document.getElementById('savings-wallet'),
+            coopWallet: document.getElementById('coop-wallet'),
+            log: document.getElementById('sim-log'),
+            btnSell: document.getElementById('btn-sell'),
+            btnSettle: document.getElementById('btn-settle'),
+            paymentMethod: document.getElementById('payment-method')
+        };
+
+        // Format Currency
+        const fmtMoney = (n) => 'Rp ' + new Intl.NumberFormat('id-ID').format(n);
+
+        // Logger
+        function log(msg, type = 'info') {
+            const line = document.createElement('div');
+            const time = new Date().toLocaleTimeString('id-ID', { hour12: false });
+            line.innerHTML = `<span class="opacity-50">[${time}]</span> <span class="${type === 'success' ? 'text-green-400' : (type === 'warn' ? 'text-yellow-400' : 'text-blue-300')}">${msg}</span>`;
+            els.log.prepend(line);
+        }
+
+        // --- ACTIONS ---
+
+        function simInbound() {
+            const qty = 5;
+
+            // Visual Add
+            els.emptyMsg.style.display = 'none';
+
+            for (let i = 0; i < qty; i++) {
+                setTimeout(() => {
+                    addBoxVisual();
+                    STATE.stock++;
+                    updateUI();
+                }, i * 150);
+            }
+
+            log(`Inbound: Menerima ${qty} unit barang dari Mitra. Tidak ada kas keluar.`, 'success');
+        }
+
+        function simSell() {
+            if (STATE.stock <= 0) {
+                log("Gagal: Stok habis!", 'warn');
+                document.getElementById('warehouse-zone').classList.add('shake');
+                setTimeout(() => document.getElementById('warehouse-zone').classList.remove('shake'), 500);
+                return;
+            }
+
+            // Logic
+            STATE.stock--;
+            STATE.cash += STATE.priceSell;
+            STATE.liability += STATE.priceCost; // Accrue liability
+
+            // Visual Remove
+            const boxes = els.stockContainer.querySelectorAll('.box-item');
+            if (boxes.length > 0) {
+                const boxToRemove = boxes[boxes.length - 1];
+
+                // Animate box moving to button (Simulated sale)
+                boxToRemove.style.transform = "scale(0)";
+                boxToRemove.style.opacity = "0";
+                setTimeout(() => boxToRemove.remove(), 300);
+            }
+
+            log(`Penjualan: 1 unit terjual. Kas +${fmtMoney(STATE.priceSell)}. Hutang tercatat ${fmtMoney(STATE.priceCost)}.`, 'info');
+            updateUI();
+        }
+
+        function simSettlement() {
+            if (STATE.liability <= 0) {
+                log("Tidak ada hutang/settlement yang perlu diproses.", 'warn');
+                return;
+            }
+
+            const method = els.paymentMethod.value;
+            const amountPayable = STATE.liability;
+            const currentCash = STATE.cash; // 15k
+            const profitVal = currentCash - amountPayable; // 3k
+
+            // Logic Check: Does Cash cover Liability? Yes, always >.
+
+            log(`Settlement dimulai via ${method === 'cash' ? 'Tunai' : 'Simpanan'}...`, 'warn');
+
+            // Animate Payout
+            const steps = 10;
+            let step = 0;
+            const interval = setInterval(() => {
+                step++;
+
+                // Chunking
+                const payChunk = amountPayable / steps;
+                const profitChunk = (profitVal > 0 ? profitVal : 0) / steps;
+
+                STATE.cash -= (payChunk + profitChunk);
+                STATE.liability -= payChunk;
+
+                // Distribute Logic
+                if (method === 'cash') {
+                    STATE.partnerWallet += payChunk;
+                } else {
+                    STATE.savingsWallet += payChunk;
+                }
+
+                STATE.coopWallet += profitChunk;
+
+                updateUI();
+
+                if (step >= steps) {
+                    clearInterval(interval);
+                    // Force clean numbers
+                    STATE.cash = 0;
+                    STATE.liability = 0;
+                    updateUI();
+
+                    if (method === 'savings') {
+                        log(`Sukses! ${fmtMoney(amountPayable)} masuk ke Simpanan Sukarela Anggota.`, 'success');
+                    } else {
+                        log(`Sukses! ${fmtMoney(amountPayable)} dibayarkan Tunai ke Mitra.`, 'success');
+                    }
+                }
+            }, 50);
+        }
+
+        // --- HELPERS ---
+
+        function addBoxVisual() {
+            const div = document.createElement('div');
+            div.className = "box-item w-10 h-10 bg-amber-100 border-2 border-amber-300 rounded flex items-center justify-center text-xl shadow-sm animate-float-in cursor-default hover:scale-110 transition";
+            div.innerHTML = "🍪";
+            div.title = "Keripik Balado";
+            els.stockContainer.appendChild(div);
+        }
+
+        function updateUI() {
+            els.stockCount.innerText = STATE.stock;
+            els.cashDisplay.innerText = fmtMoney(STATE.cash);
+            els.liabilityDisplay.innerText = fmtMoney(STATE.liability);
+            els.partnerWallet.innerText = fmtMoney(STATE.partnerWallet);
+            els.savingsWallet.innerText = fmtMoney(STATE.savingsWallet);
+            els.coopWallet.innerText = fmtMoney(STATE.coopWallet);
+
+            // Button States
+            els.btnSell.disabled = STATE.stock <= 0;
+            els.btnSettle.disabled = STATE.liability <= 0;
+
+            if (STATE.stock === 0 && els.stockContainer.children.length === 0) {
+                if (els.stockContainer.querySelectorAll('.box-item').length === 0) {
+                    els.emptyMsg.style.display = 'block';
+                }
+            } else {
+                els.emptyMsg.style.display = 'none';
+            }
+        }
+
+        // Init
+        updateUI();
+
+    </script>
+</body>
+
+</html>

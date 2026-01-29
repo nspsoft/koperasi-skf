@@ -1,0 +1,14 @@
+<?php
+require __DIR__.'/vendor/autoload.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$app->boot();
+
+use App\Models\DocumentTemplate;
+
+foreach(DocumentTemplate::all() as $t) {
+    if (str_contains($t->content, '...')) {
+        echo "--- " . $t->name . " ---\n";
+        echo $t->content . "\n\n";
+    }
+}
