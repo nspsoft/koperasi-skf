@@ -2,4 +2,12 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/kopw7369/kopkarskf/
-    - /bin/cp -R * $DEPLOYPATH
+    # Fix permissions on target folder first
+    - /bin/chmod -R 755 $DEPLOYPATH/resources/views/ || true
+    - /bin/chmod -R 755 $DEPLOYPATH/app/ || true
+    - /bin/chmod -R 755 $DEPLOYPATH/public/ || true
+    # Copy all files
+    - /bin/cp -Rf * $DEPLOYPATH
+    # Clear Laravel cache
+    - cd $DEPLOYPATH && /usr/local/bin/php artisan view:clear || true
+    - cd $DEPLOYPATH && /usr/local/bin/php artisan config:clear || true
