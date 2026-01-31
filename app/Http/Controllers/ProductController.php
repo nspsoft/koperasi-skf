@@ -123,6 +123,7 @@ class ProductController extends Controller
         $data = $request->all();
         // Ensure boolean fields are set correctly if unchecked
         $data['is_consignment'] = $request->has('is_consignment');
+        $data['is_active'] = true; // Default to active for new products
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('products', 'public');

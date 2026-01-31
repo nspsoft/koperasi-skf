@@ -190,6 +190,16 @@
                             </div>
                         </div>
 
+                        <!-- Product Active Toggle -->
+                        <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800 space-y-3">
+                            <div class="flex items-center gap-3">
+                                <input type="hidden" name="is_active" value="0">
+                                <input type="checkbox" name="is_active" id="is_active" value="1" class="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-all" {{ old('is_active', $product->is_active ?? true) ? 'checked' : '' }}>
+                                <label for="is_active" class="font-bold text-gray-700 dark:text-gray-300 cursor-pointer select-none">✅ Produk Aktif (Tampil di Kasir)</label>
+                            </div>
+                            <p class="text-xs text-gray-500 pl-8">Jika tidak dicentang, produk tidak akan muncul di halaman kasir POS.</p>
+                        </div>
+
                         <div class="form-group">
                             <label for="image" class="form-label">{{ __('messages.product_form.image') }}</label>
                             @if($product->image)
