@@ -112,7 +112,7 @@ class MemberController extends Controller
             $filterStrings[] = 'Departemen: '.$request->department;
         }
 
-        $sheet->mergeCells('A2:L2');
+        $sheet->mergeCells('A2:N2');
         $infoText = empty($filterStrings) ? 'Semua Data' : implode(' | ', $filterStrings);
         $sheet->setCellValue('A2', $infoText.' | Diunduh: '.date('d/m/Y H:i'));
         $sheet->getStyle('A2')->applyFromArray($subtitleStyle);
@@ -120,51 +120,50 @@ class MemberController extends Controller
         // Empty row
         $sheet->setCellValue('A3', '');
 
-        // Column Headers (at row 4)
+        // Column Headers (at row 4) matching Import Template
+        // nama, email, no_hp, role, id_anggota, nik, department, jabatan, jenis_kelamin, tanggal_bergabung, tanggal_lahir, no_ktp, alamat, password
         $headers = [
-            'No', 'ID Anggota', 'NIK', 'Nama Lengkap', 'Email',
-            'Departemen', 'Jabatan', 'Tanggal Bergabung', 'Status',
-            'Limit Kredit (Rp)', 'Total Poin', 'Saldo Simpanan (Rp)',
+            'nama', 'email', 'no_hp', 'role', 'id_anggota', 'nik', 
+            'department', 'jabatan', 'jenis_kelamin', 'tanggal_bergabung', 
+            'tanggal_lahir', 'no_ktp', 'alamat', 'password'
         ];
         $col = 'A';
         foreach ($headers as $header) {
             $sheet->setCellValue($col.'4', $header);
             $col++;
         }
-        $sheet->getStyle('A4:L4')->applyFromArray($headerStyle);
+        $sheet->getStyle('A4:N4')->applyFromArray($headerStyle);
 
         // Data (starting at row 5)
         $row = 5;
-        foreach ($members as $index => $m) {
-            $sheet->setCellValue('A'.$row, $index + 1);
-            $sheet->setCellValue('B'.$row, $m->member_id);
-            $sheet->setCellValue('C'.$row, $m->employee_id ?? '-');
-            $sheet->setCellValue('D'.$row, $m->user->name ?? '-');
-            $sheet->setCellValue('E'.$row, $m->user->email ?? '-');
-            $sheet->setCellValue('F'.$row, $m->department ?? '-');
-            $sheet->setCellValue('G'.$row, $m->position ?? '-');
-            $sheet->setCellValue('H'.$row, $m->join_date ? $m->join_date->format('d/m/Y') : '-');
-            $sheet->setCellValue('I'.$row, ucfirst($m->status));
-            $sheet->setCellValue('J'.$row, $m->credit_limit);
-            $sheet->setCellValue('K'.$row, $m->points);
+        foreach ($members as $m) {
+            $gender = $m->gender == 'L' ? 'Laki-laki' : ($m->gender == 'P' ? 'Perempuan' : '-');
 
-            // Basic savings info if available
-            $savingsBalance = \App\Models\Saving::where('member_id', $m->id)->sum('amount');
-            $sheet->setCellValue('L'.$row, $savingsBalance);
+            $sheet->setCellValue('A'.$row, $m->user->name ?? '-');
+            $sheet->setCellValue('B'.$row, $m->user->email ?? '-');
+            $sheet->setCellValue('C'.$row, $m->user->phone_number ?? '-'); // Assuming this aligns with logic
+            $sheet->setCellValue('D'.$row, $m->user->role ?? 'member');
+            $sheet->setCellValue('E'.$row, $m->member_id);
+            $sheet->setCellValue('F'.$row, $m->employee_id ?? '-');
+            $sheet->setCellValue('G'.$row, $m->department ?? '-');
+            $sheet->setCellValue('H'.$row, $m->position ?? '-');
+            $sheet->setCellValue('I'.$row, $gender);
+            $sheet->setCellValue('J'.$row, $m->join_date ? $m->join_date->format('Y-m-d') : '-');
+            $sheet->setCellValue('K'.$row, $m->birth_date ? $m->birth_date->format('Y-m-d') : '-');
+            $sheet->setCellValue('L'.$row, $m->id_card_number ?? '-');
+            $sheet->setCellValue('M'.$row, $m->address ?? '-');
+            $sheet->setCellValue('N'.$row, ''); // Password blank
 
             $row++;
         }
 
-        // Format amount column
-        $sheet->getStyle('J5:L'.($row - 1))->getNumberFormat()->setFormatCode('#,##0');
-
         // Auto-size columns
-        foreach (range('A', 'L') as $col) {
+        foreach (range('A', 'N') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
         // Add borders to data
-        $sheet->getStyle('A4:L'.($row - 1))->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+        $sheet->getStyle('A4:N'.($row - 1))->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
 
         // Download
         $filename = 'Daftar_Anggota_'.date('Y-m-d_His').'.xlsx';
