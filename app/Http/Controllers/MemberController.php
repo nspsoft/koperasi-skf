@@ -168,19 +168,16 @@ class MemberController extends Controller
 
         // Download
         $filename = 'Daftar_Anggota_'.date('Y-m-d_His').'.xlsx';
-        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment; filename="'.$filename.'"');
-        header('Cache-Control: max-age=0');
 
         \App\Models\AuditLog::log(
             'export',
             'Mengekspor data anggota ke Excel'.(count($filterStrings) > 0 ? ' (Filter: '.implode(', ', $filterStrings).')' : '')
         );
-
-        $writer->save('php://output');
-        exit;
+        
+        return response()->streamDownload(function() use ($spreadsheet) {
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $filename);
     }
 
     /**
