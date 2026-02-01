@@ -98,8 +98,8 @@
                 @include('layouts.topnav')
 
                 <!-- Page Content -->
-                <main class="flex-1 overflow-y-auto p-4 lg:p-8 scrollbar-thin">
-                    <div class="max-w-7xl mx-auto animate-fade-in">
+                <main class="flex-1 overflow-y-auto p-4 lg:py-6 lg:px-4 scrollbar-thin">
+                    <div class="max-w-[1600px] mx-auto animate-fade-in px-2 sm:px-4 lg:px-6">
                         @yield('content')
                     </div>
                 </main>
