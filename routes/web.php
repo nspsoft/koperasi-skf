@@ -221,6 +221,15 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
                 return "❌ Error: " . $e->getMessage();
             }
         });
+
+        Route::get('fix-migration', function() {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+                return "✅ Database Migration Success!<br><pre>" . \Illuminate\Support\Facades\Artisan::output() . "</pre>";
+            } catch (\Exception $e) {
+                return "❌ Migration Error: " . $e->getMessage();
+            }
+        });
         Route::delete('documents/{generatedDocument}', [App\Http\Controllers\DocumentController::class, 'destroy'])->name('documents.destroy');
 
         // Payment Gateway Settings (Admin only)
