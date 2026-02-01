@@ -178,6 +178,9 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
         Route::resource('suppliers', App\Http\Controllers\SupplierController::class);
         
         Route::get('purchases/export', [App\Http\Controllers\PurchaseController::class, 'export'])->name('purchases.export');
+        Route::get('purchases/import', [App\Http\Controllers\PurchaseController::class, 'import'])->name('purchases.import');
+        Route::post('purchases/import', [App\Http\Controllers\PurchaseController::class, 'storeImport'])->name('purchases.import.store');
+        Route::get('purchases/import/template', [App\Http\Controllers\PurchaseController::class, 'downloadTemplate'])->name('purchases.import.template');
         Route::resource('purchases', App\Http\Controllers\PurchaseController::class);
         Route::patch('purchases/{purchase}/status', [App\Http\Controllers\PurchaseController::class, 'updateStatus'])->name('purchases.update-status');
 

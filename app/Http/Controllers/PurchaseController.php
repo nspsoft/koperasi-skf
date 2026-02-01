@@ -337,4 +337,60 @@ class PurchaseController extends Controller
         $writer->save('php://output');
         exit;
     }
+    /**
+     * Show import form
+     */
+    public function import()
+    {
+        return view('purchases.import');
+    }
+
+    /**
+     * Process import
+     */
+    public function storeImport(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:2048'
+        ]);
+
+        try {
+            $import = new \App\Imports\PurchasesImport;
+            \Maatwebsite\Excel\Facades\Excel::import($import, $request->file('file'));
+
+            if (count($import->errors) > 0) {
+                return back()->with('error', 'Import selesai dengan beberapa error: ' . implode(', ', $import->errors));
+            }
+
+            return redirect()->route('purchases.index')->with('success', "Berhasil import {$import->importedCount} transaksi pembelian!");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal import: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download Template
+     */
+    public function downloadTemplate()
+    {
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        $headers = ['No PO', 'Tanggal', 'Supplier', 'Kode Produk', 'Jumlah', 'Harga'];
+        $sheet->fromArray($headers, null, 'A1');
+        
+        // Sample Data
+        $sheet->fromArray([
+            ['PO-2024001', '2024-01-25', 'PT Supplier Jaya', 'PRD001', 50, 10000],
+            ['PO-2024001', '2024-01-25', 'PT Supplier Jaya', 'PRD002', 20, 5000],
+            ['PO-2024002', '2024-01-26', 'CV Maju Mundur', 'PRD003', 100, 2500],
+        ], null, 'A2');
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = 'template_pembelian.xlsx';
+
+        return response()->streamDownload(function() use ($writer) {
+            $writer->save('php://output');
+        }, $filename);
+    }
 }
