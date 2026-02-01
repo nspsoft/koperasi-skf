@@ -10,12 +10,10 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\SkipsErrors;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
-use Maatwebsite\Excel\Concerns\SkipsFailures;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithBatchInserts;
 
-class MembersImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure
+class MembersImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure, WithChunkReading, WithBatchInserts
 {
     use SkipsErrors, SkipsFailures, \App\Traits\DateParserTrait;
 
@@ -100,6 +98,16 @@ class MembersImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             DB::rollBack();
             throw $e;
         }
+    }
+
+    public function chunkSize(): int
+    {
+        return 100; // Process 100 rows at a time
+    }
+
+    public function batchSize(): int
+    {
+        return 100; // Insert 100 rows at a time
     }
 
     protected function parseGender(?string $gender): string

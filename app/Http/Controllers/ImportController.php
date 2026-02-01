@@ -45,6 +45,10 @@ class ImportController extends Controller
             'file' => 'required|mimes:xlsx,xls,csv|max:2048'
         ]);
 
+        // Increase time and memory limit for large imports
+        set_time_limit(0); 
+        ini_set('memory_limit', '512M');
+
         try {
             $import = new MembersImport;
             Excel::import($import, $request->file('file'));
