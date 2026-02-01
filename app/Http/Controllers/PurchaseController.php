@@ -214,7 +214,7 @@ class PurchaseController extends Controller
             abort(403);
         }
 
-        $query = Purchase::with(['supplier', 'creator'])
+        $query = Purchase::with(['supplier', 'creator', 'items.product'])
             ->latest();
 
         if ($request->search) {
@@ -252,7 +252,7 @@ class PurchaseController extends Controller
         ];
 
         // Report Title
-        $sheet->mergeCells('A1:G1');
+        $sheet->mergeCells('A1:J1');
         $sheet->setCellValue('A1', __('messages.purchases.excel_title'));
         $sheet->getStyle('A1')->applyFromArray($titleStyle);
 
@@ -268,7 +268,7 @@ class PurchaseController extends Controller
             $filterStrings[] = __('messages.purchases.excel_status', ['status' => ($statusLabels[$request->status] ?? $request->status)]);
         }
         
-        $sheet->mergeCells('A2:G2');
+        $sheet->mergeCells('A2:J2');
         $infoText = empty($filterStrings) ? __('messages.savings_page.all') ?? 'Semua Data' : implode(' | ', $filterStrings);
         $sheet->setCellValue('A2', $infoText . ' | ' . __('messages.purchases.excel_downloaded') . ': ' . date('d/m/Y H:i'));
         $sheet->getStyle('A2')->applyFromArray($subtitleStyle);
@@ -276,58 +276,72 @@ class PurchaseController extends Controller
         // Empty row
         $sheet->setCellValue('A3', '');
 
-        // Column Headers (at row 4)
+        // Column Headers (at row 4) matching Import Template + Extra Info
         $headers = [
-            'No', 
-            __('messages.purchases.table_no'), 
-            __('messages.purchases.table_date'), 
-            __('messages.purchases.table_supplier'), 
-            __('messages.purchases.table_total'), 
-            __('messages.purchases.table_status'), 
-            __('messages.purchases.table_creator')
+            'No PO', 
+            'Tanggal', 
+            'Supplier', 
+            'Kode Produk', 
+            'Nama Produk', 
+            'Jumlah', 
+            'Harga Satuan', 
+            'Subtotal',
+            'Status', 
+            'Dibuat Oleh'
         ];
         $col = 'A';
         foreach ($headers as $header) {
             $sheet->setCellValue($col . '4', $header);
             $col++;
         }
-        $sheet->getStyle('A4:G4')->applyFromArray($headerStyle);
+        $sheet->getStyle('A4:J4')->applyFromArray($headerStyle);
 
         // Data (starting at row 5)
         $row = 5;
-        foreach ($purchases as $index => $p) {
-            $sheet->setCellValue('A' . $row, $index + 1);
-            $sheet->setCellValue('B' . $row, $p->reference_number);
-            $sheet->setCellValue('C' . $row, $p->purchase_date->format('d/m/Y'));
-            $sheet->setCellValue('D' . $row, $p->supplier->name ?? '-');
-            $sheet->setCellValue('E' . $row, $p->total_amount);
-            $sheet->setCellValue('F' . $row, strtoupper($p->status));
-            $sheet->setCellValue('G' . $row, $p->creator->name ?? '-');
-            $row++;
+        foreach ($purchases as $p) {
+            foreach ($p->items as $item) {
+                // If purchase has no items (should rare), loop won't run, handle main logic here
+                $sheet->setCellValue('A' . $row, $p->reference_number);
+                $sheet->setCellValue('B' . $row, $p->purchase_date->format('Y-m-d')); // Format for easier edit
+                $sheet->setCellValue('C' . $row, $p->supplier->name ?? '-');
+                $sheet->setCellValue('D' . $row, $item->product->code ?? '-');
+                $sheet->setCellValue('E' . $row, $item->product->name ?? '-');
+                $sheet->setCellValue('F' . $row, $item->quantity);
+                $sheet->setCellValue('G' . $row, $item->cost);
+                $sheet->setCellValue('H' . $row, $item->subtotal);
+                $sheet->setCellValue('I' . $row, strtoupper($p->status));
+                $sheet->setCellValue('J' . $row, $p->creator->name ?? '-');
+                $row++;
+            }
+            // Handle case where purchase has no items (optional, but good for data integrity check)
+            if ($p->items->isEmpty()) {
+                $sheet->setCellValue('A' . $row, $p->reference_number);
+                $sheet->setCellValue('B' . $row, $p->purchase_date->format('Y-m-d'));
+                $sheet->setCellValue('C' . $row, $p->supplier->name ?? '-');
+                $sheet->setCellValue('D' . $row, '-');
+                $sheet->setCellValue('E' . $row, 'NO ITEMS');
+                $sheet->setCellValue('F' . $row, 0);
+                $sheet->setCellValue('G' . $row, 0);
+                $sheet->setCellValue('H' . $row, $p->total_amount); // Show total in subtotal col
+                $sheet->setCellValue('I' . $row, strtoupper($p->status));
+                $sheet->setCellValue('J' . $row, $p->creator->name ?? '-');
+                $row++;
+            }
         }
 
-        // Format amount column
-        $sheet->getStyle('E5:E' . ($row - 1))->getNumberFormat()->setFormatCode('#,##0');
-
-        // Total Row
-        $sheet->setCellValue('A' . $row, 'TOTAL');
-        $sheet->mergeCells('A' . $row . ':D' . $row);
-        $sheet->getStyle('A' . $row)->getFont()->setBold(true);
-        $sheet->setCellValue('E' . $row, $purchases->sum('total_amount'));
-        $sheet->getStyle('E' . $row)->getFont()->setBold(true);
-        $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('#,##0');
-        $sheet->getStyle('A' . $row . ':G' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('F3F4F6');
+        // Format money columns
+        $sheet->getStyle('G5:H' . ($row - 1))->getNumberFormat()->setFormatCode('#,##0');
 
         // Auto-size columns
-        foreach (range('A', 'G') as $col) {
+        foreach (range('A', 'J') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
         // Add borders to data
-        $sheet->getStyle('A4:G' . $row)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+        $sheet->getStyle('A4:J' . ($row - 1))->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
 
         // Download
-        $filename = 'Riwayat_Pembelian_' . date('Y-m-d_His') . '.xlsx';
+        $filename = 'Riwayat_Pembelian_Detail_' . date('Y-m-d_His') . '.xlsx';
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
         
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
