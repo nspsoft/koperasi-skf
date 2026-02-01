@@ -230,6 +230,15 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
                 return "❌ Migration Error: " . $e->getMessage();
             }
         });
+
+        Route::get('fix-seeder', function() {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'PermissionSeeder']);
+                return "✅ Permission Seeder Success!<br><pre>" . \Illuminate\Support\Facades\Artisan::output() . "</pre>";
+            } catch (\Exception $e) {
+                return "❌ Seeder Error: " . $e->getMessage();
+            }
+        });
         Route::delete('documents/{generatedDocument}', [App\Http\Controllers\DocumentController::class, 'destroy'])->name('documents.destroy');
 
         // Payment Gateway Settings (Admin only)
