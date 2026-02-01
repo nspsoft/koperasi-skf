@@ -12,6 +12,7 @@ use Maatwebsite\Excel\Concerns\SkipsErrors;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\SkipsFailures;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class MembersImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure
@@ -22,31 +23,83 @@ class MembersImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     {
         // Parse role (default to member)
         $role = $this->parseRole($row['role'] ?? 'member');
+        $gender = $this->parseGender($row['jenis_kelamin'] ?? null);
+        $joinDate = $this->parseDate($row['tanggal_bergabung']) ?? now();
+        $birthDate = $this->parseDate($row['tanggal_lahir'] ?? null);
 
-        // Create user first
-        $user = User::create([
-            'name' => $row['nama'],
-            'email' => $row['email'],
-            'phone' => $row['no_hp'] ?? $row['telepon'] ?? null,
-            'password' => Hash::make($row['password'] ?? 'password123'),
-            'role' => $role,
-            'is_active' => true,
-        ]);
+        // 1. Try to find Member by ID
+        $member = Member::where('member_id', $row['id_anggota'])->first();
 
-        // Create member
-        return new Member([
-            'user_id' => $user->id,
-            'member_id' => $row['id_anggota'],
-            'employee_id' => $row['nik'] ?? $row['nik_karyawan'] ?? null,
-            'department' => $row['department'] ?? $row['divisi'] ?? null,
-            'position' => $row['jabatan'] ?? $row['posisi'] ?? 'Staff',
-            'gender' => $this->parseGender($row['jenis_kelamin'] ?? null),
-            'join_date' => $this->parseDate($row['tanggal_bergabung']) ?? now(),
-            'birth_date' => $this->parseDate($row['tanggal_lahir'] ?? null),
-            'id_card_number' => $row['no_ktp'] ?? null,
-            'address' => $row['alamat'] ?? null,
-            'status' => $row['status'] ?? 'active',
-        ]);
+        // 2. Try to find User by Email
+        $user = User::where('email', $row['email'])->first();
+
+        DB::beginTransaction();
+        try {
+            if ($user) {
+                // Update existing User
+                $userData = [
+                    'name' => $row['nama'],
+                    // Only update phone if provided
+                    'phone' => $row['no_hp'] ?? $row['telepon'] ?? $user->phone, 
+                    'role' => $role,
+                ];
+                // Only update password if provided and not empty
+                if (!empty($row['password'])) {
+                    $userData['password'] = Hash::make($row['password']);
+                }
+                $user->update($userData);
+            } else {
+                // Create new User
+                $user = User::create([
+                    'name' => $row['nama'],
+                    'email' => $row['email'],
+                    'phone' => $row['no_hp'] ?? $row['telepon'] ?? null,
+                    'password' => Hash::make($row['password'] ?? 'password123'),
+                    'role' => $role,
+                    'is_active' => true,
+                ]);
+            }
+
+            // 3. Update or Create Member
+            if ($member) {
+                // Update existing Member
+                $member->update([
+                    'user_id' => $user->id, // Ensure linked to correct user (if email changed context)
+                    'employee_id' => $row['nik'] ?? $row['nik_karyawan'] ?? $member->employee_id,
+                    'department' => $row['department'] ?? $row['divisi'] ?? $member->department,
+                    'position' => $row['jabatan'] ?? $row['posisi'] ?? $member->position,
+                    'gender' => $gender,
+                    'join_date' => $joinDate,
+                    'birth_date' => $birthDate,
+                    'id_card_number' => $row['no_ktp'] ?? $member->id_card_number,
+                    'address' => $row['alamat'] ?? $member->address,
+                    'status' => $row['status'] ?? $member->status,
+                ]);
+            } else {
+                // Create new Member
+                $member = new Member([
+                    'user_id' => $user->id,
+                    'member_id' => $row['id_anggota'],
+                    'employee_id' => $row['nik'] ?? $row['nik_karyawan'] ?? null,
+                    'department' => $row['department'] ?? $row['divisi'] ?? null,
+                    'position' => $row['jabatan'] ?? $row['posisi'] ?? 'Staff',
+                    'gender' => $gender,
+                    'join_date' => $joinDate,
+                    'birth_date' => $birthDate,
+                    'id_card_number' => $row['no_ktp'] ?? null,
+                    'address' => $row['alamat'] ?? null,
+                    'status' => $row['status'] ?? 'active',
+                ]);
+                $member->save();
+            }
+
+            DB::commit();
+            return $member;
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     protected function parseGender(?string $gender): string
@@ -66,8 +119,8 @@ class MembersImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     {
         return [
             'nama' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'id_anggota' => 'required|unique:members,member_id',
+            'email' => 'required|email', // Removed unique:users,email
+            'id_anggota' => 'required',  // Removed unique:members,member_id
             'tanggal_bergabung' => 'required',
         ];
     }
@@ -77,9 +130,7 @@ class MembersImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
         return [
             'nama.required' => 'Kolom nama wajib diisi',
             'email.required' => 'Kolom email wajib diisi',
-            'email.unique' => 'Email sudah terdaftar di sistem',
             'id_anggota.required' => 'Kolom id_anggota wajib diisi',
-            'id_anggota.unique' => 'ID Anggota sudah terdaftar',
             'tanggal_bergabung.required' => 'Kolom tanggal_bergabung wajib diisi',
         ];
     }
