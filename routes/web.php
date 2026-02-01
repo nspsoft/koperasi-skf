@@ -278,6 +278,13 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
         Route::post('import/savings', [App\Http\Controllers\ImportController::class, 'importSavings'])->name('import.savings');
         Route::post('import/loans', [App\Http\Controllers\ImportController::class, 'importLoans'])->name('import.loans');
         Route::post('import/credit-payments', [App\Http\Controllers\ImportController::class, 'importCreditPayments'])->name('import.credit_payments');
+        
+        // Redirect GET attempts on POST routes back to index
+        Route::get('import/members', function() { return redirect()->route('import.index'); });
+        Route::get('import/savings', function() { return redirect()->route('import.index'); });
+        Route::get('import/loans', function() { return redirect()->route('import.index'); });
+        Route::get('import/credit-payments', function() { return redirect()->route('import.index'); });
+
         Route::get('import/template/{type}', [App\Http\Controllers\ImportController::class, 'downloadTemplate'])->name('import.template');
         
         // Reset Data (Admin only)

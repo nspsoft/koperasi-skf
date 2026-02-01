@@ -515,8 +515,7 @@ function createUploadHandler(formId, progressId) {
             document.open();
             document.write(xhr.responseText);
             document.close();
-            // Push new URL to history
-            window.history.pushState({}, '', form.action);
+            // window.history.pushState({}, '', form.action);
         });
         
         xhr.addEventListener('error', function() {
