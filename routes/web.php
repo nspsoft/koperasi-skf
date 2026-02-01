@@ -76,13 +76,14 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
 
     // Member Management (Roles & Permissions handled by MemberController)
     Route::delete('members/bulk-destroy', [App\Http\Controllers\MemberController::class, 'bulkDestroy'])->name('members.bulk_destroy');
+    // Export must be before resource
+    Route::middleware('can:admin')->get('members/export', [App\Http\Controllers\MemberController::class, 'export'])->name('members.export');
     Route::resource('members', App\Http\Controllers\MemberController::class);
     Route::post('members/{member}/toggle-status', [App\Http\Controllers\MemberController::class, 'toggleStatus'])->name('members.toggle-status');
 
     // Admin Only Core Routes
     Route::middleware('can:admin')->group(function() {
         // Exports
-        Route::get('members/export', [App\Http\Controllers\MemberController::class, 'export'])->name('members.export');
         Route::get('savings/export', [App\Http\Controllers\SavingController::class, 'export'])->name('savings.export');
         Route::get('loans/export', [App\Http\Controllers\LoanController::class, 'export'])->name('loans.export');
         Route::get('loan-payments/export', [LoanPaymentController::class, 'export'])->name('loan-payments.export');
