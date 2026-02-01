@@ -233,7 +233,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
 
         Route::get('fix-seeder', function() {
             try {
-                \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'PermissionSeeder']);
+                \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'PermissionSeeder', '--force' => true]);
                 return "✅ Permission Seeder Success!<br><pre>" . \Illuminate\Support\Facades\Artisan::output() . "</pre>";
             } catch (\Exception $e) {
                 return "❌ Seeder Error: " . $e->getMessage();
