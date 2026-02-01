@@ -56,8 +56,13 @@ try {
         echo "⚠️ Migration returned code: {$exitCode}\n\n";
     }
     
-    // Step 2: Run PermissionSeeder
-    echo "🌱 Step 2: Running PermissionSeeder...\n";
+    // Step 2: Run Product Activation (New Fix)
+    echo "🔨 Step 2: Activating Products for POS...\n";
+    $exitCode = Artisan::call('app:activate-products');
+    echo Artisan::output();
+    
+    // Step 3: Run PermissionSeeder
+    echo "🌱 Step 3: Running PermissionSeeder...\n";
     $exitCode = Artisan::call('db:seed', [
         '--class' => 'PermissionSeeder',
         '--force' => true
