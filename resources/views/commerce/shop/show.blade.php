@@ -73,7 +73,7 @@
                         <span class="px-4 py-1.5 bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 text-xs font-bold uppercase tracking-widest rounded-lg border border-primary-200 dark:border-primary-800">
                             {{ $product->category->name }}
                         </span>
-                        @if($product->is_preorder)
+                        @if($product->is_preorder && $product->stock <= 0)
                              <span class="px-3 py-1 bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 text-xs font-bold uppercase tracking-widest rounded-full flex items-center gap-1">
                                 <span class="w-2 h-2 bg-purple-500 rounded-full animate-ping"></span> Pre-Order
                             </span>
@@ -138,7 +138,7 @@
                                 <div class="bg-white/20 p-1.5 rounded-lg">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                                 </div>
-                                @if($product->is_preorder)
+                                @if($product->is_preorder && $product->stock <= 0)
                                     Pesan (PO)
                                 @elseif($product->stock <= 0)
                                     Stok Habis

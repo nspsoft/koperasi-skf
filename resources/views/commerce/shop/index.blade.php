@@ -61,7 +61,7 @@
                          onerror="this.onerror=null; this.src='https://placehold.co/400x400/6366f1/ffffff?text={{ urlencode($product->name) }}'">
                     
                     <!-- Stock Badge -->
-                    @if($product->is_preorder)
+                    @if($product->is_preorder && $product->stock <= 0)
                         <div class="absolute top-2 right-2 bg-purple-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full z-20 flex items-center gap-1 shadow-lg">
                             <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> {{ __('messages.shop_page.preorder') }}
                         </div>
@@ -92,9 +92,9 @@
                         <button type="button" 
                                 class="w-8 h-8 flex items-center justify-center bg-primary-50 dark:bg-primary-900/30 text-primary-600 rounded-lg hover:bg-primary-600 hover:text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" 
                                 {{ (!$product->is_preorder && $product->stock <= 0) ? 'disabled' : '' }} 
-                                title="{{ $product->is_preorder ? __('messages.shop_page.preorder') : __('messages.shop_page.add_to_cart_tooltip') }}"
+                                title="{{ ($product->is_preorder && $product->stock <= 0) ? __('messages.shop_page.preorder') : __('messages.shop_page.add_to_cart_tooltip') }}"
                                 onclick="addToCartAnimation(this, event)">
-                            @if($product->is_preorder)
+                            @if($product->is_preorder && $product->stock <= 0)
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             @else
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
