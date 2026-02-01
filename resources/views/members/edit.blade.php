@@ -50,7 +50,7 @@
                 <div>
                     <label for="phone" class="form-label">Nomor Telepon</label>
                     <input type="text" id="phone" name="phone" value="{{ old('phone', $member->user->phone) }}"
-                           placeholder="08xxxxxxxxxx"
+                           placeholder="08xxxxxxxxxx" autocomplete="off"
                            class="form-input @error('phone') border-red-500 @enderror">
                     @error('phone')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -60,7 +60,7 @@
                 <!-- Password -->
                 <div>
                     <label for="password" class="form-label">Password (Kosongkan jika tidak diubah)</label>
-                    <input type="password" id="password" name="password"
+                    <input type="password" id="password" name="password" autocomplete="new-password"
                            class="form-input @error('password') border-red-500 @enderror">
                     @error('password')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>

@@ -55,7 +55,7 @@
                 <div class="form-group">
                     <label for="phone" class="form-label">Nomor Telepon</label>
                     <input type="text" id="phone" name="phone" value="{{ old('phone') }}"
-                           placeholder="08xxxxxxxxxx"
+                           placeholder="08xxxxxxxxxx" autocomplete="off"
                            class="form-input @error('phone') !border-red-500 @enderror">
                     @error('phone')
                     <p class="form-error">{{ $message }}</p>
@@ -67,7 +67,7 @@
                     <label for="password" class="form-label">
                         Password <span class="text-red-500">*</span>
                     </label>
-                    <input type="password" id="password" name="password" required
+                    <input type="password" id="password" name="password" required autocomplete="new-password"
                            class="form-input @error('password') !border-red-500 @enderror"
                            placeholder="Minimal 8 karakter">
                     @error('password')

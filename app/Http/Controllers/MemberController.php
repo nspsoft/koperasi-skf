@@ -141,7 +141,7 @@ class MemberController extends Controller
 
             $sheet->setCellValue('A'.$row, $m->user->name ?? '-');
             $sheet->setCellValue('B'.$row, $m->user->email ?? '-');
-            $sheet->setCellValue('C'.$row, $m->user->phone_number ?? '-'); // Assuming this aligns with logic
+            $sheet->setCellValue('C'.$row, $m->user->phone ?? '-'); // Assuming this aligns with logic
             $sheet->setCellValue('D'.$row, $m->user->role ?? 'member');
             $sheet->setCellValue('E'.$row, $m->member_id);
             $sheet->setCellValue('F'.$row, $m->employee_id ?? '-');
