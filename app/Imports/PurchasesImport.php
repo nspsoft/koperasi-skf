@@ -38,7 +38,7 @@ class PurchasesImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
                         throw new \Exception("Supplier wajib diisi untuk PO $poNumber");
                     }
 
-                    $supplier = Supplier::where('name', 'like', '%' . $supplierName . '%')->first();
+                    $supplier = Supplier::where('name', 'like', '%' . trim($supplierName) . '%')->first();
                     if (!$supplier) {
                         // Optional: Create supplier if not exists OR throw error
                          throw new \Exception("Supplier '$supplierName' tidak ditemukan untuk PO $poNumber");
@@ -64,7 +64,7 @@ class PurchasesImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
 
                     // 3. Create Items
                     foreach ($items as $row) {
-                        $productCode = $row['kode_produk'] ?? $row['product_code'];
+                        $productCode = trim((string)($row['kode_produk'] ?? $row['product_code']));
                         $quantity = $row['jumlah'] ?? $row['qty'] ?? $row['quantity'] ?? 0;
                         $cost = $row['harga'] ?? $row['price'] ?? $row['cost'] ?? 0;
 
