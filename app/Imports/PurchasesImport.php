@@ -100,10 +100,16 @@ class PurchasesImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
     private function transformDate($value, $format = 'Y-m-d')
     {
         try {
-            return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value);
-        } catch (\ErrorException $e) {
+            if (is_numeric($value)) {
+                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value);
+            } 
+            
+            if (empty($value)) {
+                return now();
+            }
+
             return \Carbon\Carbon::parse($value);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return now();
         }
     }
