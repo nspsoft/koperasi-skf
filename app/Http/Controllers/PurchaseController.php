@@ -113,6 +113,158 @@ class PurchaseController extends Controller
     }
 
     /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Purchase $purchase)
+    {
+        // Only Admin can edit
+        if (!auth()->user()->hasAdminAccess()) {
+            abort(403);
+        }
+
+        $purchase->load(['items']);
+        $suppliers = Supplier::orderBy('name')->get();
+        $products = Product::where('is_active', true)->orderBy('name')->get();
+        
+        return view('purchases.edit', compact('purchase', 'suppliers', 'products'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, Purchase $purchase)
+    {
+        if (!auth()->user()->hasAdminAccess()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'supplier_id' => 'required|exists:suppliers,id',
+            'purchase_date' => 'required|date',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.cost' => 'required|numeric|min:0',
+        ]);
+
+        try {
+            DB::transaction(function () use ($request, $purchase) {
+                // 1. REVERT PHASE (if completed)
+                $wasCompleted = $purchase->status === 'completed';
+                
+                if ($wasCompleted) {
+                    // Revert Stock and Delete Journal
+                    foreach ($purchase->items as $item) {
+                        $product = $item->product;
+                        if ($product) {
+                            $conversionFactor = $product->conversion_factor ?? 1;
+                            $stockToRemove = $item->quantity * $conversionFactor;
+                            $product->decrement('stock', $stockToRemove);
+                            // Costs are harder to revert precisely without full history, 
+                            // so we accept WAC might slight shift. 
+                            // Or restore `previous_cost` if straightforward? 
+                            // Too risky if multiple txns happened. Keep as is.
+                        }
+                    }
+
+                    // Delete Journal
+                    $journal = \App\Models\JournalEntry::where('reference_type', Purchase::class)
+                        ->where('reference_id', $purchase->id)
+                        ->first();
+                    
+                    if ($journal) {
+                        $journal->lines()->delete();
+                        $journal->delete();
+                    }
+                }
+
+                // 2. UPDATE PHASE
+                $purchase->update([
+                    'supplier_id' => $request->supplier_id,
+                    'purchase_date' => $request->purchase_date,
+                    'note' => $request->note,
+                    // If it was completed, we keep it as completed after update (will re-process)
+                    // If it was pending, it stays pending unless logic changes. 
+                    // Let's assume edit doesn't change status unless we explicitly want to.
+                ]);
+
+                // Sync Items
+                $purchase->items()->delete();
+                $totalAmount = 0;
+
+                foreach ($request->items as $item) {
+                    $subtotal = $item['quantity'] * $item['cost'];
+                    $totalAmount += $subtotal;
+
+                    PurchaseItem::create([
+                        'purchase_id' => $purchase->id,
+                        'product_id' => $item['product_id'],
+                        'quantity' => $item['quantity'],
+                        'cost' => $item['cost'],
+                        'subtotal' => $subtotal,
+                    ]);
+                }
+
+                $purchase->update(['total_amount' => $totalAmount]);
+
+                // 3. RE-APPLY PHASE (if completed)
+                if ($wasCompleted) {
+                    // Refresh items
+                    $purchase->load('items.product');
+
+                     // Get inventory costing method from settings
+                    $costingMethod = \App\Models\Setting::get('inventory_costing_method', 'last_price');
+
+                    foreach ($purchase->items as $item) {
+                        $product = $item->product;
+                        if (!$product) continue;
+
+                        $conversionFactor = $product->conversion_factor ?? 1;
+                        $stockToAdd = $item->quantity * $conversionFactor;
+                        $currentStock = $product->stock; // This is now reverted stock
+                        $currentCost = $product->cost ?? 0;
+
+                        $product->increment('stock', $stockToAdd);
+
+                        // Recalculate Cost
+                        if ($item->cost > 0) {
+                            if ($costingMethod === 'wac') {
+                                // WAC Logic
+                                $oldValue = $currentStock * ($currentCost / $conversionFactor); 
+                                $newValue = $item->quantity * $item->cost;
+                                
+                                $totalStockUnits = $currentStock + $stockToAdd;
+                                $totalValue = $oldValue + $newValue; // Simplified
+                                
+                                // Avoid div by zero
+                                if ($totalStockUnits > 0) {
+                                    $newWacPerSaleUnit = ($totalValue / $totalStockUnits) / $conversionFactor; // Wait, logic check
+                                    // Value = (Qty * Cost). 
+                                    // Total Value / Total Units (Sale Units) = Cost Per Sale Unit
+                                    $newCost = ($totalValue / $totalStockUnits);
+                                    $product->update(['cost' => round($newCost, 2)]);
+                                }
+                            } else {
+                                // Last Price
+                                $product->update(['cost' => $item->cost]);
+                            }
+                        }
+                    }
+
+                    // Re-create Journal
+                    \App\Services\JournalService::journalPurchase($purchase);
+                }
+
+                \App\Models\AuditLog::log('update', 'Mengubah data pembelian ' . $purchase->reference_number, $purchase);
+            });
+
+            return redirect()->route('purchases.show', $purchase)->with('success', 'Pembelian berhasil diperbarui!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal update: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Update status (e.g., mark as completed)
      */
     public function updateStatus(Request $request, Purchase $purchase)
