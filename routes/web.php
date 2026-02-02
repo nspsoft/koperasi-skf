@@ -351,6 +351,12 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
         Route::post('products-bulk/images', [ProductController::class, 'bulkImages'])->name('products.bulk.images');
         Route::post('products-bulk/delete', [ProductController::class, 'bulkDelete'])->name('products.bulk-delete');
         Route::post('import/reset-products', [ImportController::class, 'resetProducts'])->name('import.reset.products');
+        Route::post('import/reset-audit-logs', [ImportController::class, 'resetAuditLogs'])->name('import.reset.audit-logs');
+        Route::post('import/reset-journals', [ImportController::class, 'resetJournals'])->name('import.reset.journals');
+        Route::post('import/reset-expenses', [ImportController::class, 'resetExpenses'])->name('import.reset.expenses');
+        Route::post('import/reset-suppliers', [ImportController::class, 'resetSuppliers'])->name('import.reset.suppliers');
+        Route::post('import/reset-categories', [ImportController::class, 'resetCategories'])->name('import.reset.categories');
+        Route::post('import/reset-aspirations', [ImportController::class, 'resetAspirations'])->name('import.reset.aspirations');
         
         Route::resource('vouchers', App\Http\Controllers\VoucherController::class);
         Route::get('pos', [PosController::class, 'index'])->name('pos.index');

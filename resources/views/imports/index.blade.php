@@ -440,6 +440,120 @@
                         </button>
                     </form>
                 </div>
+
+                {{-- Reset Audit Logs --}}
+                <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-xl">📜</span>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Reset Audit Log</h4>
+                            <p class="text-xs text-gray-500">{{ $counts['audit_logs'] ?? 0 }} log aktivitas</p>
+                        </div>
+                    </div>
+                    <form action="{{ route('import.reset.audit-logs') }}" method="POST" 
+                          onsubmit="return confirm('Yakin ingin menghapus SEMUA log aktivitas?')">
+                        @csrf
+                        <input type="hidden" name="confirm" value="HAPUS">
+                        <button type="submit" class="w-full py-2 px-4 bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium transition-colors">
+                            🗑️ Hapus Semua Log
+                        </button>
+                    </form>
+                </div>
+
+                {{-- Reset Journals --}}
+                <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-xl">📊</span>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Reset Jurnal Akun</h4>
+                            <p class="text-xs text-gray-500">{{ $counts['journals'] ?? 0 }} entri jurnal</p>
+                        </div>
+                    </div>
+                    <form action="{{ route('import.reset.journals') }}" method="POST" 
+                          onsubmit="return confirm('Yakin ingin menghapus SEMUA data jurnal akuntansi?')">
+                        @csrf
+                        <input type="hidden" name="confirm" value="HAPUS">
+                        <button type="submit" class="w-full py-2 px-4 bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium transition-colors">
+                            🗑️ Hapus Semua Jurnal
+                        </button>
+                    </form>
+                </div>
+
+                {{-- Reset Expenses --}}
+                <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-xl">💸</span>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Reset Biaya</h4>
+                            <p class="text-xs text-gray-500">{{ $counts['expenses'] ?? 0 }} transaksi biaya</p>
+                        </div>
+                    </div>
+                    <form action="{{ route('import.reset.expenses') }}" method="POST" 
+                          onsubmit="return confirm('Yakin ingin menghapus SEMUA data biaya/pengeluaran?')">
+                        @csrf
+                        <input type="hidden" name="confirm" value="HAPUS">
+                        <button type="submit" class="w-full py-2 px-4 bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium transition-colors">
+                            🗑️ Hapus Semua Biaya
+                        </button>
+                    </form>
+                </div>
+
+                {{-- Reset Suppliers --}}
+                <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-xl">🏗️</span>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Reset Supplier</h4>
+                            <p class="text-xs text-gray-500">{{ $counts['suppliers'] ?? 0 }} supplier</p>
+                        </div>
+                    </div>
+                    <form action="{{ route('import.reset.suppliers') }}" method="POST" 
+                          onsubmit="return confirm('Yakin ingin menghapus SEMUA data supplier?')">
+                        @csrf
+                        <input type="hidden" name="confirm" value="HAPUS">
+                        <button type="submit" class="w-full py-2 px-4 bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium transition-colors">
+                            🗑️ Hapus Semua Supplier
+                        </button>
+                    </form>
+                </div>
+
+                {{-- Reset Categories --}}
+                <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-xl">📁</span>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Reset Kategori</h4>
+                            <p class="text-xs text-gray-500">{{ $counts['categories'] ?? 0 }} kategori</p>
+                        </div>
+                    </div>
+                    <form action="{{ route('import.reset.categories') }}" method="POST" 
+                          onsubmit="return confirm('Yakin ingin menghapus SEMUA data kategori produk?')">
+                        @csrf
+                        <input type="hidden" name="confirm" value="HAPUS">
+                        <button type="submit" class="w-full py-2 px-4 bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium transition-colors">
+                            🗑️ Hapus Semua Kategori
+                        </button>
+                    </form>
+                </div>
+
+                {{-- Reset Aspirations --}}
+                <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-xl">💬</span>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Reset Aspirasi</h4>
+                            <p class="text-xs text-gray-500">{{ $counts['aspirations'] ?? 0 }} aspirasi</p>
+                        </div>
+                    </div>
+                    <form action="{{ route('import.reset.aspirations') }}" method="POST" 
+                          onsubmit="return confirm('Yakin ingin menghapus SEMUA data aspirasi?')">
+                        @csrf
+                        <input type="hidden" name="confirm" value="HAPUS">
+                        <button type="submit" class="w-full py-2 px-4 bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium transition-colors">
+                            🗑️ Hapus Semua Aspirasi
+                        </button>
+                    </form>
+                </div>
             </div>
 
             {{-- Danger Zone - Reset All --}}

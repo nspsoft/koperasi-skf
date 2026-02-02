@@ -32,6 +32,12 @@ class ImportController extends Controller
             'transactions' => \App\Models\Transaction::count(),
             'purchases' => \App\Models\Purchase::count(),
             'products' => \App\Models\Product::count(),
+            'audit_logs' => \App\Models\AuditLog::count(),
+            'journals' => \App\Models\JournalEntry::count(),
+            'expenses' => \App\Models\Expense::count(),
+            'suppliers' => \App\Models\Supplier::count(),
+            'categories' => \App\Models\Category::count(),
+            'aspirations' => \App\Models\MemberAspiration::count(),
         ];
 
         return view('imports.index', compact('counts'));
@@ -592,6 +598,103 @@ class ImportController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Gagal reset produk: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reset/Delete all audit logs
+     */
+    public function resetAuditLogs(Request $request)
+    {
+        $request->validate(['confirm' => 'required|in:HAPUS']);
+        try {
+            \App\Models\AuditLog::query()->truncate();
+            return redirect()->back()->with('success', 'Semua log aktivitas berhasil dibersihkan!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal reset log: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reset/Delete all journal entries
+     */
+    public function resetJournals(Request $request)
+    {
+        $request->validate(['confirm' => 'required|in:HAPUS']);
+        try {
+            DB::beginTransaction();
+            \App\Models\JournalEntryLine::query()->delete();
+            \App\Models\JournalEntry::query()->delete();
+            DB::commit();
+            return redirect()->back()->with('success', 'Semua data jurnal akuntansi berhasil dihapus!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal reset jurnal: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reset/Delete all expenses
+     */
+    public function resetExpenses(Request $request)
+    {
+        $request->validate(['confirm' => 'required|in:HAPUS']);
+        try {
+            DB::beginTransaction();
+            // Delete related journals first
+            \App\Models\JournalEntry::where('reference_type', \App\Models\Expense::class)
+                ->each(function ($journal) {
+                    $journal->lines()->delete();
+                    $journal->delete();
+                });
+            \App\Models\Expense::query()->delete();
+            DB::commit();
+            return redirect()->back()->with('success', 'Semua data biaya/pengeluaran berhasil dihapus!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal reset biaya: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reset/Delete all suppliers
+     */
+    public function resetSuppliers(Request $request)
+    {
+        $request->validate(['confirm' => 'required|in:HAPUS']);
+        try {
+            \App\Models\Supplier::query()->delete();
+            return redirect()->back()->with('success', 'Semua data supplier berhasil dihapus!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal reset supplier: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reset/Delete all categories
+     */
+    public function resetCategories(Request $request)
+    {
+        $request->validate(['confirm' => 'required|in:HAPUS']);
+        try {
+            \App\Models\Category::query()->delete();
+            return redirect()->back()->with('success', 'Semua data kategori produk berhasil dihapus!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal reset kategori: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reset/Delete all aspirations
+     */
+    public function resetAspirations(Request $request)
+    {
+        $request->validate(['confirm' => 'required|in:HAPUS']);
+        try {
+            \App\Models\MemberAspiration::query()->delete();
+            return redirect()->back()->with('success', 'Semua data aspirasi anggota berhasil dihapus!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal reset aspirasi: ' . $e->getMessage());
         }
     }
 }
