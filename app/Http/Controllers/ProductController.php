@@ -491,41 +491,40 @@ class ProductController extends Controller
                     );
 
                     $existingProduct = Product::where('code', $row['code'])->first();
+                    
+                    $productData = [
+                        'name' => $row['name'],
+                        'category_id' => $category->id,
+                        'unit' => $row['unit'] ?? 'pcs',
+                        'purchase_unit' => $row['purchase_unit'] ?? 'pcs',
+                        'conversion_factor' => $row['conversion_factor'] ?? $row['conversion'] ?? 1,
+                        'cost' => $row['cost'] ?? 0,
+                        'margin_percent' => $row['margin_percent'] ?? $row['margin'] ?? 0,
+                        'price' => $row['price'] ?? 0,
+                        'stock' => $row['stock'] ?? 0,
+                        'description' => $row['description'] ?? null,
+                    ];
+
+                    // Handle image if present in Excel and exists in storage
+                    if (!empty($row['image_file'])) {
+                        $imagePath = 'products/' . $row['image_file'];
+                        if (\Storage::disk('public')->exists($imagePath)) {
+                            $productData['image'] = $imagePath;
+                        }
+                    }
 
                     if ($existingProduct) {
                         if ($updateExisting) {
-                            $existingProduct->update([
-                                'name' => $row['name'],
-                                'category_id' => $category->id,
-                                'unit' => $row['unit'] ?? 'pcs',
-                                'purchase_unit' => $row['purchase_unit'] ?? 'pcs',
-                                'conversion_factor' => $row['conversion_factor'] ?? $row['conversion'] ?? 1,
-                                'cost' => $row['cost'] ?? 0,
-                                'margin_percent' => $row['margin_percent'] ?? $row['margin'] ?? 0,
-                                'price' => $row['price'] ?? 0,
-                                'stock' => $row['stock'] ?? 0,
-                                'description' => $row['description'] ?? null,
-                            ]);
+                            $existingProduct->update($productData);
                             $result['updated']++;
                         } else {
                             $result['errors'][] = "Baris " . ($index + 2) . ": Kode {$row['code']} sudah ada";
                             $result['failed']++;
                         }
                     } else {
-                        Product::create([
-                            'code' => $row['code'],
-                            'name' => $row['name'],
-                            'category_id' => $category->id,
-                            'unit' => $row['unit'] ?? 'pcs',
-                            'purchase_unit' => $row['purchase_unit'] ?? 'pcs',
-                            'conversion_factor' => $row['conversion_factor'] ?? $row['conversion'] ?? 1,
-                            'cost' => $row['cost'] ?? 0,
-                            'margin_percent' => $row['margin_percent'] ?? $row['margin'] ?? 0,
-                            'price' => $row['price'] ?? 0,
-                            'stock' => $row['stock'] ?? 0,
-                            'description' => $row['description'] ?? null,
-                            'is_active' => true,
-                        ]);
+                        $productData['code'] = $row['code'];
+                        $productData['is_active'] = true;
+                        Product::create($productData);
                         $result['success']++;
                     }
                 } catch (\Exception $e) {
