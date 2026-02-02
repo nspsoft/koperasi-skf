@@ -3,7 +3,7 @@
 @section('title', __('messages.purchases.create_title'))
 
 @section('content')
-<div class="max-w-5xl mx-auto space-y-6">
+<div class="max-w-7xl mx-auto space-y-6">
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('purchases.index') }}" class="btn-secondary-sm">
             {{ __('messages.purchases.show_back') }}
@@ -85,12 +85,11 @@
                 <table class="table-modern w-full" id="itemsTable">
                     <thead>
                         <tr>
-                            <th style="width: 35%">{{ __('messages.purchases.create_table_product') }}</th>
-                            <th style="width: 12%">{{ __('messages.purchases.create_table_qty') }}</th>
+                            <th style="width: 45%">{{ __('messages.purchases.create_table_product') }}</th>
+                            <th style="width: 10%">{{ __('messages.purchases.create_table_qty') }}</th>
                             <th style="width: 10%">{{ __('messages.purchases.create_table_buy_unit') }}</th>
-                            <th style="width: 18%">{{ __('messages.purchases.create_table_cost_unit') }}</th>
+                            <th style="width: 15%">{{ __('messages.purchases.create_table_cost_unit') }}</th>
                             <th style="width: 15%" class="text-right">{{ __('messages.purchases.create_table_subtotal') }}</th>
-                            <th style="width: 10%">{{ __('messages.purchases.create_table_add_stock') }}</th>
                             <th style="width: 5%"></th>
                         </tr>
                     </thead>
@@ -99,18 +98,13 @@
                     </tbody>
                     <tfoot class="bg-gray-50 dark:bg-gray-700/50">
                         <tr>
-                            <td colspan="4" class="text-right font-bold py-3 px-4">{{ __('messages.reports_page.total') ?? 'TOTAL' }}</td>
+                            <td colspan="4" class="text-right font-bold py-3 px-4">TOTAL</td>
                             <td class="text-right font-bold py-3 px-4 text-primary-600 text-lg" id="grandTotal">Rp 0</td>
-                            <td colspan="2"></td>
+                            <td colspan="1"></td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
-        </div>
-
-        <div class="glass-card p-6">
-            <label class="form-label">{{ __('messages.purchases.show_notes') }}</label>
-            <textarea name="note" rows="2" class="form-input" placeholder="{{ __('messages.commerce.pos.optional') ?? 'Opsional...' }}">{{ old('note') }}</textarea>
         </div>
 
         <div class="flex justify-end gap-3 pt-4">
