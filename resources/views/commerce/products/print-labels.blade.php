@@ -24,7 +24,7 @@
 
     .labels-container {
         display: grid;
-        grid-template-columns: repeat(5, 38mm);
+        grid-template-columns: repeat({{ $cols }}, 38mm);
         gap: 2mm;
         padding: 5mm;
         justify-content: center;
@@ -127,7 +127,7 @@
         .labels-container {
             padding: 0;
             gap: 1mm;
-            grid-template-columns: repeat(5, 38mm);
+            grid-template-columns: repeat({{ $cols }}, 38mm);
         }
 
         .label {
@@ -274,15 +274,27 @@
     });
 
     function generateBarcodes() {
+        if (typeof JsBarcode === 'undefined') {
+            console.error('JsBarcode library not loaded');
+            alert('Gagal memuat library barcode. Pastikan koneksi internet tersedia.');
+            return;
+        }
+
         @foreach($products as $product)
             @for($i = 0; $i < ($quantity ?? 1); $i++)
-            JsBarcode("#barcode-{{ $product->id }}-{{ $i }}", "{{ $product->code }}", {
-                format: "CODE128",
-                width: 1,
-                height: 15,
-                displayValue: false,
-                margin: 0
-            });
+            try {
+                JsBarcode("#barcode-{{ $product->id }}-{{ $i }}", "{{ $product->code }}", {
+                    format: "CODE128",
+                    width: 1,
+                    height: 15,
+                    displayValue: false,
+                    margin: 0
+                });
+            } catch (e) {
+                console.error("Failed to generate barcode for {{ $product->code }}: ", e);
+                // Fallback or visual indication of failure
+                document.getElementById("barcode-{{ $product->id }}-{{ $i }}").parentElement.innerText = "Invalid Barcode";
+            }
             @endfor
         @endforeach
     }
