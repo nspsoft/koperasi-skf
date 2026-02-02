@@ -348,6 +348,8 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
         Route::get('products-bulk/template', [ProductController::class, 'downloadTemplate'])->name('products.bulk.template');
         Route::post('products-bulk/import', [ProductController::class, 'importExcel'])->name('products.bulk.import');
         Route::post('products-bulk/images', [ProductController::class, 'bulkImages'])->name('products.bulk.images');
+        Route::post('products-bulk/delete', [ProductController::class, 'bulkDelete'])->name('products.bulk-delete');
+        Route::post('import/reset-products', [ImportController::class, 'resetProducts'])->name('import.reset.products');
         
         Route::resource('vouchers', App\Http\Controllers\VoucherController::class);
         Route::get('pos', [PosController::class, 'index'])->name('pos.index');

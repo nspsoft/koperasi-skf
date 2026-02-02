@@ -31,6 +31,7 @@ class ImportController extends Controller
             'loans' => Loan::count(),
             'transactions' => \App\Models\Transaction::count(),
             'purchases' => \App\Models\Purchase::count(),
+            'products' => \App\Models\Product::count(),
         ];
 
         return view('imports.index', compact('counts'));
@@ -561,6 +562,36 @@ class ImportController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Gagal generate jurnal: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reset/Delete all products (and their images)
+     */
+    public function resetProducts(Request $request)
+    {
+        $request->validate([
+            'confirm' => 'required|in:HAPUS'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $products = \App\Models\Product::all();
+            
+            foreach ($products as $product) {
+                if ($product->image) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($product->image);
+                }
+                $product->delete();
+            }
+
+            DB::commit();
+
+            return redirect()->back()->with('success', 'Semua data produk dan filenya berhasil dihapus!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal reset produk: ' . $e->getMessage());
         }
     }
 }

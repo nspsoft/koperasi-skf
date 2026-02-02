@@ -694,7 +694,7 @@ class ProductController extends Controller
                 if ($product) {
                     // Delete old image if exists
                     if ($product->image) {
-                        Storage::disk('public')->delete($product->image);
+                        \Storage::disk('public')->delete($product->image);
                     }
                     
                     // Store new image
@@ -723,5 +723,41 @@ class ProductController extends Controller
         }
 
         return back()->with('success', $message);
+    }
+
+    /**
+     * Bulk delete products
+     */
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'products' => 'required|array',
+            'products.*' => 'exists:products,id'
+        ]);
+
+        $count = 0;
+        try {
+            DB::beginTransaction();
+            
+            $products = Product::whereIn('id', $request->products)->get();
+            foreach ($products as $product) {
+                if ($product->image) {
+                    \Storage::disk('public')->delete($product->image);
+                }
+                $product->delete();
+                $count++;
+            }
+            
+            \App\Models\AuditLog::log(
+                'delete', 
+                "Hapus massal produk: {$count} produk berhasil dihapus"
+            );
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => "{$count} produk berhasil dihapus"]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Gagal menghapus produk: ' . $e->getMessage()], 500);
+        }
     }
 }

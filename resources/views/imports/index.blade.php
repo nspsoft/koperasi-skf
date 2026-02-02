@@ -403,6 +403,25 @@
                     </form>
                 </div>
 
+                {{-- Reset Products --}}
+                <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-xl">🏷️</span>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Reset Produk</h4>
+                            <p class="text-xs text-gray-500">{{ $counts['products'] ?? 0 }} produk</p>
+                        </div>
+                    </div>
+                    <form action="{{ route('import.reset.products') }}" method="POST" 
+                          onsubmit="return confirm('Yakin ingin menghapus SEMUA data produk? File foto juga akan dihapus dari server.')">
+                        @csrf
+                        <input type="hidden" name="confirm" value="HAPUS">
+                        <button type="submit" class="w-full py-2 px-4 bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium transition-colors">
+                            🗑️ Hapus Semua Produk
+                        </button>
+                    </form>
+                </div>
+
                 {{-- Reset Transactions --}}
                 <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
                     <div class="flex items-center gap-2 mb-3">

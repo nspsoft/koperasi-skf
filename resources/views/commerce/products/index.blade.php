@@ -180,13 +180,21 @@
         </div>
     </div>
 
-    <!-- Floating Print Labels Button -->
-    <div id="printFloatingBtn" class="fixed bottom-6 right-6 hidden z-50">
+    <div id="printFloatingBtn" class="fixed bottom-6 right-6 hidden z-50 flex flex-col gap-3 items-end">
+        @can('delete-data')
+        <button type="button" id="bulkDeleteBtn" class="flex items-center gap-2 px-6 py-3 bg-red-600 text-white font-bold rounded-full shadow-xl hover:bg-red-700 transform hover:scale-105 transition-all">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+            🗑️ Hapus <span class="selectedCount">0</span> Produk
+        </button>
+        @endcan
+
         <button type="button" id="printLabelsBtn" class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
             </svg>
-            🏷️ Print <span id="selectedCount">0</span> Label
+            🏷️ Print <span class="selectedCount">0</span> Label
         </button>
     </div>
 
@@ -208,12 +216,12 @@
             function updateSelection() {
                 const checked = document.querySelectorAll('.product-checkbox:checked');
                 const count = checked.length;
-                selectedCount.textContent = count;
+                document.querySelectorAll('.selectedCount').forEach(el => el.textContent = count);
                 selectedIds = Array.from(checked).map(cb => cb.value);
                 
                 if (count > 0) {
                     floatingBtn.classList.remove('hidden');
-                    floatingBtn.style.display = 'block';
+                    floatingBtn.style.display = 'flex';
                 } else {
                     floatingBtn.classList.add('hidden');
                     floatingBtn.style.display = 'none';
@@ -231,6 +239,36 @@
             checkboxes.forEach(cb => {
                 cb.addEventListener('change', updateSelection);
             });
+
+            // Bulk Delete
+            const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+            if (bulkDeleteBtn) {
+                bulkDeleteBtn.addEventListener('click', function() {
+                    const count = selectedIds.length;
+                    if (count > 0 && confirm(`Yakin ingin menghapus ${count} produk terpilih?`)) {
+                        fetch('{{ route("products.bulk-delete") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({ products: selectedIds })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                window.location.reload();
+                            } else {
+                                alert(data.message || 'Gagal menghapus produk');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Terjadi kesalahan sistem');
+                        });
+                    }
+                });
+            }
 
             // Print button click - redirect with product IDs (floating button)
             printBtn.addEventListener('click', function() {
