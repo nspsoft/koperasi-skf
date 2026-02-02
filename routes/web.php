@@ -11,6 +11,7 @@ use App\Http\Controllers\MemberController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ImportController;
 use App\Http\Controllers\ManualJournalController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SavingController;
