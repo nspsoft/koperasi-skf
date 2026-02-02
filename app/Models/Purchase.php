@@ -8,7 +8,7 @@ class Purchase extends Model
 {
     protected $fillable = [
         'supplier_id', 'reference_number', 'purchase_date', 
-        'total_amount', 'status', 'note', 'created_by', 'completed_at'
+        'total_amount', 'status', 'note', 'created_by', 'completed_at', 'receipt_image'
     ];
 
     protected $casts = [

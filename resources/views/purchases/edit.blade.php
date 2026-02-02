@@ -37,12 +37,36 @@
     </div>
     @endif
 
-    <form action="{{ route('purchases.update', $purchase) }}" method="POST" id="purchaseForm" class="space-y-6">
+    <form action="{{ route('purchases.update', $purchase) }}" method="POST" id="purchaseForm" class="space-y-6" enctype="multipart/form-data">
         @csrf
         @method('PUT')
         
         <!-- Header Info -->
         <div class="glass-card p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- existing inputs ... -->
+        </div>
+
+        <!-- ... -->
+
+        <div class="glass-card p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="form-label">{{ __('messages.purchases.show_notes') }}</label>
+                <textarea name="note" rows="2" class="form-input" placeholder="{{ __('messages.commerce.pos.optional') ?? 'Opsional...' }}">{{ old('note', $purchase->note) }}</textarea>
+            </div>
+            <div>
+                <label class="form-label">Upload Struk / Bukti (Nota)</label>
+                @if($purchase->receipt_image)
+                    <div class="mb-2">
+                        <a href="{{ \Storage::url($purchase->receipt_image) }}" target="_blank" class="text-primary-600 hover:underline text-sm flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            Lihat Struk Saat Ini
+                        </a>
+                    </div>
+                @endif
+                <input type="file" name="receipt_image" class="form-input file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-gray-700 dark:file:text-gray-300" accept="image/*">
+                <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG. Max: 2MB. (Upload baru akan mengganti yang lama)</p>
+            </div>
+        </div>
             <div>
                 <label class="form-label">{{ __('messages.purchases.create_ref_no') }}</label>
                 <input type="text" name="reference_number" class="form-input bg-gray-50" value="{{ old('reference_number', $purchase->reference_number) }}" readonly>

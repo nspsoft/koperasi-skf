@@ -11,11 +11,27 @@
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ __('messages.purchases.create_subtitle') }}</h1>
     </div>
 
-    <form action="{{ route('purchases.store') }}" method="POST" id="purchaseForm" class="space-y-6">
+    <form action="{{ route('purchases.store') }}" method="POST" id="purchaseForm" class="space-y-6" enctype="multipart/form-data">
         @csrf
         
         <!-- Header Info -->
         <div class="glass-card p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- existing inputs ... -->
+        </div>
+
+        <!-- ... -->
+
+        <div class="glass-card p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="form-label">{{ __('messages.purchases.show_notes') }}</label>
+                <textarea name="note" rows="2" class="form-input" placeholder="{{ __('messages.commerce.pos.optional') ?? 'Opsional...' }}">{{ old('note') }}</textarea>
+            </div>
+            <div>
+                <label class="form-label">Upload Struk / Bukti (Nota)</label>
+                <input type="file" name="receipt_image" class="form-input file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-gray-700 dark:file:text-gray-300" accept="image/*">
+                <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG. Max: 2MB.</p>
+            </div>
+        </div>
             <div>
                 <label class="form-label">{{ __('messages.purchases.create_ref_no') }}</label>
                 <input type="text" name="reference_number" class="form-input bg-gray-50" value="{{ old('reference_number', $poNumber) }}" readonly>

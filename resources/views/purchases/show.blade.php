@@ -90,6 +90,17 @@
                 @endif
             </div>
         </div>
+
+        @if($purchase->receipt_image)
+        <div class="glass-card p-4 md:col-span-2">
+            <h3 class="font-bold text-gray-900 dark:text-white mb-3 text-sm uppercase tracking-wide border-b pb-2">Bukti Pembelian / Nota</h3>
+            <div>
+                <a href="{{ \Storage::url($purchase->receipt_image) }}" target="_blank">
+                    <img src="{{ \Storage::url($purchase->receipt_image) }}" class="rounded-lg border border-gray-200 shadow-sm max-h-96 object-contain hover:opacity-90 transition-opacity">
+                </a>
+            </div>
+        </div>
+        @endif
     </div>
 
     <!-- Items -->

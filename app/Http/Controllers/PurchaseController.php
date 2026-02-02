@@ -64,10 +64,17 @@ class PurchaseController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.cost' => 'required|numeric|min:0',
+            'receipt_image' => 'nullable|image|max:2048',
         ]);
 
         try {
             DB::transaction(function () use ($request) {
+                // Handle Image Upload
+                $imagePath = null;
+                if ($request->hasFile('receipt_image')) {
+                    $imagePath = $request->file('receipt_image')->store('receipts', 'public');
+                }
+
                 // Create Purchase Header
                 $purchase = Purchase::create([
                     'supplier_id' => $request->supplier_id,
@@ -75,6 +82,7 @@ class PurchaseController extends Controller
                     'purchase_date' => $request->purchase_date,
                     'status' => 'pending',
                     'note' => $request->note,
+                    'receipt_image' => $imagePath,
                     'created_by' => auth()->id(),
                 ]);
 
@@ -145,6 +153,7 @@ class PurchaseController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.cost' => 'required|numeric|min:0',
+            'receipt_image' => 'nullable|image|max:2048',
         ]);
 
         try {
@@ -178,11 +187,22 @@ class PurchaseController extends Controller
                     }
                 }
 
+                // Handle Image Upload
+                $imagePath = $purchase->receipt_image;
+                if ($request->hasFile('receipt_image')) {
+                    // Delete old image if exists
+                    if ($imagePath && \Storage::disk('public')->exists($imagePath)) {
+                        \Storage::disk('public')->delete($imagePath);
+                    }
+                    $imagePath = $request->file('receipt_image')->store('receipts', 'public');
+                }
+
                 // 2. UPDATE PHASE
                 $purchase->update([
                     'supplier_id' => $request->supplier_id,
                     'purchase_date' => $request->purchase_date,
                     'note' => $request->note,
+                    'receipt_image' => $imagePath,
                     // If it was completed, we keep it as completed after update (will re-process)
                     // If it was pending, it stays pending unless logic changes. 
                     // Let's assume edit doesn't change status unless we explicitly want to.

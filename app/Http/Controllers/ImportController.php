@@ -435,6 +435,20 @@ class ImportController extends Controller
         try {
             DB::beginTransaction();
 
+            // Revert Stock for Completed Purchases
+            $purchases = \App\Models\Purchase::with('items.product')->get();
+            
+            foreach ($purchases as $purchase) {
+                 if ($purchase->status === 'completed') {
+                    foreach ($purchase->items as $item) {
+                        if ($item->product) {
+                            $conversion = $item->product->conversion_factor ?? 1;
+                            $item->product->decrement('stock', $item->quantity * $conversion);
+                        }
+                    }
+                 }
+            }
+
             // Delete journals
             \App\Models\JournalEntry::where('reference_type', \App\Models\Purchase::class)
                 ->each(function ($journal) {
