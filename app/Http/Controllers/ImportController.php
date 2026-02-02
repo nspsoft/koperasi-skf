@@ -38,6 +38,10 @@ class ImportController extends Controller
             'suppliers' => \App\Models\Supplier::count(),
             'categories' => \App\Models\Category::count(),
             'aspirations' => \App\Models\MemberAspiration::count(),
+            'consignment_inbounds' => \App\Models\ConsignmentInbound::count(),
+            'consignment_settlements' => \App\Models\ConsignmentSettlement::count(),
+            'vouchers' => \App\Models\Voucher::count(),
+            'polls' => \App\Models\Poll::count(),
         ];
 
         return view('imports.index', compact('counts'));
@@ -695,6 +699,66 @@ class ImportController extends Controller
             return redirect()->back()->with('success', 'Semua data aspirasi anggota berhasil dihapus!');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal reset aspirasi: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reset/Delete all consignment data
+     */
+    public function resetConsignments(Request $request)
+    {
+        $request->validate(['confirm' => 'required|in:HAPUS']);
+        try {
+            DB::beginTransaction();
+            // Settlements & related journals
+            \App\Models\JournalEntry::where('reference_type', \App\Models\ConsignmentSettlement::class)
+                ->each(function ($journal) {
+                    $journal->lines()->delete();
+                    $journal->delete();
+                });
+            \App\Models\TransactionItem::whereNotNull('consignment_settlement_id')->update(['consignment_settlement_id' => null]);
+            \App\Models\ConsignmentSettlement::query()->delete();
+            // Inbounds
+            \App\Models\ConsignmentInboundItem::query()->delete();
+            \App\Models\ConsignmentInbound::query()->delete();
+            DB::commit();
+            return redirect()->back()->with('success', 'Semua data konsinyasi berhasil dihapus!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal reset konsinyasi: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reset/Delete all vouchers
+     */
+    public function resetVouchers(Request $request)
+    {
+        $request->validate(['confirm' => 'required|in:HAPUS']);
+        try {
+            \App\Models\Voucher::query()->delete();
+            return redirect()->back()->with('success', 'Semua data voucher berhasil dihapus!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal reset voucher: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reset/Delete all polls
+     */
+    public function resetPolls(Request $request)
+    {
+        $request->validate(['confirm' => 'required|in:HAPUS']);
+        try {
+            DB::beginTransaction();
+            \App\Models\PollVote::query()->delete();
+            \App\Models\PollOption::query()->delete();
+            \App\Models\Poll::query()->delete();
+            DB::commit();
+            return redirect()->back()->with('success', 'Semua data polling berhasil dihapus!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal reset polling: ' . $e->getMessage());
         }
     }
 }

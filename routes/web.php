@@ -357,6 +357,9 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
         Route::post('import/reset-suppliers', [ImportController::class, 'resetSuppliers'])->name('import.reset.suppliers');
         Route::post('import/reset-categories', [ImportController::class, 'resetCategories'])->name('import.reset.categories');
         Route::post('import/reset-aspirations', [ImportController::class, 'resetAspirations'])->name('import.reset.aspirations');
+        Route::post('import/reset-consignments', [ImportController::class, 'resetConsignments'])->name('import.reset.consignments');
+        Route::post('import/reset-vouchers', [ImportController::class, 'resetVouchers'])->name('import.reset.vouchers');
+        Route::post('import/reset-polls', [ImportController::class, 'resetPolls'])->name('import.reset.polls');
         
         Route::resource('vouchers', App\Http\Controllers\VoucherController::class);
         Route::get('pos', [PosController::class, 'index'])->name('pos.index');

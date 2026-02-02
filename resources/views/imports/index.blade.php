@@ -554,6 +554,63 @@
                         </button>
                     </form>
                 </div>
+
+                {{-- Reset Consignments --}}
+                <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-xl">🤝</span>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Reset Konsinyasi</h4>
+                            <p class="text-xs text-gray-500">{{ $counts['consignment_inbounds'] ?? 0 }} masuk, {{ $counts['consignment_settlements'] ?? 0 }} selesai</p>
+                        </div>
+                    </div>
+                    <form action="{{ route('import.reset.consignments') }}" method="POST" 
+                          onsubmit="return confirm('Yakin ingin menghapus SEMUA data konsinyasi?')">
+                        @csrf
+                        <input type="hidden" name="confirm" value="HAPUS">
+                        <button type="submit" class="w-full py-2 px-4 bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium transition-colors">
+                            🗑️ Hapus Semua Konsinyasi
+                        </button>
+                    </form>
+                </div>
+
+                {{-- Reset Vouchers --}}
+                <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-xl">🎫</span>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Reset Voucher</h4>
+                            <p class="text-xs text-gray-500">{{ $counts['vouchers'] ?? 0 }} voucher</p>
+                        </div>
+                    </div>
+                    <form action="{{ route('import.reset.vouchers') }}" method="POST" 
+                          onsubmit="return confirm('Yakin ingin menghapus SEMUA data voucher?')">
+                        @csrf
+                        <input type="hidden" name="confirm" value="HAPUS">
+                        <button type="submit" class="w-full py-2 px-4 bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium transition-colors">
+                            🗑️ Hapus Semua Voucher
+                        </button>
+                    </form>
+                </div>
+
+                {{-- Reset Polls --}}
+                <div class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="text-xl">🗳️</span>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Reset Polling</h4>
+                            <p class="text-xs text-gray-500">{{ $counts['polls'] ?? 0 }} polling</p>
+                        </div>
+                    </div>
+                    <form action="{{ route('import.reset.polls') }}" method="POST" 
+                          onsubmit="return confirm('Yakin ingin menghapus SEMUA data polling (termasuk hasil suara)?')">
+                        @csrf
+                        <input type="hidden" name="confirm" value="HAPUS">
+                        <button type="submit" class="w-full py-2 px-4 bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium transition-colors">
+                            🗑️ Hapus Semua Polling
+                        </button>
+                    </form>
+                </div>
             </div>
 
             {{-- Danger Zone - Reset All --}}
