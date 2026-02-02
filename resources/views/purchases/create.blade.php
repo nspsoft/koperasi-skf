@@ -11,47 +11,49 @@
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ __('messages.purchases.create_subtitle') }}</h1>
     </div>
 
-    <form action="{{ route('purchases.store') }}" method="POST" id="purchaseForm" class="space-y-6" enctype="multipart/form-data">
+    <form action="{{ route('purchases.store') }}" method="POST" id="purchaseForm" class="space-y-4" enctype="multipart/form-data">
         @csrf
         
-        <!-- Header Info -->
-        <div class="glass-card p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- existing inputs ... -->
-        </div>
+        <!-- Transaction Details Card -->
+        <div class="glass-card p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <!-- Row 1: Basic Info -->
+                <div>
+                    <label class="form-label text-sm font-semibold text-gray-700 dark:text-gray-300">{{ __('messages.purchases.create_ref_no') }}</label>
+                    <input type="text" name="reference_number" class="form-input bg-gray-100 cursor-not-allowed" value="{{ old('reference_number', $poNumber) }}" readonly>
+                </div>
+                <div>
+                    <label class="form-label text-sm font-semibold text-gray-700 dark:text-gray-300">{{ __('messages.purchases.create_date') }}</label>
+                    <input type="date" name="purchase_date" class="form-input" value="{{ old('purchase_date', date('Y-m-d')) }}" required>
+                </div>
+                <div>
+                    <label class="form-label text-sm font-semibold text-gray-700 dark:text-gray-300">{{ __('messages.purchases.create_supplier') }} <span class="text-red-500">*</span></label>
+                    <div class="flex gap-2">
+                        <select name="supplier_id" class="form-input flex-1" required>
+                            <option value="">{{ __('messages.purchases.create_select_supplier') }}</option>
+                            @foreach($suppliers as $supplier)
+                            <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>
+                                {{ $supplier->name }}
+                            </option>
+                            @endforeach
+                        </select>
+                        <a href="{{ route('suppliers.create') }}" class="btn-secondary-sm shrink-0" title="Add Supplier" target="_blank">
+                            +
+                        </a>
+                    </div>
+                </div>
+            </div>
 
-        <!-- ... -->
-
-        <div class="glass-card p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label class="form-label">{{ __('messages.purchases.show_notes') }}</label>
-                <textarea name="note" rows="2" class="form-input" placeholder="{{ __('messages.commerce.pos.optional') ?? 'Opsional...' }}">{{ old('note') }}</textarea>
-            </div>
-            <div>
-                <label class="form-label">Upload Struk / Bukti (Nota)</label>
-                <input type="file" name="receipt_image" class="form-input file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-gray-700 dark:file:text-gray-300" accept="image/*">
-                <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG. Max: 2MB.</p>
-            </div>
-        </div>
-            <div>
-                <label class="form-label">{{ __('messages.purchases.create_ref_no') }}</label>
-                <input type="text" name="reference_number" class="form-input bg-gray-50" value="{{ old('reference_number', $poNumber) }}" readonly>
-            </div>
-            <div>
-                <label class="form-label">{{ __('messages.purchases.create_date') }}</label>
-                <input type="date" name="purchase_date" class="form-input" value="{{ old('purchase_date', date('Y-m-d')) }}" required>
-            </div>
-            <div>
-                <label class="form-label">{{ __('messages.purchases.create_supplier') }} <span class="text-red-500">*</span></label>
-                <select name="supplier_id" class="form-input" required>
-                    <option value="">{{ __('messages.purchases.create_select_supplier') }}</option>
-                    @foreach($suppliers as $supplier)
-                    <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>
-                        {{ $supplier->name }}
-                    </option>
-                    @endforeach
-                </select>
-                <div class="mt-1 text-xs text-right">
-                    <a href="{{ route('suppliers.create') }}" class="text-primary-600 hover:underline">{{ __('messages.purchases.create_add_supplier') }}</a>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <!-- Row 2: Notes & Upload -->
+                <div>
+                    <label class="form-label text-sm font-semibold text-gray-700 dark:text-gray-300">{{ __('messages.purchases.show_notes') }}</label>
+                    <textarea name="note" rows="1" class="form-input resize-none" placeholder="Catatan tambahan (Opsional)...">{{ old('note') }}</textarea>
+                </div>
+                <div>
+                    <label class="form-label text-sm font-semibold text-gray-700 dark:text-gray-300">Upload Struk / Nota</label>
+                    <input type="file" name="receipt_image" class="form-input file:mr-4 file:py-1 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100" accept="image/*">
+                    <p class="text-[10px] text-gray-500 mt-1">Format: JPG, PNG. Max: 2MB.</p>
                 </div>
             </div>
         </div>
