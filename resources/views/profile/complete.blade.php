@@ -40,22 +40,40 @@
                 @csrf
 
                 <!-- Photo Upload -->
-                <div class="mb-6">
+                <div class="mb-6" x-data="{ photoPreview: null }">
                     <label class="form-label">Foto Profil <span class="text-red-500">*</span></label>
                     <div class="flex items-center gap-4">
                         <div class="flex-shrink-0">
-                            @if($member->photo && Storage::disk('public')->exists($member->photo))
-                                <img src="{{ Storage::url($member->photo) }}" class="w-24 h-24 rounded-full object-cover border-4 border-gray-200 dark:border-gray-700">
-                            @else
-                                <div class="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                                    <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                    </svg>
-                                </div>
-                            @endif
+                            <!-- Current Photo / Placeholder -->
+                            <div x-show="!photoPreview">
+                                @if($member->photo && Storage::disk('public')->exists($member->photo))
+                                    <img src="{{ Storage::url($member->photo) }}" class="w-24 h-24 rounded-full object-cover border-4 border-gray-200 dark:border-gray-700">
+                                @else
+                                    <div class="w-24 h-24 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                        <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                        </svg>
+                                    </div>
+                                @endif
+                            </div>
+                            
+                            <!-- New Photo Preview -->
+                            <div x-show="photoPreview" style="display: none;">
+                                <span class="block w-24 h-24 rounded-full bg-cover bg-center bg-no-repeat border-4 border-gray-200 dark:border-gray-700"
+                                      x-bind:style="'background-image: url(\'' + photoPreview + '\');'">
+                                </span>
+                            </div>
                         </div>
                         <div class="flex-1">
-                            <input type="file" name="photo" accept="image/jpeg,image/png,image/jpg" class="form-input">
+                            <input type="file" name="photo" 
+                                   accept="image/jpeg,image/png,image/jpg" 
+                                   class="form-input"
+                                   @change="
+                                        const file = $event.target.files[0];
+                                        const reader = new FileReader();
+                                        reader.onload = (e) => { photoPreview = e.target.result; };
+                                        reader.readAsDataURL(file);
+                                   ">
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Format: JPG, JPEG, PNG. Maks: 2MB</p>
                         </div>
                     </div>
