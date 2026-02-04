@@ -3,7 +3,7 @@
 @section('title', __('messages.pos.title'))
 
 @section('content')
-<div class="w-full flex gap-6 h-[calc(100vh-7rem)]" x-data="posSystem()">
+<div class="w-full flex flex-col lg:flex-row gap-6 h-[calc(100vh-7rem)]" x-data="posSystem()">
     <!-- Flying Image Container -->
     <div id="flying-container" class="fixed inset-0 pointer-events-none z-[100]"></div>
     
@@ -37,7 +37,7 @@
         <!-- Products Grid with Pagination -->
         <div class="flex-1 overflow-hidden flex flex-col">
             <div class="flex-1 overflow-y-auto">
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     <template x-for="product in paginatedProducts" :key="product.id">
                         <div @click="addToCart(product, $event)" 
                              class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-3 cursor-pointer hover:border-primary-500 hover:shadow-lg hover:shadow-primary-500/10 transition-all duration-200 flex flex-col group"
@@ -105,7 +105,16 @@
     </div>
 
     <!-- Right: Cart Section -->
-    <div style="width: 450px; min-width: 450px; max-width: 450px;" class="flex-shrink-0 flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden relative">
+    <!-- Mobile: Fixed Bottom Sheet / Desktop: Fixed Sidebar -->
+    <div 
+        :class="{'translate-y-0': showMobileCart, 'translate-y-full': !showMobileCart}"
+        class="fixed inset-x-0 bottom-0 z-50 h-[85vh] bg-white dark:bg-gray-800 rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-in-out lg:translate-y-0 lg:static lg:h-auto lg:w-[450px] lg:min-w-[450px] lg:max-w-[450px] lg:rounded-2xl lg:shadow-xl lg:border lg:border-gray-100 lg:dark:border-gray-700 lg:flex lg:flex-col lg:overflow-hidden flex flex-col"
+        style="will-change: transform;">
+        
+        <!-- Mobile Handle -->
+        <div class="lg:hidden w-full flex justify-center pt-2 pb-1" @click="showMobileCart = false">
+            <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+        </div>
         <!-- Cart Target for Animation -->
         <div id="cart-target" class="absolute top-4 left-4 w-10 h-10 pointer-events-none z-10"></div>
         
@@ -116,6 +125,9 @@
                 {{ __('messages.pos.cart_title') }}
             </h2>
             <p class="text-white/80 text-sm" x-text="new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })"></p>
+            <button @click="showMobileCart = false" class="lg:hidden absolute right-4 top-4 text-white hover:bg-white/10 p-1 rounded">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
         </div>
 
         <!-- Buyer Type Selection -->
@@ -324,8 +336,25 @@
         </div>
     </div>
 
-    <!-- Hidden File Input for Image Upload -->
     <input type="file" x-ref="imageInput" class="hidden" accept="image/*" @change="handleImageUpload($event)">
+
+    <!-- Mobile Bottom Floating Bar -->
+    <div x-show="!showMobileCart && cart.length > 0" 
+         x-transition.slide.up
+         class="lg:hidden fixed bottom-4 inset-x-4 bg-gray-900 text-white p-4 rounded-xl shadow-2xl z-40 flex justify-between items-center cursor-pointer"
+         @click="showMobileCart = true">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center font-bold" x-text="cartTotalQty"></div>
+            <div class="flex flex-col">
+                <span class="text-xs text-gray-400">{{ __('messages.pos.total') }}</span>
+                <span class="font-bold text-lg" x-text="formatRupiah(cartTotalAmount)"></span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 font-medium text-primary-300">
+            {{ __('messages.pos.view_cart') }}
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+        </div>
+    </div>
 </div>
 
 <!-- Receipt Modal -->
@@ -485,7 +514,10 @@ document.addEventListener('alpine:init', () => {
         selectedCategory: '',
         currentPage: 1,
         perPage: 16,
+        currentPage: 1,
+        perPage: 16,
         cart: [],
+        showMobileCart: false,
         buyerType: 'umum',
         memberId: '',
         memberData: null,
