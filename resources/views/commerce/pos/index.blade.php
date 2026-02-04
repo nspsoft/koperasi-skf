@@ -14,6 +14,7 @@
             <div class="flex flex-col md:flex-row gap-3">
                 <div class="flex-[3] relative">
                     <input type="text" x-model="search" @input="currentPage = 1" 
+                           @keydown.enter.prevent="handleBarcodeScan()"
                            placeholder="{{ __('messages.pos.search_placeholder') }}" 
                            class="w-full form-input pl-4 pr-10 py-3 text-base" autofocus>
                     <button x-show="search" @click="search = ''; currentPage = 1" 
@@ -462,6 +463,26 @@ document.addEventListener('alpine:init', () => {
         paidAmount: 0,
         processing: false,
         processedImageId: null,
+
+        handleBarcodeScan() {
+            if (!this.search) return;
+            const s = this.search.trim().toLowerCase();
+            
+            // 1. Exact Code Match
+            const exactMatch = this.products.find(p => p.code && p.code.toLowerCase() === s);
+            if (exactMatch) {
+                this.addToCart(exactMatch);
+                this.search = '';
+                return;
+            }
+
+            // 2. Single Filter Result
+            if (this.filteredProducts.length === 1) {
+                this.addToCart(this.filteredProducts[0]);
+                this.search = '';
+                return;
+            }
+        },
 
         triggerImageUpload(id) {
             this.processedImageId = id;
