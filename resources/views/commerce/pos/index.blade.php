@@ -482,7 +482,7 @@
             </div>
             
             <div class="relative rounded-xl overflow-hidden bg-black text-white aspect-[4/3]">
-                <div id="reader" class="w-full h-full"></div>
+                <div id="reader" style="width: 100%; height: 100%;"></div>
                 <!-- Scan Overlay Line -->
                 <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
                     <div class="w-3/4 h-px bg-red-500 shadow-[0_0_10px_rgba(255,0,0,0.8)] animate-pulse"></div>
@@ -549,26 +549,46 @@ document.addEventListener('alpine:init', () => {
             this.isScanning = true;
             this.lastScannedCode = null;
             
-            this.$nextTick(() => {
-                if (!this.scanner) {
-                    try {
-                        this.scanner = new Html5QrcodeScanner("reader", { 
-                            fps: 10, 
-                            qrbox: { width: 250, height: 250 },
-                            aspectRatio: 1.333333,
-                            showTorchButtonIfSupported: true
-                        }, false); // verbose=false
-                        
-                        this.scanner.render(this.onScanSuccess.bind(this), (error) => {
-                             // console.warn(error); 
-                        });
-                    } catch (e) {
-                        console.error(e);
-                        alert('Gagal inisialisasi kamera: ' + e.message);
-                        this.isScanning = false;
-                    }
+            // Wait for x-show transition to complete and DOM to be ready
+            setTimeout(() => {
+                 this.initScanner();
+            }, 300);
+        },
+
+        initScanner() {
+                if (this.scanner) {
+                     // If scanner exists but element is missing, clear it
+                     if(!document.getElementById('reader')) {
+                         this.scanner = null;
+                     } else {
+                         return; // Already running
+                     }
                 }
-            });
+
+                if (!document.getElementById('reader')) {
+                    alert('Error: Element kamera (reader) tidak ditemukan di layar.');
+                    this.isScanning = false;
+                    return;
+                }
+
+                try {
+                    console.log('Initializing Html5QrcodeScanner...');
+                    this.scanner = new Html5QrcodeScanner("reader", { 
+                        fps: 10, 
+                        qrbox: { width: 250, height: 250 },
+                        aspectRatio: 1.333333,
+                        showTorchButtonIfSupported: true
+                    }, false); // verbose=false
+                    
+                    this.scanner.render(this.onScanSuccess.bind(this), (error) => {
+                         // console.warn(error); 
+                    });
+                } catch (e) {
+                    console.error('Scanner Init Error:', e);
+                    alert('Gagal membuka kamera: ' + e.message + '. Pastikan Anda menekan "Allow/Izinkan" saat browser meminta akses kamera.');
+                    this.isScanning = false;
+                    this.scanner = null;
+                }
         },
 
         onScanSuccess(decodedText, decodedResult) {
@@ -599,12 +619,16 @@ document.addEventListener('alpine:init', () => {
         stopScanner() {
             this.isScanning = false;
             if (this.scanner) {
-                this.scanner.clear().catch(error => {
-                    console.error("Failed to clear html5-qrcode scanner. ", error);
-                });
-                // We don't destroy instance to reuse it faster? 
-                // Or clear() removes the UI, so we might need to new it again or just render()
-                // doc says clear() stops scanning and clears UI.
+                try {
+                    this.scanner.clear().then(() => {
+                         this.scanner = null;
+                    }).catch(error => {
+                        console.error("Failed to clear html5-qrcode scanner. ", error);
+                        this.scanner = null;
+                    });
+                } catch(e) {
+                    this.scanner = null;
+                }
             }
         },
 
