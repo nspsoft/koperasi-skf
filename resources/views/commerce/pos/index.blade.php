@@ -22,6 +22,9 @@
                         ✕
                     </button>
                 </div>
+                <button @click="startScanner()" class="bg-gray-800 text-white p-3 rounded-lg hover:bg-gray-700 transition-colors" title="{{ __('messages.pos.scan_camera') }}">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                </button>
                 <select x-model="selectedCategory" @change="currentPage = 1" class="form-input py-3 flex-1 md:max-w-[180px]">
                     <option value="">{{ __('messages.pos.all_categories') }}</option>
                     @foreach(\App\Models\Category::all() as $cat)
@@ -437,7 +440,35 @@
     </div>
 </div>
 
+<!-- Scanner Modal -->
+<div x-show="isScanning" class="fixed inset-0 z-[60] overflow-y-auto" style="display: none;">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm" @click="stopScanner()"></div>
+        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg mx-auto p-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ __('messages.pos.scan_product') }}</h3>
+                <button @click="stopScanner()" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="relative rounded-xl overflow-hidden bg-black text-white aspect-[4/3]">
+                <div id="reader" class="w-full h-full"></div>
+                <!-- Scan Overlay Line -->
+                <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div class="w-3/4 h-px bg-red-500 shadow-[0_0_10px_rgba(255,0,0,0.8)] animate-pulse"></div>
+                </div>
+            </div>
+            <div x-show="lastScannedCode" x-transition.opacity.duration.500ms class="mt-4 text-center p-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg">
+                {{ __('messages.pos.scanned_success') }}: <span class="font-bold" x-text="lastScannedCode"></span>
+            </div>
+            <p class="text-center text-sm text-gray-500 mt-4">{{ __('messages.pos.scan_instruction') }}</p>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 <script>
 document.addEventListener('alpine:init', () => {
     Alpine.store('receipt', {
@@ -463,6 +494,68 @@ document.addEventListener('alpine:init', () => {
         paidAmount: 0,
         processing: false,
         processedImageId: null,
+
+        // Scanner State
+        scanner: null,
+        isScanning: false,
+        lastScannedCode: null,
+        scanAudio: new Audio('/sounds/beep.mp3'), // Ensure this file exists or use a data URI
+
+        startScanner() {
+            this.isScanning = true;
+            this.lastScannedCode = null;
+            
+            this.$nextTick(() => {
+                if (!this.scanner) {
+                    this.scanner = new Html5QrcodeScanner("reader", { 
+                        fps: 10, 
+                        qrbox: { width: 250, height: 250 },
+                        aspectRatio: 1.333333
+                    }, false); // verbose=false
+                }
+                
+                this.scanner.render(this.onScanSuccess.bind(this), (error) => {
+                    // Ignore scan errors as they happen every frame if no code detected
+                });
+            });
+        },
+
+        onScanSuccess(decodedText, decodedResult) {
+            if (this.lastScannedCode === decodedText) return; // Prevent double scan of same frame
+
+            this.lastScannedCode = decodedText;
+            
+            // Play Beep
+            // this.scanAudio.play().catch(e => console.log('Audio play failed', e));
+
+            // Search and Add
+            const exactMatch = this.products.find(p => p.code && p.code.toLowerCase() === decodedText.toLowerCase());
+            
+            if (exactMatch) {
+                this.addToCart(exactMatch);
+                // Optional: Flash screen or show notification
+            } else {
+                // If not found, maybe just set search?
+                this.search = decodedText;
+            }
+
+            // Reset last scanned after delay to allow re-scanning same item
+            setTimeout(() => {
+                this.lastScannedCode = null;
+            }, 2000);
+        },
+
+        stopScanner() {
+            this.isScanning = false;
+            if (this.scanner) {
+                this.scanner.clear().catch(error => {
+                    console.error("Failed to clear html5-qrcode scanner. ", error);
+                });
+                // We don't destroy instance to reuse it faster? 
+                // Or clear() removes the UI, so we might need to new it again or just render()
+                // doc says clear() stops scanning and clears UI.
+            }
+        },
 
         handleBarcodeScan() {
             if (!this.search) return;
