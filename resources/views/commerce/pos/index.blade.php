@@ -468,7 +468,7 @@
 </div>
 
 @push('scripts')
-<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script>
 document.addEventListener('alpine:init', () => {
     Alpine.store('receipt', {
@@ -502,21 +502,40 @@ document.addEventListener('alpine:init', () => {
         scanAudio: new Audio('/sounds/beep.mp3'), // Ensure this file exists or use a data URI
 
         startScanner() {
+            // Debugging checks
+            if (typeof Html5QrcodeScanner === 'undefined') {
+                alert('Library scanner belum dimuat sempurna. Pastikan ada koneksi internet dan refresh halaman.');
+                return;
+            }
+            
+            // HTTPS Check
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && !location.hostname.includes('127.0.0.1')) {
+                alert('Fitur kamera HANYA bisa berjalan di HTTPS (Mode Aman). Silakan akses web dengan https://');
+                return;
+            }
+
             this.isScanning = true;
             this.lastScannedCode = null;
             
             this.$nextTick(() => {
                 if (!this.scanner) {
-                    this.scanner = new Html5QrcodeScanner("reader", { 
-                        fps: 10, 
-                        qrbox: { width: 250, height: 250 },
-                        aspectRatio: 1.333333
-                    }, false); // verbose=false
+                    try {
+                        this.scanner = new Html5QrcodeScanner("reader", { 
+                            fps: 10, 
+                            qrbox: { width: 250, height: 250 },
+                            aspectRatio: 1.333333,
+                            showTorchButtonIfSupported: true
+                        }, false); // verbose=false
+                        
+                        this.scanner.render(this.onScanSuccess.bind(this), (error) => {
+                             // console.warn(error); 
+                        });
+                    } catch (e) {
+                        console.error(e);
+                        alert('Gagal inisialisasi kamera: ' + e.message);
+                        this.isScanning = false;
+                    }
                 }
-                
-                this.scanner.render(this.onScanSuccess.bind(this), (error) => {
-                    // Ignore scan errors as they happen every frame if no code detected
-                });
             });
         },
 
