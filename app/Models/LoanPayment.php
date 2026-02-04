@@ -108,4 +108,9 @@ class LoanPayment extends Model
             default => $this->payment_method,
         };
     }
+
+    public function journalEntry()
+    {
+        return $this->morphOne(JournalEntry::class, 'reference');
+    }
 }

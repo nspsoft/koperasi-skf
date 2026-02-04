@@ -32,4 +32,9 @@ class Transaction extends Model
     {
         return $this->hasMany(TransactionItem::class);
     }
+
+    public function journalEntry()
+    {
+        return $this->morphOne(JournalEntry::class, 'reference');
+    }
 }

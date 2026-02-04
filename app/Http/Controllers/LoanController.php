@@ -395,6 +395,7 @@ class LoanController extends Controller
 
             $loan->update([
                 'signature' => $fileName,
+                'signed_by' => auth()->id(),
                 'signed_at' => now(),
             ]);
 
@@ -425,6 +426,7 @@ class LoanController extends Controller
 
             $loan->update([
                 'status' => 'active',
+                'disbursed_by' => auth()->id(),
                 'disbursement_date' => now(),
                 'due_date' => now()->addMonth(), // Cicilan pertama bulan depan
             ]);

@@ -460,7 +460,6 @@ document.addEventListener('alpine:init', () => {
         searchingMember: false,
         paymentMethod: 'cash',
         paidAmount: 0,
-        paidAmount: 0,
         processing: false,
         processedImageId: null,
 
@@ -489,40 +488,46 @@ document.addEventListener('alpine:init', () => {
             fetch(`/products/${productId}/image`, {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
                 },
                 body: formData
             })
-            .then(r => r.json())
+            .then(async r => {
+                const isJson = r.headers.get('content-type')?.includes('application/json');
+                const data = isJson ? await r.json() : null;
+                
+                if (!r.ok) {
+                    const errorMsg = data?.message || `Server error: ${r.status}`;
+                    throw new Error(errorMsg);
+                }
+                return data;
+            })
             .then(data => {
-                if (data.success) {
-                    // Force refresh image by appending timestamp query
-                    // We need to update the product in the local array
-                    // removing /storage/ prefix if plain path returned or handling full URL
-                    
-                    // The controller returns full URL: Storage::url($path) -> /storage/products/xxx.jpg
-                    // The view expects: /storage/ + product.image OR using full URL logic
-                    
-                    // View logic: :src="'/storage/' + product.image"
-                    // If data.image_url is "/storage/products/image.jpg", we need to store just "products/image.jpg"
-                    
-                    // Simple hack: update the whole view logic to handle both, OR
-                    // just extract the relative path.
-                    
-                    // Let's assume standard Laravel storage link structure
-                    // relative path is everything after /storage/
-                    
-                    let relativePath = data.image_url.replace('/storage/', '');
-                    
+                if (data && data.success) {
                     // Update main products array
-                    this.products[productIndex].image = relativePath + '?t=' + new Date().getTime(); 
+                    // The view expects paths relative to /storage/ OR absolute URLs
+                    // We extract relative path to stay consistent with existing logic if possible
+                    let finalPath = data.image_url;
+                    
+                    if (finalPath.includes('/storage/')) {
+                        finalPath = finalPath.split('/storage/').pop();
+                    } else if (finalPath.includes('http') && finalPath.includes('storage')) {
+                        // Handle potential full APP_URL/storage/path
+                        finalPath = finalPath.split('/storage/').pop();
+                    }
+
+                    this.products[productIndex].image = finalPath + '?t=' + new Date().getTime(); 
+                    
+                    // Optional: show a small toast or success indicator
+                    console.log('Image updated successfully:', finalPath);
                 } else {
-                    alert('{{ __('messages.pos.upload_failed') }} ' + data.message);
+                    alert('{{ __('messages.pos.upload_failed') }} ' + (data?.message || 'Unknown error'));
                 }
             })
             .catch(err => {
-                console.error(err);
-                alert('{{ __('messages.pos.upload_error') }}');
+                console.error('Upload error:', err);
+                alert('{{ __('messages.pos.upload_error') }}: ' + err.message);
             });
         },
         // Placeholder Colors
@@ -574,8 +579,6 @@ document.addEventListener('alpine:init', () => {
         get cartTotalQty() { return this.cart.reduce((s, i) => s + i.qty, 0); },
         get cartTotalAmount() { return this.cart.reduce((s, i) => s + (i.price * i.qty), 0); },
         get changeAmount() { return Math.max(0, this.paidAmount - this.cartTotalAmount); },
-
-        formatRupiah(n) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n); },
 
         formatRupiah(n) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n); },
 

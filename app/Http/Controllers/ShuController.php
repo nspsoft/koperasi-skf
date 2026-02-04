@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use App\Models\Account;
 
 class ShuController extends Controller
 {
@@ -73,7 +76,15 @@ class ShuController extends Controller
 
         $availableYears = range(date('Y'), 2020);
 
-        return view('shu.calculator', compact('setting', 'year', 'availableYears'));
+        // Calculate current Net Income for this year from Ledger
+        $startOfYear = Carbon::create($year, 1, 1)->startOfDay();
+        $endOfYear = Carbon::create($year, 12, 31)->endOfDay();
+        
+        $revenue = \App\Services\JournalService::getTotalRevenue($startOfYear, $endOfYear);
+        $expense = \App\Services\JournalService::getTotalExpenses($startOfYear, $endOfYear);
+        $suggestedShu = $revenue - $expense;
+
+        return view('shu.calculator', compact('setting', 'year', 'availableYears', 'suggestedShu'));
     }
 
     /**

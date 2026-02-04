@@ -200,29 +200,40 @@ class ProductController extends Controller
             'image' => 'required|image|max:2048',
         ]);
 
-        if ($request->hasFile('image')) {
-            // Delete old image if exists
-            if ($product->image) {
-                Storage::disk('public')->delete($product->image);
+        try {
+            if ($request->hasFile('image')) {
+                // Delete old image if exists
+                if ($product->image) {
+                    \Storage::disk('public')->delete($product->image);
+                }
+                
+                $path = $request->file('image')->store('products', 'public');
+                $product->update(['image' => $path]);
+
+                \App\Models\AuditLog::log(
+                    'update', 
+                    "Memperbarui gambar produk: {$product->name} ({$product->code})",
+                    $product
+                );
+
+                return response()->json([
+                    'success' => true,
+                    'image_url' => \Storage::url($path),
+                    'message' => 'Gambar berhasil diperbarui'
+                ]);
             }
-            
-            $path = $request->file('image')->store('products', 'public');
-            $product->update(['image' => $path]);
 
-            \App\Models\AuditLog::log(
-                'update', 
-                "Memperbarui gambar produk: {$product->name} ({$product->code})",
-                $product
-            );
-
-            return response()->json([
-                'success' => true,
-                'image_url' => Storage::url($path),
-                'message' => 'Gambar berhasil diperbarui'
+            return response()->json(['success' => false, 'message' => 'Tidak ada gambar yang diupload'], 400);
+        } catch (\Exception $e) {
+            \Log::error('Error updating product image: ' . $e->getMessage(), [
+                'product_id' => $product->id,
+                'exception' => $e
             ]);
+            return response()->json([
+                'success' => false, 
+                'message' => 'Gagal memperbarui gambar: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json(['success' => false, 'message' => 'Tidak ada gambar yang diupload'], 400);
     }
 
     /**

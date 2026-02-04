@@ -28,7 +28,9 @@ class Loan extends Model
         'notes',
         'approved_by',
         'created_by',
+        'disbursed_by',
         'signature',
+        'signed_by',
         'signed_at',
     ];
 
@@ -75,6 +77,22 @@ class Loan extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the user who disbursed this loan.
+     */
+    public function disburser()
+    {
+        return $this->belongsTo(User::class, 'disbursed_by');
+    }
+
+    /**
+     * Get the user who signed this loan.
+     */
+    public function signer()
+    {
+        return $this->belongsTo(User::class, 'signed_by');
     }
 
     /**

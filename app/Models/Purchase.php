@@ -51,4 +51,9 @@ class Purchase extends Model
             default => $this->status
         };
     }
+
+    public function journalEntry()
+    {
+        return $this->morphOne(JournalEntry::class, 'reference');
+    }
 }

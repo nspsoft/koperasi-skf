@@ -52,11 +52,20 @@
                 </div>
                 <div>
                     <label class="form-label">{{ __('messages.shu_calculator.total_shu_label') }} <span class="text-red-500">*</span></label>
-                    <div class="relative">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">Rp</span>
-                        <input type="number" name="total_shu_pool" value="{{ old('total_shu_pool', $setting->total_shu_pool ?? 0) }}" 
-                               class="form-input pl-10" placeholder="0" min="0" step="1000" required id="totalPool">
+                    <div class="flex gap-2">
+                        <div class="relative flex-1">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">Rp</span>
+                            <input type="number" name="total_shu_pool" value="{{ old('total_shu_pool', $setting->total_shu_pool ?? 0) }}" 
+                                   class="form-input pl-10" placeholder="0" min="0" step="1000" required id="totalPool">
+                        </div>
+                        <button type="button" onclick="syncWithPL()" class="btn-secondary px-3" title="Sinkronkan dengan Laba Rugi Berjalan">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            Ambil dari Laba Rugi
+                        </button>
                     </div>
+                    <p class="text-[10px] text-gray-500 mt-1">
+                        Saran berdasarkan Laba Rugi: <span class="font-bold text-primary-600">Rp {{ number_format($suggestedShu, 0, ',', '.') }}</span>
+                    </p>
                     <p class="text-xs text-gray-500 mt-1">{{ __('messages.shu_calculator.total_shu_help') }}</p>
                 </div>
             </div>
@@ -275,6 +284,18 @@
 
 @push('scripts')
 <script>
+    function syncWithPL() {
+        const suggested = {{ $suggestedShu }};
+        const totalPool = document.getElementById('totalPool');
+        totalPool.value = Math.floor(suggested);
+        
+        // Trigger input event to update breakdown
+        const event = new Event('input', { bubbles: true });
+        totalPool.dispatchEvent(event);
+        
+        alert('Nilai SHU disinkronkan dengan Laba Rugi Berjalan: ' + new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(suggested));
+    }
+
     function applyPreset(type) {
         if (!confirm('{{ __('messages.shu_calculator.preset_confirm') }}')) return;
 

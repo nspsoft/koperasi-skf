@@ -203,10 +203,9 @@
             const selectAll = document.getElementById('selectAll');
             const checkboxes = document.querySelectorAll('.product-checkbox');
             const floatingBtn = document.getElementById('printFloatingBtn');
-            const selectedCount = document.getElementById('selectedCount');
             const printBtn = document.getElementById('printLabelsBtn');
 
-            if (!selectAll || !floatingBtn || !selectedCount || !printBtn) {
+            if (!selectAll || !floatingBtn || !printBtn) {
                 console.log('Missing elements for print labels');
                 return;
             }

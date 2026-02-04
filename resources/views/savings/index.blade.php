@@ -110,7 +110,7 @@
     }">
         
         <!-- Bulk Actions Toolbar -->
-        <div x-show="selected.length > 0" x-transition class="bg-primary-50 dark:bg-primary-900/20 p-4 border-b border-primary-100 dark:border-primary-800 flex items-center justify-between">
+        <div x-show="selected.length > 0" x-transition x-cloak class="bg-primary-50 dark:bg-primary-900/20 p-4 border-b border-primary-100 dark:border-primary-800 flex items-center justify-between">
             <div class="flex items-center gap-2 text-primary-700 dark:text-primary-300">
                 <span class="font-bold text-lg" x-text="selected.length"></span>
                 <span>transaksi dipilih</span>

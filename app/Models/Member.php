@@ -25,6 +25,7 @@ class Member extends Model
         'gender',
         'photo',
         'points',
+        'phone',
     ];
 
     protected $casts = [

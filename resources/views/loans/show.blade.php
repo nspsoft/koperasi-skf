@@ -32,6 +32,7 @@
                 </button>
                 <form action="{{ route('loans.approve', $loan) }}" method="POST">
                     @csrf
+                    @method('PUT')
                     <button type="submit" class="btn-primary bg-green-600 hover:bg-green-700 border-green-600 hover:border-green-700">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -133,9 +134,14 @@
                 <div class="bg-white p-4 rounded-xl border border-gray-200 inline-block w-full text-center">
                     <img src="{{ Storage::url($loan->signature) }}" alt="Tanda Tangan" class="h-32 mx-auto mb-2">
                     <div class="text-xs text-gray-500 border-t pt-2 w-full mt-2">
-                        <p class="font-semibold text-gray-900">{{ $loan->member->user->name }}</p>
+                        @if($loan->signer && $loan->signer->id !== $loan->member->user_id)
+                            <p class="font-semibold text-gray-900">{{ $loan->member->user->name }}</p>
+                            <p class="text-[10px] text-gray-500">(Diwakilkan oleh: {{ $loan->signer->name }})</p>
+                        @else
+                            <p class="font-semibold text-gray-900">{{ $loan->member->user->name }}</p>
+                        @endif
                         <p>Ditandatangani secara digital pada:</p>
-                        <p class="font-mono text-gray-700">{{ $loan->signed_at->format('d M Y H:i:s') }}</p>
+                        <p class="font-mono text-gray-700">{{ $loan->signed_at ? $loan->signed_at->format('d M Y H:i:s') : '-' }}</p>
                     </div>
                 </div>
                 @else
@@ -189,7 +195,7 @@
                             @forelse($loan->payments as $payment)
                             <tr>
                                 <td class="px-4 py-3">{{ $payment->payment_number }}</td>
-                                <td class="px-4 py-3">{{ $payment->payment_date->format('d/m/Y') }}</td>
+                                <td class="px-4 py-3">{{ $payment->payment_date ? $payment->payment_date->format('d/m/Y') : '-' }}</td>
                                 <td class="px-4 py-3 font-semibold text-green-600">Rp {{ number_format($payment->amount, 0, ',', '.') }}</td>
                                 <td class="px-4 py-3">{{ $payment->payment_method_label }}</td>
                             </tr>
@@ -251,7 +257,11 @@
                         <div class="absolute -left-[21px] top-0 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-800"></div>
                         <p class="text-sm font-semibold text-gray-900 dark:text-white">Pengajuan Dibuat</p>
                         <p class="text-xs text-gray-500">{{ $loan->application_date->format('d M Y') }}</p>
-                        <p class="text-xs text-gray-500 mt-1">Oleh: {{ $loan->creator->name ?? 'System' }}</p>
+                        @if($loan->created_by === $loan->member->user_id)
+                            <p class="text-xs text-gray-500 mt-1">Oleh: {{ $loan->member->user->name }}</p>
+                        @else
+                            <p class="text-xs text-gray-500 mt-1">Diinput Oleh: {{ $loan->creator->name ?? 'System' }}</p>
+                        @endif
                     </div>
                     
                     <!-- Approved/Rejected -->
@@ -272,6 +282,11 @@
                         <div class="absolute -left-[21px] top-0 w-3 h-3 rounded-full bg-indigo-500 border-2 border-white dark:border-gray-800"></div>
                         <p class="text-sm font-semibold text-gray-900 dark:text-white">Ditandatangani</p>
                         <p class="text-xs text-gray-500">{{ $loan->signed_at->format('d M Y') }}</p>
+                        @if($loan->signer && $loan->signer->id !== $loan->member->user_id)
+                            <p class="text-xs text-gray-500 mt-1">Diwakilkan oleh: {{ $loan->signer->name }}</p>
+                        @else
+                             <p class="text-xs text-gray-500 mt-1">Oleh: {{ $loan->member->user->name }}</p>
+                        @endif
                     </div>
                     @endif
 
@@ -281,6 +296,7 @@
                         <div class="absolute -left-[21px] top-0 w-3 h-3 rounded-full bg-purple-500 border-2 border-white dark:border-gray-800"></div>
                         <p class="text-sm font-semibold text-gray-900 dark:text-white">Dana Dicairkan</p>
                         <p class="text-xs text-gray-500">{{ $loan->disbursement_date->format('d M Y') }}</p>
+                        <p class="text-xs text-gray-500 mt-1">Oleh: {{ $loan->disburser->name ?? 'Admin Koperasi' }}</p>
                     </div>
                     @endif
                 </div>

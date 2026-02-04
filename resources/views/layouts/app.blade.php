@@ -77,7 +77,7 @@
     </head>
     <body class="font-sans antialiased bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
         <!-- Mobile Sidebar Overlay -->
-        <div x-show="sidebarMobileOpen" 
+        <div x-show="sidebarMobileOpen" x-cloak 
              x-transition:enter="transition-opacity ease-linear duration-300"
              x-transition:enter-start="opacity-0"
              x-transition:enter-end="opacity-100"

@@ -32,6 +32,8 @@ class DashboardController extends Controller
      */
     private function adminDashboard()
     {
+        $currentYear = date('Y');
+
         // Statistics
         $stats = [
             'total_members' => Member::where('status', 'active')->count(),
@@ -62,6 +64,84 @@ class DashboardController extends Controller
             ->orderBy('total_qty', 'desc')
             ->take(5)
             ->get();
+
+        // --- NEW ANALYTICS ---
+
+        // 1. Top 5 Customers (Sultan)
+        $topCustomers = Transaction::select('user_id', DB::raw('SUM(total_amount) as total_spent'))
+            ->where('status', 'completed')
+            ->whereNotNull('user_id')
+            ->groupBy('user_id')
+            ->orderByDesc('total_spent')
+            ->with('user.member')
+            ->take(5)
+            ->get();
+
+        // 2. Sales Channel Distribution (Offline vs Online)
+        $salesChannel = Transaction::select('type', DB::raw('COUNT(*) as count'))
+            ->where('status', 'completed')
+            ->whereYear('created_at', $currentYear)
+            ->groupBy('type')
+            ->pluck('count', 'type')
+            ->toArray();
+        
+        $salesChannelData = [
+            $salesChannel['offline'] ?? 0,
+            $salesChannel['online'] ?? 0
+        ];
+
+        // 3. Revenue & Profit Chart (Monthly)
+        // Revenue = Class 4 (Credit - Debit)
+        // Expenses = Class 5 (Debit - Credit)
+        // Profit = Revenue - Expenses
+        
+        $monthlyRevenue = [];
+        $monthlyProfit = [];
+
+        for ($m = 1; $m <= 12; $m++) {
+            // Revenue (Class 4)
+            $revCredit = \App\Models\JournalEntryLine::whereHas('account', function($q) {
+                    $q->where('code', 'like', '4%');
+                })
+                ->whereHas('journalEntry', function($q) use ($currentYear, $m) {
+                    $q->whereYear('transaction_date', $currentYear)
+                      ->whereMonth('transaction_date', $m);
+                })->sum('credit');
+            
+            $revDebit = \App\Models\JournalEntryLine::whereHas('account', function($q) {
+                    $q->where('code', 'like', '4%');
+                })
+                ->whereHas('journalEntry', function($q) use ($currentYear, $m) {
+                    $q->whereYear('transaction_date', $currentYear)
+                      ->whereMonth('transaction_date', $m);
+                })->sum('debit');
+            
+            $revenue = $revCredit - $revDebit;
+
+            // Expenses (Class 5)
+            $expDebit = \App\Models\JournalEntryLine::whereHas('account', function($q) {
+                    $q->where('code', 'like', '5%');
+                })
+                ->whereHas('journalEntry', function($q) use ($currentYear, $m) {
+                    $q->whereYear('transaction_date', $currentYear)
+                      ->whereMonth('transaction_date', $m);
+                })->sum('debit');
+
+            $expCredit = \App\Models\JournalEntryLine::whereHas('account', function($q) {
+                    $q->where('code', 'like', '5%');
+                })
+                ->whereHas('journalEntry', function($q) use ($currentYear, $m) {
+                    $q->whereYear('transaction_date', $currentYear)
+                      ->whereMonth('transaction_date', $m);
+                })->sum('credit');
+
+            $expense = $expDebit - $expCredit;
+            
+            $monthlyRevenue[] = $revenue;
+            $monthlyProfit[] = $revenue - $expense;
+        }
+
+        // ---------------------
         
         // Recent Members (5 newest)
         $recentMembers = Member::with('user')
@@ -92,7 +172,7 @@ class DashboardController extends Controller
                 DB::raw("MONTH(transaction_date) as month"),
                 DB::raw('SUM(CASE WHEN transaction_type = "deposit" THEN amount ELSE -amount END) as total')
             )
-            ->whereYear('transaction_date', date('Y'))
+            ->whereYear('transaction_date', $currentYear)
             ->groupBy('month')
             ->orderBy('month')
             ->get()
@@ -120,7 +200,11 @@ class DashboardController extends Controller
             'loanDistribution',
             'topProducts',
             'topKreditDebtors',
-            'recentActivities'
+            'recentActivities',
+            'salesChannelData',
+            'monthlyRevenue',
+            'monthlyProfit',
+            'topCustomers'
         ));
     }
     

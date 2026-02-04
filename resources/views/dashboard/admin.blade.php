@@ -94,16 +94,60 @@
     </div>
 
     <!-- Main Content Grid -->
+    
+    <!-- Row 1: Revenue & Profit (Wide) -->
+    <div class="glass-card-solid p-6 mb-8">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Omset & Profit Bulanan</h2>
+                <p class="text-sm text-gray-500">Perbandingan pendapatan vs keuntungan bersih tahun ini</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="flex items-center text-xs text-gray-500">
+                    <span class="w-2 h-2 rounded-full bg-indigo-500 mr-1"></span> Pendapatan
+                </span>
+                <span class="flex items-center text-xs text-gray-500">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1"></span> Profit
+                </span>
+            </div>
+        </div>
+        <div id="revenueProfitChart"></div>
+    </div>
+
+    <!-- Row 2: Savings, Sales & Loans -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <!-- Savings Chart -->
-        <div class="lg:col-span-2 glass-card-solid p-6">
+        <div class="glass-card-solid p-6">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Grafik Simpanan</h2>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Tahun {{ date('Y') }}</p>
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Pertumbuhan Simpanan</h2>
                 </div>
             </div>
             <div id="savingsChart" class="w-full"></div>
+        </div>
+
+        <!-- Sales Channel (Donut) -->
+        <div class="glass-card-solid p-6">
+             <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Penjualan</h2>
+            </div>
+            <div id="salesChannelChart" class="flex justify-center"></div>
+             <div class="mt-4 space-y-3">
+                <div class="flex items-center justify-between text-sm">
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 rounded-full bg-indigo-500 mr-2"></span>
+                        <span class="text-gray-600 dark:text-gray-400">Offline (POS)</span>
+                    </div>
+                    <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $salesChannelData[0] }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 rounded-full bg-cyan-500 mr-2"></span>
+                        <span class="text-gray-600 dark:text-gray-400">Online Store</span>
+                    </div>
+                    <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $salesChannelData[1] }}</span>
+                </div>
+            </div>
         </div>
 
         <!-- Loan Distribution -->
@@ -123,29 +167,35 @@
 
     <!-- Tables Row -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <!-- Recent Members -->
+        <!-- Top 5 Customers -->
         <div class="glass-card-solid p-6">
             <div class="flex items-center justify-between mb-6">
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Anggota Terbaru</h2>
-                <a href="{{ route('members.index') }}" class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 font-medium">
-                    Lihat Semua →
-                </a>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">🏆 Top 5 Pelanggan</h2>
             </div>
             <div class="space-y-4">
-                @forelse($recentMembers as $member)
+                @forelse($topCustomers as $customer)
                 <div class="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                        {{ strtoupper(substr($member->user->name, 0, 1)) }}
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white font-bold shadow-sm">
+                        {{ substr($customer->user->name ?? '?', 0, 1) }}
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="font-medium text-gray-900 dark:text-white truncate">{{ $member->user->name }}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ $member->member_id }}</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {{ $customer->user->name ?? 'Unknown' }}
+                        </p>
+                        <p class="text-xs text-gray-500 truncate">
+                            {{ $customer->user->member->member_id ?? '-' }}
+                        </p>
                     </div>
-                    <span class="badge badge-success">{{ ucfirst($member->status) }}</span>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-emerald-600">
+                            Rp {{ number_format($customer->total_spent, 0, ',', '.') }}
+                        </p>
+                        <p class="text-[10px] text-gray-400 uppercase">Belanja</p>
+                    </div>
                 </div>
                 @empty
                 <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-                    Belum ada anggota
+                    Belum ada data pelanggan
                 </div>
                 @endforelse
             </div>
@@ -427,6 +477,122 @@
         
         const savingsChart = new ApexCharts(document.querySelector("#savingsChart"), savingsOptions);
         savingsChart.render();
+
+        // Revenue & Profit Chart (Bar + Line)
+        const revenueProfitOptions = {
+            ...commonOptions,
+            series: [{
+                name: 'Omset',
+                type: 'column',
+                data: @json($monthlyRevenue)
+            }, {
+                name: 'Profit',
+                type: 'line',
+                data: @json($monthlyProfit)
+            }],
+            chart: {
+                height: 350,
+                type: 'line',
+                toolbar: { show: false },
+                fontFamily: 'Inter, sans-serif',
+            },
+            stroke: {
+                width: [0, 4],
+                curve: 'smooth'
+            },
+            plotOptions: {
+                bar: {
+                    borderRadius: 4,
+                    columnWidth: '40%'
+                }
+            },
+            colors: ['#6366f1', '#10b981'],
+            fill: {
+                opacity: [1, 1]
+            },
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+            xaxis: {
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+                labels: {
+                    style: { colors: '#9ca3af' }
+                }
+            },
+            yaxis: [{
+                title: { text: 'Omset', style: { color: '#6366f1' } },
+                labels: {
+                    style: { colors: '#9ca3af' },
+                    formatter: (value) => 'Rp ' + (value / 1000000).toFixed(0) + 'jt'
+                }
+            }, {
+                opposite: true,
+                title: { text: 'Profit', style: { color: '#10b981' } },
+                labels: {
+                    style: { colors: '#9ca3af' },
+                    formatter: (value) => 'Rp ' + (value / 1000000).toFixed(0) + 'jt'
+                }
+            }],
+            grid: {
+                borderColor: '#e5e7eb',
+                strokeDashArray: 4
+            },
+             tooltip: {
+                theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+                y: {
+                    formatter: function (val) {
+                        return 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
+                    }
+                }
+            }
+        };
+
+        const revenueProfitChart = new ApexCharts(document.querySelector("#revenueProfitChart"), revenueProfitOptions);
+        revenueProfitChart.render();
+
+        // Sales Channel Chart (Donut)
+        const salesChannelOptions = {
+            ...commonOptions,
+            series: @json($salesChannelData),
+            labels: ['Offline (POS)', 'Online Store'],
+            chart: {
+                type: 'donut',
+                height: 280,
+                fontFamily: 'Inter, sans-serif',
+            },
+            colors: ['#6366f1', '#06b6d4'],
+            plotOptions: {
+                 pie: {
+                    donut: {
+                        size: '75%',
+                        labels: {
+                            show: true,
+                            name: { show: true, fontSize: '14px', fontFamily: 'Inter, sans-serif', color: '#6b7280' },
+                            value: { 
+                                show: true, 
+                                fontSize: '24px', 
+                                fontFamily: 'Inter, sans-serif', 
+                                fontWeight: 700,
+                                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827'
+                            },
+                             total: {
+                                show: true,
+                                label: 'Total',
+                                color: '#6b7280'
+                            }
+                        }
+                    }
+                }
+            },
+            stroke: { show: false },
+            dataLabels: { enabled: false },
+            legend: { show: false },
+            tooltip: {
+                theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+            }
+        };
+
+        const salesChannelChart = new ApexCharts(document.querySelector("#salesChannelChart"), salesChannelOptions);
+        salesChannelChart.render();
 
         // Loan Distribution Chart (Donut)
         const loanLabels = @json($loanDistribution->pluck('loan_type')->map(fn($type) => ucfirst($type)));
