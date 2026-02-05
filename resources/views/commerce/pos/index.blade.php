@@ -107,7 +107,7 @@
     <!-- Right: Cart Section -->
     <!-- Mobile: Fixed Bottom Sheet / Desktop: Fixed Sidebar -->
     <div 
-        :class="{'translate-y-0': showMobileCart, 'translate-y-full': !showMobileCart}"
+        :class="showMobileCart ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'"
         class="fixed inset-x-0 bottom-0 z-50 h-[85vh] bg-white dark:bg-gray-800 rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-in-out lg:translate-y-0 lg:static lg:h-auto lg:w-[450px] lg:min-w-[450px] lg:max-w-[450px] lg:rounded-2xl lg:shadow-xl lg:border lg:border-gray-100 lg:dark:border-gray-700 lg:flex lg:flex-col lg:overflow-hidden flex flex-col"
         style="will-change: transform;">
         
@@ -355,7 +355,6 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
         </div>
     </div>
-</div>
 
 <!-- Receipt Modal -->
 <div x-show="$store.receipt.show" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
@@ -496,7 +495,9 @@
     </div>
 </div>
 
+</div>
 @push('scripts')
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script>
 document.addEventListener('alpine:init', () => {
@@ -512,8 +513,6 @@ document.addEventListener('alpine:init', () => {
         products: @json($products).map(p => ({...p, image_error: false})),
         search: '',
         selectedCategory: '',
-        currentPage: 1,
-        perPage: 16,
         currentPage: 1,
         perPage: 16,
         cart: [],
