@@ -12,7 +12,9 @@ return new class extends Migration
     {
         // Add 'delivered' to the ENUM list.
         // Complete List: pending, paid, processing, ready, completed, cancelled, credit, delivered
-        DB::statement("ALTER TABLE transactions MODIFY COLUMN status ENUM('pending', 'paid', 'processing', 'ready', 'completed', 'cancelled', 'credit', 'delivered') DEFAULT 'pending'");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE transactions MODIFY COLUMN status ENUM('pending', 'paid', 'processing', 'ready', 'completed', 'cancelled', 'credit', 'delivered') DEFAULT 'pending'");
+        }
     }
 
     /**
@@ -20,6 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // DB::statement("ALTER TABLE transactions MODIFY COLUMN status ENUM('pending', 'paid', 'processing', 'ready', 'completed', 'cancelled', 'credit') DEFAULT 'pending'");
+        // if (DB::connection()->getDriverName() !== 'sqlite') {
+        //     DB::statement("ALTER TABLE transactions MODIFY COLUMN status ENUM('pending', 'paid', 'processing', 'ready', 'completed', 'cancelled', 'credit') DEFAULT 'pending'");
+        // }
     }
 };

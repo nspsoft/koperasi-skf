@@ -17,7 +17,9 @@ return new class extends Migration
         // Let's ensure 'processing' and 'ready' are there.
         // Using raw SQL because Schema builder doesn't support modifying ENUM values easily on all drivers without Doctrine.
         
-        DB::statement("ALTER TABLE transactions MODIFY COLUMN status ENUM('pending', 'paid', 'processing', 'ready', 'completed', 'cancelled') DEFAULT 'pending'");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE transactions MODIFY COLUMN status ENUM('pending', 'paid', 'processing', 'ready', 'completed', 'cancelled') DEFAULT 'pending'");
+        }
     }
 
     /**

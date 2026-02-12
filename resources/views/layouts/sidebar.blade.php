@@ -66,6 +66,7 @@
 
 
         <!-- Keuangan Group -->
+        @if(auth()->user()->hasPermission('menu_finance'))
         <div class="mb-2">
             <button @click="openGroup === 'finance' ? openGroup = null : openGroup = 'finance'" 
                     class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
@@ -108,11 +109,12 @@
                 </a>
             </div>
         </div>
+        @endif
         
-        <!-- Koperasi Mart Group (Access Rights retained) -->
-        @if(auth()->user()->hasStoreAccess())
+        <!-- Koperasi Mart Group -->
             
         <!-- 1. Group Sales (Kasir) -->
+        @if(auth()->user()->hasPermission('menu_sales'))
         <div class="mb-2">
             <button @click="openGroup === 'sales' ? openGroup = null : openGroup = 'sales'" 
                     class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
@@ -147,8 +149,10 @@
                 </a>
             </div>
         </div>
+        @endif
 
         <!-- 2. Group Inventory (Gudang) -->
+        @if(auth()->user()->hasPermission('menu_inventory'))
         <div class="mb-2">
             <button @click="openGroup === 'inventory' ? openGroup = null : openGroup = 'inventory'" 
                     class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
@@ -197,8 +201,10 @@
                 </a>
             </div>
         </div>
+        @endif
 
         <!-- 3. Group Operations (Biaya & Konsinyasi) -->
+        @if(auth()->user()->hasPermission('menu_operations'))
         <div class="mb-2">
             <button @click="openGroup === 'operations' ? openGroup = null : openGroup = 'operations'" 
                     class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
@@ -249,9 +255,9 @@
                 </a>
             </div>
         </div>
-        @endif
 
         <!-- Belanja (Member) Group -->
+        @if(auth()->user()->hasPermission('menu_shop'))
         <div class="mb-2">
             <button @click="openGroup === 'shop' ? openGroup = null : openGroup = 'shop'" 
                     class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
@@ -278,8 +284,10 @@
                 </a>
             </div>
         </div>
+        @endif
 
         <!-- Laporan Group -->
+        @if(auth()->user()->hasPermission('menu_reports'))
         <div class="mb-2">
             <button @click="openGroup === 'reports' ? openGroup = null : openGroup = 'reports'" 
                     class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
@@ -334,9 +342,10 @@
                 </a>
             </div>
         </div>
+        @endif
 
-        <!-- Group: Manajemen Organisasi (Accessible to Admin & Pengurus) -->
-        @if(auth()->user()->hasAdminAccess())
+        <!-- Group: Manajemen Organisasi -->
+        @if(auth()->user()->hasPermission('menu_organization'))
         <div class="mb-2">
             <button @click="openGroup === 'organization' ? openGroup = null : openGroup = 'organization'" 
                     class="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
@@ -401,7 +410,7 @@
         </div>
         @endif
 
-        @if(auth()->user()->isAdmin())
+        @if(auth()->user()->hasPermission('menu_admin'))
         <!-- Admin System Group -->
         <div class="mb-2">
             <button @click="openGroup === 'admin' ? openGroup = null : openGroup = 'admin'" 

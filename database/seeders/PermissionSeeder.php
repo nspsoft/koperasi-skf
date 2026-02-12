@@ -57,6 +57,16 @@ class PermissionSeeder extends Seeder
                 ['name' => 'backup_restore', 'label' => 'Backup & Restore Data'],
                 ['name' => 'import_data', 'label' => 'Import Data (Excel)'],
             ],
+            'Akses Menu' => [
+                ['name' => 'menu_finance', 'label' => 'Menu Keuangan'],
+                ['name' => 'menu_sales', 'label' => 'Menu Kasir/POS'],
+                ['name' => 'menu_inventory', 'label' => 'Menu Inventori'],
+                ['name' => 'menu_operations', 'label' => 'Menu Operasional'],
+                ['name' => 'menu_shop', 'label' => 'Menu Belanja'],
+                ['name' => 'menu_reports', 'label' => 'Menu Laporan'],
+                ['name' => 'menu_organization', 'label' => 'Menu Organisasi'],
+                ['name' => 'menu_admin', 'label' => 'Menu Admin/Sistem'],
+            ],
         ];
 
         // Create permissions
@@ -92,6 +102,8 @@ class PermissionSeeder extends Seeder
                     'manage_loan_payments', 'view_reports', 'view_financial_health', 
                     'export_reports', 'view_accounting', 'access_pos', 'manage_products',
                     'manage_stock', 'manage_suppliers', 'view_shu', 'manage_announcements',
+                    'menu_finance', 'menu_sales', 'menu_inventory', 'menu_operations',
+                    'menu_shop', 'menu_reports', 'menu_organization',
                 ],
             ],
             [
@@ -103,6 +115,8 @@ class PermissionSeeder extends Seeder
                 'permissions' => [
                     'view_members', 'access_pos', 'manage_products', 'manage_stock',
                     'manage_suppliers', 'process_credit', 'view_reports',
+                    'menu_finance', 'menu_sales', 'menu_inventory', 'menu_operations',
+                    'menu_shop', 'menu_reports',
                 ],
             ],
             [
@@ -111,7 +125,10 @@ class PermissionSeeder extends Seeder
                 'description' => 'Akses ke dashboard pribadi dan data diri sendiri',
                 'color' => '#6366f1',
                 'is_system' => true,
-                'permissions' => ['view_shu'],
+                'permissions' => [
+                    'view_shu',
+                    'menu_finance', 'menu_shop', 'menu_reports',
+                ],
             ],
         ];
 

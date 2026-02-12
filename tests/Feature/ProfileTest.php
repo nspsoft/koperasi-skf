@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Member;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -13,6 +14,7 @@ class ProfileTest extends TestCase
     public function test_profile_page_is_displayed(): void
     {
         $user = User::factory()->create();
+        Member::create(['user_id' => $user->id, 'member_id' => 'T1', 'employee_id' => 'E1', 'department' => 'D', 'position' => 'P', 'join_date' => now(), 'status' => 'active', 'credit_limit' => 0, 'address' => 'A', 'id_card_number' => '1', 'birth_date' => '1990-01-01', 'gender' => 'male', 'points' => 0, 'phone' => '081']);
 
         $response = $this
             ->actingAs($user)
@@ -24,6 +26,7 @@ class ProfileTest extends TestCase
     public function test_profile_information_can_be_updated(): void
     {
         $user = User::factory()->create();
+        Member::create(['user_id' => $user->id, 'member_id' => 'T2', 'employee_id' => 'E2', 'department' => 'D', 'position' => 'P', 'join_date' => now(), 'status' => 'active', 'credit_limit' => 0, 'address' => 'A', 'id_card_number' => '2', 'birth_date' => '1990-01-01', 'gender' => 'male', 'points' => 0, 'phone' => '081']);
 
         $response = $this
             ->actingAs($user)
@@ -46,6 +49,7 @@ class ProfileTest extends TestCase
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void
     {
         $user = User::factory()->create();
+        Member::create(['user_id' => $user->id, 'member_id' => 'T3', 'employee_id' => 'E3', 'department' => 'D', 'position' => 'P', 'join_date' => now(), 'status' => 'active', 'credit_limit' => 0, 'address' => 'A', 'id_card_number' => '3', 'birth_date' => '1990-01-01', 'gender' => 'male', 'points' => 0, 'phone' => '081']);
 
         $response = $this
             ->actingAs($user)
@@ -64,6 +68,7 @@ class ProfileTest extends TestCase
     public function test_user_can_delete_their_account(): void
     {
         $user = User::factory()->create();
+        Member::create(['user_id' => $user->id, 'member_id' => 'T4', 'employee_id' => 'E4', 'department' => 'D', 'position' => 'P', 'join_date' => now(), 'status' => 'active', 'credit_limit' => 0, 'address' => 'A', 'id_card_number' => '4', 'birth_date' => '1990-01-01', 'gender' => 'male', 'points' => 0, 'phone' => '081']);
 
         $response = $this
             ->actingAs($user)
@@ -82,6 +87,7 @@ class ProfileTest extends TestCase
     public function test_correct_password_must_be_provided_to_delete_account(): void
     {
         $user = User::factory()->create();
+        Member::create(['user_id' => $user->id, 'member_id' => 'T5', 'employee_id' => 'E5', 'department' => 'D', 'position' => 'P', 'join_date' => now(), 'status' => 'active', 'credit_limit' => 0, 'address' => 'A', 'id_card_number' => '5', 'birth_date' => '1990-01-01', 'gender' => 'male', 'points' => 0, 'phone' => '081']);
 
         $response = $this
             ->actingAs($user)
