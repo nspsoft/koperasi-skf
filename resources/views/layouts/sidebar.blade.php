@@ -83,10 +83,13 @@
             </button>
             
             <div x-show="openGroup === 'finance' && sidebarOpen" x-collapse class="pl-4 mt-1 space-y-1">
+                @if(auth()->user()->hasPermission('menu_savings'))
                 <a href="{{ route('savings.index') }}" class="{{ request()->routeIs('savings.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('savings.*') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
                     {{ __('messages.sidebar.savings') }}
                 </a>
+                @endif
+                @if(auth()->user()->hasPermission('menu_loans'))
                 <a href="{{ route('loans.index') }}" class="{{ request()->routeIs('loans.index') || request()->routeIs('loans.show') || request()->routeIs('loans.create') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('loans.index') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
                     {{ __('messages.sidebar.loans') }}
@@ -95,18 +98,25 @@
                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('loans.simulation') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
                     Simulasi Pinjaman
                 </a>
+                @endif
+                @if(auth()->user()->hasPermission('menu_loan_payments'))
                 <a href="{{ route('loan-payments.index') }}" class="{{ request()->routeIs('loan-payments.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('loan-payments.*') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
                     {{ __('messages.sidebar.loan_payments') }}
                 </a>
+                @endif
+                @if(auth()->user()->hasPermission('menu_withdrawals'))
                 <a href="{{ route('withdrawals.index') }}" class="{{ request()->routeIs('withdrawals.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('withdrawals.*') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
                     {{ __('messages.sidebar.withdrawals') }}
                 </a>
+                @endif
+                @if(auth()->user()->hasPermission('menu_shu'))
                 <a href="{{ auth()->user()->hasAdminAccess() ? route('shu.index') : route('shu.my-shu') }}" class="{{ request()->routeIs('shu.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('shu.*') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
                     {{ __('messages.sidebar.shu') }}
                 </a>
+                @endif
             </div>
         </div>
         @endif

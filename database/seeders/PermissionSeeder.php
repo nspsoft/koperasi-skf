@@ -59,6 +59,11 @@ class PermissionSeeder extends Seeder
             ],
             'Akses Menu' => [
                 ['name' => 'menu_finance', 'label' => 'Menu Keuangan'],
+                ['name' => 'menu_savings', 'label' => '↳ Simpanan'],
+                ['name' => 'menu_loans', 'label' => '↳ Pinjaman & Simulasi'],
+                ['name' => 'menu_loan_payments', 'label' => '↳ Angsuran'],
+                ['name' => 'menu_withdrawals', 'label' => '↳ Penarikan'],
+                ['name' => 'menu_shu', 'label' => '↳ Sisa Hasil Usaha (SHU)'],
                 ['name' => 'menu_sales', 'label' => 'Menu Kasir/POS'],
                 ['name' => 'menu_inventory', 'label' => 'Menu Inventori'],
                 ['name' => 'menu_operations', 'label' => 'Menu Operasional'],
@@ -102,7 +107,9 @@ class PermissionSeeder extends Seeder
                     'manage_loan_payments', 'view_reports', 'view_financial_health', 
                     'export_reports', 'view_accounting', 'access_pos', 'manage_products',
                     'manage_stock', 'manage_suppliers', 'view_shu', 'manage_announcements',
-                    'menu_finance', 'menu_sales', 'menu_inventory', 'menu_operations',
+                    'menu_finance', 'menu_savings', 'menu_loans', 'menu_loan_payments',
+                    'menu_withdrawals', 'menu_shu',
+                    'menu_sales', 'menu_inventory', 'menu_operations',
                     'menu_shop', 'menu_reports', 'menu_organization',
                 ],
             ],
@@ -115,7 +122,9 @@ class PermissionSeeder extends Seeder
                 'permissions' => [
                     'view_members', 'access_pos', 'manage_products', 'manage_stock',
                     'manage_suppliers', 'process_credit', 'view_reports',
-                    'menu_finance', 'menu_sales', 'menu_inventory', 'menu_operations',
+                    'menu_finance', 'menu_savings', 'menu_loans', 'menu_loan_payments',
+                    'menu_withdrawals', 'menu_shu',
+                    'menu_sales', 'menu_inventory', 'menu_operations',
                     'menu_shop', 'menu_reports',
                 ],
             ],
@@ -127,7 +136,8 @@ class PermissionSeeder extends Seeder
                 'is_system' => true,
                 'permissions' => [
                     'view_shu',
-                    'menu_finance', 'menu_shop', 'menu_reports',
+                    'menu_finance', 'menu_savings', 'menu_shu',
+                    'menu_shop', 'menu_reports',
                 ],
             ],
         ];
