@@ -166,7 +166,11 @@
                     </div>
                     <div class="text-right">
                         <div class="text-xs text-gray-500">{{ __('messages.consignment.settlement.table_period') }}</div>
-                        <div class="font-medium">{{ $settlement->start_date->format('d/m/Y') }} - {{ $settlement->end_date->format('d/m/Y') }}</div>
+                        <div class="font-medium">
+                            {{ $settlement->period_start ? $settlement->period_start->format('d/m/Y') : '-' }}
+                            -
+                            {{ $settlement->period_end ? $settlement->period_end->format('d/m/Y') : '-' }}
+                        </div>
                     </div>
                 </div>
                 
