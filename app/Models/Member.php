@@ -174,21 +174,19 @@ class Member extends Model
     public static function generateMemberId()
     {
         $year = date('Y');
-        $prefix = 'KOP' . $year;
-        
-        // Get the last member with this year's prefix
+        $prefix = 'SKF' . $year;
+
         $lastMember = self::where('member_id', 'like', $prefix . '%')
             ->orderBy('member_id', 'desc')
             ->first();
 
         if ($lastMember) {
-            // Extract the last 4 digits and increment
-            $lastNumber = (int) substr($lastMember->member_id, -4);
+            $lastNumber = (int) substr($lastMember->member_id, -3);
             $newNumber = $lastNumber + 1;
         } else {
             $newNumber = 1;
         }
 
-        return $prefix . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        return $prefix . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
     }
 }

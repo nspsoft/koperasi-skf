@@ -46,10 +46,10 @@ class DatabaseSeeder extends Seeder
             'is_active' => true,
         ]);
 
-        // Create Member Profile for member user
+        // Create Member Profile for default member user
         Member::create([
             'user_id' => $memberUser->id,
-            'member_id' => 'KOP' . date('Y') . '0001',
+            'member_id' => 'SKF' . date('Y') . '001',
             'employee_id' => 'EMP001',
             'department' => 'IT Department',
             'position' => 'Software Developer',
@@ -64,7 +64,7 @@ class DatabaseSeeder extends Seeder
         // Create Admin Member Profile
         Member::create([
             'user_id' => $admin->id,
-            'member_id' => 'KOP' . date('Y') . '0000',
+            'member_id' => 'SKF' . date('Y') . '000',
             'employee_id' => 'ADM001',
             'department' => 'Management',
             'position' => 'Administrator',

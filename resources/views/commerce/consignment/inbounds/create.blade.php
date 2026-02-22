@@ -44,7 +44,14 @@
 
                     <div class="form-group hidden" id="group_member">
                         <label class="form-label">{{ __('messages.consignment.inbound.label_member_id') }}</label>
-                        <input type="number" name="consignor_id" id="consignor_id_member" class="form-input" placeholder="{{ __('messages.consignment.inbound.placeholder_member_id') }}" disabled>
+                        <select name="consignor_id" id="consignor_id_member" class="form-input select2" disabled>
+                            <option value="">{{ __('messages.consignment.inbound.placeholder_member_id') }}</option>
+                            @foreach($members as $member)
+                                <option value="{{ $member->id }}">
+                                    {{ $member->member_id }} - {{ $member->name }}
+                                </option>
+                            @endforeach
+                        </select>
                         <p class="text-xs text-gray-500 mt-1">{{ __('messages.consignment.inbound.help_member_id') }}</p>
                     </div>
 

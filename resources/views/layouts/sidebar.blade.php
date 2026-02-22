@@ -265,6 +265,7 @@
                 </a>
             </div>
         </div>
+        @endif
 
         <!-- Belanja (Member) Group -->
         @if(auth()->user()->hasPermission('menu_shop'))
@@ -348,7 +349,11 @@
                 </a>
                 <a href="{{ route('aspirations.index') }}" class="{{ request()->routeIs('aspirations.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('aspirations.*') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
-                    {{ auth()->user()->hasAdminAccess() ? __('messages.sidebar.aspiration_results') : __('messages.sidebar.aspirations') }}
+                    @if(auth()->user()->hasAdminAccess())
+                        {{ __('messages.sidebar.aspiration_results') }}
+                    @else
+                        {{ __('messages.sidebar.aspirations') }}
+                    @endif
                 </a>
             </div>
         </div>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ConsignmentInbound;
 use App\Models\ConsignmentInboundItem;
 use App\Models\Product;
+use App\Models\Member;
 use App\Models\Supplier;
 use App\Models\User; // For Members
 use Illuminate\Http\Request;
@@ -24,13 +25,13 @@ class ConsignmentInboundController extends Controller
     public function create()
     {
         $suppliers = Supplier::all();
-        // For members, we might want a search or list. For now, we rely on manual ID/Name input or AJAX.
-        // Let's pass populated Suppliers and maybe products for initial load?
-        // Actually, products should be loaded via AJAX based on selected consignor for better UX.
-        // Or pass all consignment products and filter in JS.
+        $members = Member::with('user')
+            ->where('status', 'active')
+            ->orderBy('member_id')
+            ->get();
         $consignmentProducts = Product::where('is_consignment', true)->get();
         
-        return view('commerce.consignment.inbounds.create', compact('suppliers', 'consignmentProducts'));
+        return view('commerce.consignment.inbounds.create', compact('suppliers', 'members', 'consignmentProducts'));
     }
 
     public function store(Request $request)

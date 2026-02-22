@@ -16,7 +16,11 @@ class CheckActiveStatus
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check() && !Auth::user()->is_active) {
+        if (
+            Auth::check()
+            && !Auth::user()->is_active
+            && !$request->routeIs('profile.*')
+        ) {
             Auth::guard('web')->logout();
 
             $request->session()->invalidate();
