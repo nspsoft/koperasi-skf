@@ -217,6 +217,7 @@ return [
         'empty_cart_desc' => 'Click a product to add it',
         'total_items' => 'Total Items',
         'total' => 'Total',
+        'view_cart' => 'View Cart',
         'cash' => 'Cash',
         'qris' => 'QRIS',
         'balance' => 'Balance',

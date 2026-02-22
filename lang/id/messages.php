@@ -214,6 +214,7 @@ return [
         'empty_cart_desc' => 'Klik produk untuk menambahkan',
         'total_items' => 'Total Item',
         'total' => 'Total',
+        'view_cart' => 'Lihat Keranjang',
         'cash' => 'Tunai',
         'qris' => 'QRIS',
         'balance' => 'Saldo',
