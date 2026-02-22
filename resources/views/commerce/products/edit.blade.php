@@ -142,8 +142,15 @@
                                                 <option value="{{ $supplier->id }}" {{ old('consignor_id', $product->consignor_id) == $supplier->id ? 'selected' : '' }}>{{ $supplier->name }}</option>
                                             @endforeach
                                         </select>
-                                        <!-- Member Input -->
-                                        <input type="number" name="consignor_id" id="consignor_id_member" placeholder="Masukan ID Anggota (User ID)" class="form-input text-sm {{ old('consignor_type', $product->consignor_type) == 'member' ? '' : 'hidden' }}" value="{{ old('consignor_id', $product->consignor_id) }}" {{ old('consignor_type', $product->consignor_type) == 'member' ? '' : 'disabled' }}>
+                                        <!-- Member Select -->
+                                        <select name="consignor_id" id="consignor_id_member" class="form-input text-sm {{ old('consignor_type', $product->consignor_type) == 'member' ? '' : 'hidden' }}" {{ old('consignor_type', $product->consignor_type) == 'member' ? '' : 'disabled' }}>
+                                            <option value="">Pilih Anggota</option>
+                                            @foreach($members as $member)
+                                                <option value="{{ $member->id }}" {{ old('consignor_id', $product->consignor_id) == $member->id ? 'selected' : '' }}>
+                                                    {{ $member->member_id }} - {{ $member->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
                                     </div>
                                 </div>
 

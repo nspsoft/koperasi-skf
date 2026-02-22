@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Supplier;
+use App\Models\Member;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -97,8 +98,12 @@ class ProductController extends Controller
     public function create()
     {
         $categories = Category::all();
-        $suppliers = Supplier::all(); // Pass suppliers for consignment
-        return view('commerce.products.create', compact('categories', 'suppliers'));
+        $suppliers = Supplier::all();
+        $members = Member::with('user')
+            ->where('status', 'active')
+            ->orderBy('member_id')
+            ->get();
+        return view('commerce.products.create', compact('categories', 'suppliers', 'members'));
     }
 
     public function store(Request $request)
@@ -146,7 +151,11 @@ class ProductController extends Controller
     {
         $categories = Category::all();
         $suppliers = Supplier::all();
-        return view('commerce.products.edit', compact('product', 'categories', 'suppliers'));
+        $members = Member::with('user')
+            ->where('status', 'active')
+            ->orderBy('member_id')
+            ->get();
+        return view('commerce.products.edit', compact('product', 'categories', 'suppliers', 'members'));
     }
 
     public function update(Request $request, Product $product)
