@@ -530,7 +530,7 @@ document.addEventListener('alpine:init', () => {
         scanner: null,
         isScanning: false,
         lastScannedCode: null,
-        scanAudio: new Audio('/sounds/beep.mp3'), // Ensure this file exists or use a data URI
+        scanAudio: null,
 
         startScanner() {
             // Debugging checks

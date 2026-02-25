@@ -19,6 +19,7 @@ class MembersTemplateExport implements FromArray, WithHeadings, WithStyles, Shou
                 '081234567890',
                 'member',
                 'MBR0001',
+                'AMG0001',
                 'EMP0001',
                 'Production',
                 'Staff',
@@ -35,6 +36,7 @@ class MembersTemplateExport implements FromArray, WithHeadings, WithStyles, Shou
                 '081234567891',
                 'manager',
                 'MBR0002',
+                'AMG0002',
                 'EMP0002',
                 'QC',
                 'Supervisor',
@@ -51,6 +53,7 @@ class MembersTemplateExport implements FromArray, WithHeadings, WithStyles, Shou
                 '081234567892',
                 'member',
                 'MBR0003',
+                'AMG0003',
                 'EMP0003',
                 'Finance',
                 'Staff',
@@ -72,6 +75,7 @@ class MembersTemplateExport implements FromArray, WithHeadings, WithStyles, Shou
             'no_hp',
             'role',
             'id_anggota',
+            'id_amigo',
             'nik',
             'department',
             'jabatan',
@@ -90,8 +94,8 @@ class MembersTemplateExport implements FromArray, WithHeadings, WithStyles, Shou
         // A=nama, B=email, E=id_anggota, J=tanggal_bergabung
         $mandatoryColumns = ['A', 'B', 'E', 'J'];
         
-        // All columns from A to N
-        $allColumns = range('A', 'N');
+        // All columns from A to O
+        $allColumns = range('A', 'O');
         
         $styles = [];
 

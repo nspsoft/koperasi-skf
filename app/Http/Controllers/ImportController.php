@@ -217,6 +217,7 @@ class ImportController extends Controller
     {
         $filename = match($type) {
             'members' => 'Template_Anggota.xlsx',
+            'members_update' => 'Data_Anggota_Update.xlsx',
             'savings' => 'Template_Simpanan.xlsx',
             'loans' => 'Template_Pinjaman.xlsx',
             'credit_payments' => 'Template_Pelunasan_Kredit.xlsx',
@@ -225,6 +226,7 @@ class ImportController extends Controller
 
         $export = match($type) {
             'members' => new \App\Exports\MembersTemplateExport(),
+            'members_update' => new \App\Exports\MembersUpdateTemplateExport(),
             'savings' => new \App\Exports\SavingsTemplateExport(),
             'loans' => new \App\Exports\LoansTemplateExport(),
             'credit_payments' => new \App\Exports\CreditPaymentsTemplateExport(),

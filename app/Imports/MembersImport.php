@@ -69,6 +69,7 @@ class MembersImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsO
                 // Update existing Member
                 $member->update([
                     'user_id' => $user->id, // Ensure linked to correct user (if email changed context)
+                    'id_amigo' => $rowArray['id_amigo'] ?? $member->id_amigo,
                     'employee_id' => $rowArray['nik'] ?? $rowArray['nik_karyawan'] ?? $member->employee_id,
                     'department' => $rowArray['department'] ?? $rowArray['divisi'] ?? $member->department,
                     'position' => $rowArray['jabatan'] ?? $rowArray['posisi'] ?? $member->position,
@@ -84,6 +85,7 @@ class MembersImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsO
                 $member = new Member([
                     'user_id' => $user->id,
                     'member_id' => $rowArray['id_anggota'],
+                    'id_amigo' => $rowArray['id_amigo'] ?? null,
                     'employee_id' => $rowArray['nik'] ?? $rowArray['nik_karyawan'] ?? null,
                     'department' => $rowArray['department'] ?? $rowArray['divisi'] ?? null,
                     'position' => $rowArray['jabatan'] ?? $rowArray['posisi'] ?? 'Staff',
