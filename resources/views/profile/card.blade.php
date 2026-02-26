@@ -34,7 +34,7 @@
                     <!-- Member Info -->
                     <div class="flex items-start space-x-4 mb-6">
                         <div class="flex-shrink-0">
-                            @if($member->photo)
+                            @if($member && $member->photo)
                                 <img src="{{ Storage::url($member->photo) }}" alt="Photo" class="w-24 h-24 rounded-lg object-cover border-2 border-white/30 shadow-sm">
                             @else
                                 <div class="w-24 h-24 rounded-lg bg-white/20 flex items-center justify-center border-2 border-white/30 text-2xl font-bold">
@@ -47,7 +47,7 @@
                             <div class="space-y-1 text-sm text-blue-50">
                                 <div class="flex">
                                     <span class="w-20 opacity-70">ID Anggota</span>
-                                    <span class="font-mono">: {{ $member->member_id }}</span>
+                                    <span class="font-mono">: {{ $member->member_id ?? '-' }}</span>
                                 </div>
                                 <div class="flex">
                                     <span class="w-20 opacity-70">NIK</span>
@@ -65,10 +65,10 @@
                     <div class="bg-white rounded-xl p-4 flex items-center justify-between shadow-lg">
                         <div class="text-gray-800">
                             <p class="text-xs text-gray-500 mb-1">Scan QR Code ini untuk transaksi</p>
-                            <p class="font-mono font-bold text-lg tracking-wider text-blue-600">{{ $member->id_amigo ?? $member->member_id }}</p>
+                            <p class="font-mono font-bold text-lg tracking-wider text-blue-600">{{ $member->id_amigo ?? ($member->member_id ?? '-') }}</p>
                         </div>
                         <div class="bg-white p-1 rounded">
-                             {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(80)->generate($member->id_amigo ?? $member->member_id) !!}
+                             {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(80)->generate($member->id_amigo ?? ($member->member_id ?? 'No Data')) !!}
                         </div>
                     </div>
                 </div>
