@@ -70,8 +70,13 @@
                         <div class="bg-white p-1 rounded">
                              @php
                                 try {
-                                    echo \SimpleSoftwareIO\QrCode\Facades\QrCode::size(80)->generate($member?->id_amigo ?? ($member?->member_id ?? 'No Data'));
+                                    if (class_exists('\SimpleSoftwareIO\QrCode\Facades\QrCode')) {
+                                        echo \SimpleSoftwareIO\QrCode\Facades\QrCode::size(80)->generate($member?->id_amigo ?? ($member?->member_id ?? 'No Data'));
+                                    } else {
+                                        echo '<span class="text-xs text-red-500">Lib Missing</span>';
+                                    }
                                 } catch (\Throwable $e) {
+                                    \Log::error('QR Code Error: ' . $e->getMessage());
                                     echo '<span class="text-xs text-red-500">Error QR</span>';
                                 }
                              @endphp
