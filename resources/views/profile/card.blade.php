@@ -68,7 +68,13 @@
                             <p class="font-mono font-bold text-lg tracking-wider text-blue-600">{{ $member?->id_amigo ?? ($member?->member_id ?? '-') }}</p>
                         </div>
                         <div class="bg-white p-1 rounded">
-                             {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(80)->generate($member?->id_amigo ?? ($member?->member_id ?? 'No Data')) !!}
+                             @php
+                                try {
+                                    echo \SimpleSoftwareIO\QrCode\Facades\QrCode::size(80)->generate($member?->id_amigo ?? ($member?->member_id ?? 'No Data'));
+                                } catch (\Throwable $e) {
+                                    echo '<span class="text-xs text-red-500">Error QR</span>';
+                                }
+                             @endphp
                         </div>
                     </div>
                 </div>
