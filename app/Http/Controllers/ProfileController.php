@@ -12,6 +12,17 @@ use Illuminate\View\View;
 class ProfileController extends Controller
 {
     /**
+     * Display the user's digital member card.
+     */
+    public function card(Request $request): View
+    {
+        return view('profile.card', [
+            'user' => $request->user(),
+            'member' => $request->user()->member,
+        ]);
+    }
+
+    /**
      * Display the user's profile form.
      */
     public function edit(Request $request): View
