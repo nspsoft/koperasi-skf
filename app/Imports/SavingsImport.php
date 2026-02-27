@@ -20,6 +20,19 @@ class SavingsImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsO
 {
     use SkipsErrors, SkipsFailures, \App\Traits\DateParserTrait;
 
+    public function prepareForValidation($data, $index)
+    {
+        if (!empty($data['id_transaksi'])) {
+            $data['id_anggota'] = null;
+            $data['jenis'] = null;
+            $data['jumlah'] = null;
+            $data['tanggal'] = null;
+            $data['transaksi'] = null;
+        }
+
+        return $data;
+    }
+
     public function onRow(Row $row)
     {
         $rowData = $row->toArray();
@@ -90,9 +103,10 @@ class SavingsImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsO
     public function rules(): array
     {
         return [
-            'id_transaksi' => 'nullable|integer',
+            'id_transaksi' => 'nullable|integer|exists:savings,id',
             'id_anggota' => 'required_without:id_transaksi',
-            'jenis' => 'required_without:id_transaksi|in:pokok,wajib,sukarela,Pokok,Wajib,Sukarela',
+            'jenis' => 'required_without:id_transaksi|nullable|in:pokok,wajib,sukarela,Pokok,Wajib,Sukarela',
+            'transaksi' => 'required_without:id_transaksi',
             'jumlah' => 'required_without:id_transaksi',
             'tanggal' => 'required_without:id_transaksi',
         ];
