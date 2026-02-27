@@ -61,6 +61,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::get('/profile/card', [ProfileController::class, 'card'])->name('profile.card');
+    Route::get('/profile/qr', [ProfileController::class, 'qr'])->name('profile.qr');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
@@ -79,7 +80,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
     // Member Management (Roles & Permissions handled by MemberController)
     Route::delete('members/bulk-destroy', [App\Http\Controllers\MemberController::class, 'bulkDestroy'])->name('members.bulk_destroy');
     // Export must be before resource
-    Route::middleware('can:admin')->get('members/export', [App\Http\Controllers\MemberController::class, 'export'])->name('members.export');
+    Route::get('members/export', [App\Http\Controllers\MemberController::class, 'export'])->name('members.export');
     Route::resource('members', App\Http\Controllers\MemberController::class);
     Route::post('members/{member}/toggle-status', [App\Http\Controllers\MemberController::class, 'toggleStatus'])->name('members.toggle-status');
 

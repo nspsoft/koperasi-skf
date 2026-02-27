@@ -14,11 +14,105 @@ class ProfileController extends Controller
     /**
      * Display the user's digital member card.
      */
-    public function card(Request $request): View
+    public function card(Request $request): View|RedirectResponse
     {
+        $user = $request->user();
+        $member = $user->member;
+
+        if (! $member) {
+            return redirect()->route('dashboard')->with('error', 'Data anggota tidak ditemukan.');
+        }
+        
+        $generatedDocument = null;
+        $qrCode = null;
+
+        $generatedDocument = \App\Models\GeneratedDocument::where('reference_type', \App\Models\Member::class)
+            ->where('reference_id', $member->id)
+            ->where('document_type', 'Member Card')
+            ->first();
+
+        if (! $generatedDocument) {
+            $documentData = [
+                'type' => 'Member Card',
+                'member_id' => $member->member_id,
+                'member_name' => $member->user->name ?? '-',
+                'nik' => $member->nik ?? '-',
+                'join_date' => $member->join_date,
+                'status' => $member->status,
+            ];
+
+            $month = now()->month;
+            $year = now()->year;
+            $map = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+            $monthRoman = $map[$month - 1] ?? (string) $month;
+
+            $existingCount = \App\Models\GeneratedDocument::where('document_type', 'Member Card')
+                ->whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
+                ->count();
+
+            $seq = str_pad($existingCount + 1, 3, '0', STR_PAD_LEFT);
+            $documentNumber = "KTA-{$seq}/{$monthRoman}/{$year}";
+
+            $generatedDocument = \App\Models\GeneratedDocument::create([
+                'document_type' => 'Member Card',
+                'document_number' => $documentNumber,
+                'data' => $documentData,
+                'generated_by' => $user->id,
+                'reference_type' => \App\Models\Member::class,
+                'reference_id' => $member->id,
+            ]);
+        }
+
+        $qrContent = $member->id_amigo;
+        if ($qrContent) {
+            try {
+                $qrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(150)->margin(0)->generate($qrContent);
+                $qrCode = 'data:image/svg+xml;base64,'.base64_encode($qrSvg);
+            } catch (\Exception $e) {
+                try {
+                    $qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data='.urlencode($qrContent);
+                    $qrImageData = @file_get_contents($qrApiUrl);
+                    $qrCode = $qrImageData ? 'data:image/png;base64,'.base64_encode($qrImageData) : null;
+                } catch (\Exception $e) {
+                    $qrCode = null;
+                }
+            }
+        }
+
         return view('profile.card', [
-            'user' => $request->user(),
-            'member' => $request->user()->member,
+            'user' => $user,
+            'member' => $member,
+            'generatedDocument' => $generatedDocument,
+            'qrCode' => $qrCode
+        ]);
+    }
+
+    public function qr(Request $request): View
+    {
+        $user = $request->user();
+        $member = $user->member;
+        $qrCode = null;
+
+        if ($member && $member->id_amigo) {
+            try {
+                $qrSvg = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(280)->margin(0)->generate($member->id_amigo);
+                $qrCode = 'data:image/svg+xml;base64,'.base64_encode($qrSvg);
+            } catch (\Exception $e) {
+                try {
+                    $qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data='.urlencode($member->id_amigo);
+                    $qrImageData = @file_get_contents($qrApiUrl);
+                    $qrCode = $qrImageData ? 'data:image/png;base64,'.base64_encode($qrImageData) : null;
+                } catch (\Exception $e) {
+                    $qrCode = null;
+                }
+            }
+        }
+
+        return view('profile.qr', [
+            'user' => $user,
+            'member' => $member,
+            'qrCode' => $qrCode
         ]);
     }
 

@@ -83,6 +83,13 @@ class User extends Authenticatable
             return $this->roleModel->hasPermission($permission);
         }
 
+        if ($this->role) {
+            $role = \App\Models\Role::where('name', $this->role)->first();
+            if ($role) {
+                return $role->hasPermission($permission);
+            }
+        }
+
         return false;
     }
 
@@ -191,4 +198,3 @@ class User extends Authenticatable
         };
     }
 }
-

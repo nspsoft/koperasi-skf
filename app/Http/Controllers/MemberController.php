@@ -17,7 +17,7 @@ class MemberController extends Controller
      */
     public function index(Request $request)
     {
-        if (! auth()->user()->hasAdminAccess()) {
+        if (! auth()->user()->hasPermission('view_members')) {
             abort(403, 'Unauthorized action.');
         }
         $query = Member::with('user')
@@ -52,7 +52,7 @@ class MemberController extends Controller
      */
     public function export(Request $request)
     {
-        if (! auth()->user()->hasAdminAccess()) {
+        if (! auth()->user()->hasPermission('view_members')) {
             abort(403);
         }
 
@@ -184,7 +184,7 @@ class MemberController extends Controller
      */
     public function create()
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! auth()->user()->hasPermission('manage_members')) {
             abort(403, 'Unauthorized action. Only system administrators can register new members.');
         }
 
@@ -199,7 +199,7 @@ class MemberController extends Controller
      */
     public function store(MemberRequest $request)
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! auth()->user()->hasPermission('manage_members')) {
             abort(403, 'Unauthorized action. Only system administrators can register new members.');
         }
         try {
@@ -273,8 +273,7 @@ class MemberController extends Controller
     {
         $user = auth()->user();
         
-        // Allow if user has admin access
-        $isAdmin = $user->hasAdminAccess();
+        $canViewMembers = $user->hasPermission('view_members');
         
         // Allow if this is the user's own member profile
         $isOwnProfile = $user->id === $member->user_id;
@@ -282,7 +281,7 @@ class MemberController extends Controller
         // Alternative check via member relation
         $isOwnMember = $user->member && $user->member->id === $member->id;
         
-        if (! $isAdmin && ! $isOwnProfile && ! $isOwnMember) {
+        if (! $canViewMembers && ! $isOwnProfile && ! $isOwnMember) {
             abort(403, 'Unauthorized action.');
         }
         $member->load(['user', 'savings', 'loans.payments']);
@@ -321,7 +320,7 @@ class MemberController extends Controller
      */
     public function edit(Member $member)
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! auth()->user()->hasPermission('manage_members')) {
             abort(403, 'Unauthorized action. Only system administrators can edit member data.');
         }
 
@@ -335,7 +334,7 @@ class MemberController extends Controller
      */
     public function update(MemberRequest $request, Member $member)
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! auth()->user()->hasPermission('manage_members')) {
             abort(403, 'Unauthorized action. Only system administrators can update member data.');
         }
 
@@ -405,7 +404,9 @@ class MemberController extends Controller
      */
     public function destroy(Member $member)
     {
-        \Illuminate\Support\Facades\Gate::authorize('delete-data');
+        if (! auth()->user()->hasPermission('manage_members')) {
+            abort(403, 'Unauthorized action. Only system administrators can delete member data.');
+        }
 
         try {
             // Check if member has active loans
@@ -468,7 +469,9 @@ class MemberController extends Controller
      */
     public function bulkDestroy(Request $request)
     {
-        \Illuminate\Support\Facades\Gate::authorize('delete-data');
+        if (! auth()->user()->hasPermission('manage_members')) {
+            abort(403);
+        }
 
         $request->validate([
             'ids' => 'required|array',
@@ -545,7 +548,7 @@ class MemberController extends Controller
      */
     public function toggleStatus(Member $member)
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! auth()->user()->hasPermission('manage_members')) {
             abort(403, 'Unauthorized action.');
         }
         $newStatus = $member->status === 'active' ? 'inactive' : 'active';
@@ -576,11 +579,11 @@ class MemberController extends Controller
     public function printCard(Member $member)
     {
         $user = auth()->user();
-        $isAdmin = $user->hasAdminAccess();
+        $canViewMembers = $user->hasPermission('view_members');
         $isOwnProfile = $user->id === $member->user_id;
         $isOwnMember = $user->member && $user->member->id === $member->id;
         
-        if (! $isAdmin && ! $isOwnProfile && ! $isOwnMember) {
+        if (! $canViewMembers && ! $isOwnProfile && ! $isOwnMember) {
             abort(403, 'Unauthorized action.');
         }
         $member->load('user');
@@ -645,11 +648,11 @@ class MemberController extends Controller
     public function digitalCard(Member $member)
     {
         $user = auth()->user();
-        $isAdmin = $user->hasAdminAccess();
+        $canViewMembers = $user->hasPermission('view_members');
         $isOwnProfile = $user->id === $member->user_id;
         $isOwnMember = $user->member && $user->member->id === $member->id;
         
-        if (! $isAdmin && ! $isOwnProfile && ! $isOwnMember) {
+        if (! $canViewMembers && ! $isOwnProfile && ! $isOwnMember) {
             abort(403, 'Unauthorized action.');
         }
         $member->load('user');
@@ -824,7 +827,7 @@ class MemberController extends Controller
     public function printTransactionHistory(Member $member, Request $request)
     {
         // Authorization check
-        if (! auth()->user()->hasAdminAccess() && auth()->id() !== $member->user_id) {
+        if (! auth()->user()->hasPermission('view_members') && auth()->id() !== $member->user_id) {
             abort(403);
         }
 

@@ -1,101 +1,342 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Kartu Anggota Digital') }}
-        </h2>
-    </x-slot>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kartu Anggota Digital - {{ $user->name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+            min-height: 100vh;
+        }
 
-    <div class="py-12">
-        <div class="max-w-md mx-auto sm:px-6 lg:px-8">
-            <!-- Digital Card -->
-            <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-xl overflow-hidden text-white relative">
-                <!-- Decorative Circles -->
-                <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white opacity-5"></div>
-                <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 rounded-full bg-white opacity-5"></div>
+        .card {
+            width: 100%;
+            max-width: 320px;
+            background: #ffffff;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            animation: cardSlideIn 0.6s ease-out;
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease;
+        }
 
-                <div class="p-6 relative z-10">
-                    <!-- Header -->
-                    <div class="flex items-center justify-between mb-8">
-                        <div class="flex items-center space-x-3">
-                            <img src="{{ asset('images/spindo-logo.png') }}" alt="Logo" class="h-10 w-auto bg-white rounded p-1">
-                            <div>
-                                <h3 class="font-bold text-lg leading-none">KOPERASI SKF</h3>
-                                <p class="text-xs text-blue-100 opacity-80">Kartu Anggota Digital</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                             <div class="text-xs text-blue-200">Status</div>
-                             <div class="font-bold text-sm bg-green-500 px-2 py-0.5 rounded-full text-white inline-block">
-                                {{ ucfirst($member?->status ?? 'Active') }}
-                             </div>
-                        </div>
-                    </div>
+        .card:hover {
+            transform: translateY(-8px) rotateX(2deg);
+            box-shadow: 0 35px 60px rgba(0,0,0,0.4);
+        }
 
-                    <!-- Member Info -->
-                    <div class="flex items-start space-x-4 mb-6">
-                        <div class="flex-shrink-0">
-                            @if($member?->photo)
-                                <img src="{{ Storage::url($member->photo) }}" alt="Photo" class="w-24 h-24 rounded-lg object-cover border-2 border-white/30 shadow-sm">
-                            @else
-                                <div class="w-24 h-24 rounded-lg bg-white/20 flex items-center justify-center border-2 border-white/30 text-2xl font-bold">
-                                    {{ substr($user->name, 0, 1) }}
-                                </div>
-                            @endif
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h4 class="text-xl font-bold truncate mb-1">{{ $user->name }}</h4>
-                            <div class="space-y-1 text-sm text-blue-50">
-                                <div class="flex">
-                                    <span class="w-20 opacity-70">ID Anggota</span>
-                                    <span class="font-mono">: {{ $member?->member_id ?? '-' }}</span>
-                                </div>
-                                <div class="flex">
-                                    <span class="w-20 opacity-70">NIK</span>
-                                    <span class="font-mono">: {{ $member?->employee_id ?? '-' }}</span>
-                                </div>
-                                <div class="flex">
-                                    <span class="w-20 opacity-70">Jabatan</span>
-                                    <span class="truncate">: {{ $member?->position ?? '-' }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        @keyframes cardSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(50px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
 
-                    <!-- QR Code Section -->
-                    <div class="bg-white rounded-xl p-4 flex items-center justify-between shadow-lg">
-                        <div class="text-gray-800">
-                            <p class="text-xs text-gray-500 mb-1">Scan QR Code ini untuk transaksi</p>
-                            <p class="font-mono font-bold text-lg tracking-wider text-blue-600">{{ $member?->id_amigo ?? ($member?->member_id ?? '-') }}</p>
+        .header-wave {
+            background: linear-gradient(160deg, #0a1628 0%, #1a3a5c 50%, #0f2744 100%);
+            min-height: 90px;
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 16px;
+        }
+        .header-wave::after {
+            content: '';
+            position: absolute;
+            bottom: -24px;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: #ffffff;
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            border-top: 3px solid #c9a227;
+        }
+
+        .footer-wave {
+            background: linear-gradient(160deg, #0a1628 0%, #1a3a5c 50%, #0f2744 100%);
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-top: 3px solid #c9a227;
+        }
+
+        .photo-frame {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 4px solid #c9a227;
+            overflow: hidden;
+            background: #f1f5f9;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: photoPopIn 0.5s ease-out 0.3s both;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .photo-frame:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 35px rgba(201, 162, 39, 0.4);
+        }
+
+        @keyframes photoPopIn {
+            from {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .info-row {
+            animation: fadeInRight 0.4s ease-out both;
+        }
+        .info-row:nth-child(1) { animation-delay: 0.4s; }
+        .info-row:nth-child(2) { animation-delay: 0.5s; }
+        .info-row:nth-child(3) { animation-delay: 0.6s; }
+        .info-row:nth-child(4) { animation-delay: 0.7s; }
+
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .qr-container {
+            animation: qrPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes qrPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(15, 39, 68, 0.3); }
+            50% { box-shadow: 0 0 0 10px rgba(15, 39, 68, 0); }
+        }
+
+        .shine-effect {
+            position: relative;
+            overflow: hidden;
+        }
+        .shine-effect::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            50%, 100% { left: 100%; }
+        }
+
+        .logo-box {
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .btn-download {
+            transition: all 0.3s ease;
+        }
+        .btn-download:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(201, 162, 39, 0.4);
+        }
+        .btn-download:active {
+            transform: translateY(0);
+        }
+
+        .status-badge {
+            animation: statusPop 0.5s ease-out 0.8s both;
+        }
+
+        @keyframes statusPop {
+            0% { transform: scale(0); }
+            70% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .member-id {
+            animation: idReveal 0.6s ease-out 0.9s both;
+        }
+
+        @keyframes idReveal {
+            from {
+                opacity: 0;
+                letter-spacing: 0.5em;
+            }
+            to {
+                opacity: 1;
+                letter-spacing: 0.15em;
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-4">
+
+    @if(!$member)
+        <div class="bg-white p-8 rounded-xl shadow-lg text-center max-w-sm mx-4">
+            <svg class="w-16 h-16 text-amber-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <h2 class="text-xl font-bold text-gray-800 mb-2">Data Anggota Tidak Ditemukan</h2>
+            <p class="text-gray-600 mb-6">Akun Anda belum terhubung dengan data anggota koperasi. Silakan hubungi admin untuk verifikasi.</p>
+            <a href="{{ route('dashboard') }}" class="inline-block px-6 py-2.5 bg-[#0f2744] text-white font-medium rounded-lg hover:bg-[#1a3a5c] transition shadow-md">
+                Kembali ke Dashboard
+            </a>
+        </div>
+    @else
+    <!-- Card -->
+    <div class="card">
+        <!-- Header -->
+        <div class="header-wave shine-effect">
+            <div class="logo-box bg-white rounded-xl px-4 py-2 shadow-lg text-center relative z-10">
+                <img src="{{ asset('images/spindo-logo.png') }}" alt="SPINDO" class="h-8 mx-auto">
+                <p class="text-[6px] text-slate-500 mt-1">PT. STEEL PIPE INDUSTRY OF INDONESIA, Tbk.</p>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="px-6 pb-4">
+            <!-- Photo -->
+            <div class="flex justify-center mt-4 relative z-10">
+                <div class="photo-frame">
+                    @if($member?->photo)
+                        <img src="{{ Storage::url($member->photo) }}" class="w-full h-full object-cover">
+                    @else
+                        <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300">
+                            <svg class="w-12 h-12 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                            </svg>
                         </div>
-                        <div class="bg-white p-1 rounded">
-                             @php
-                                try {
-                                    if (class_exists('\SimpleSoftwareIO\QrCode\Facades\QrCode')) {
-                                        echo \SimpleSoftwareIO\QrCode\Facades\QrCode::size(80)->generate($member?->id_amigo ?? ($member?->member_id ?? 'No Data'));
-                                    } else {
-                                        echo '<span class="text-xs text-red-500">Lib Missing</span>';
-                                    }
-                                } catch (\Throwable $e) {
-                                    \Log::error('QR Code Error: ' . $e->getMessage());
-                                    echo '<span class="text-xs text-red-500">Error QR</span>';
-                                }
-                             @endphp
-                        </div>
-                    </div>
+                    @endif
                 </div>
             </div>
 
-            <!-- Actions -->
-            <div class="mt-6 flex justify-center space-x-4">
-                <a href="{{ route('dashboard') }}" class="btn-secondary">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    Kembali
-                </a>
-                <button onclick="window.print()" class="btn-primary">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                    Cetak Kartu
-                </button>
+            <!-- Name & Position -->
+            <div class="text-center mt-4">
+                <h2 class="text-lg font-bold text-[#0f2744]">{{ strtoupper($user->name) }}</h2>
+                <p class="text-sm text-[#c9a227] font-semibold">{{ $member?->position ?? 'Staff' }}</p>
+            </div>
+
+            <!-- Info -->
+            <div class="mt-4 space-y-1.5 text-sm">
+                <div class="info-row flex">
+                    <span class="w-28 font-semibold text-[#0f2744]">NIK</span>
+                    <span class="text-slate-600">: {{ $member?->employee_id ?? $member?->nik ?? '-' }}</span>
+                </div>
+                <div class="info-row flex">
+                    <span class="w-28 font-semibold text-[#0f2744]">Departemen</span>
+                    <span class="text-slate-600">: {{ $member?->department ?? '-' }}</span>
+                </div>
+                <div class="info-row flex">
+                    <span class="w-28 font-semibold text-[#0f2744]">Contact</span>
+                    <span class="text-slate-600">: {{ $user->phone ?? '-' }}</span>
+                </div>
+                <div class="info-row flex items-center">
+                    <span class="w-28 font-semibold text-[#0f2744]">Status</span>
+                    <span class="status-badge {{ ($member?->status ?? '') == 'active' ? 'bg-green-500' : 'bg-red-500' }} text-white text-xs font-bold px-2 py-0.5 rounded-full">{{ ($member?->status ?? '') == 'active' ? 'AKTIF' : 'NON-AKTIF' }}</span>
+                </div>
+            </div>
+
+            <!-- QR Code -->
+            <div class="mt-5 text-center">
+                <p class="text-[10px] text-slate-400 mb-2 uppercase tracking-wider">Scan untuk transaksi</p>
+                <div class="qr-container inline-block bg-white p-2 rounded-xl border-2 border-[#0f2744]">
+                    @if($member?->id_amigo)
+                        @if(isset($qrCode))
+                            <img src="{{ $qrCode }}" alt="QR" class="w-28 h-28">
+                        @else
+                            <div id="qrcode"></div>
+                        @endif
+                    @else
+                        <div class="w-28 h-28 flex items-center justify-center text-xs text-slate-400">ID Amigo kosong</div>
+                    @endif
+                </div>
+                <p class="member-id text-lg font-mono font-bold text-[#0f2744] mt-2">{{ $member?->id_amigo ?? '-' }}</p>
+                @if(isset($generatedDocument))
+                    <p class="text-xs text-slate-400">{{ $generatedDocument->document_number }}</p>
+                @endif
             </div>
         </div>
+
+        <!-- Footer -->
+        <div class="footer-wave">
+            <p class="text-xs text-white font-medium tracking-widest">KARTU ANGGOTA KOPERASI</p>
+        </div>
     </div>
-</x-app-layout>
+
+    <!-- Action Buttons -->
+    <div class="mt-6 flex gap-4">
+        <a href="{{ route('dashboard') }}" class="px-5 py-2.5 text-white/70 hover:text-white transition">
+            ← Kembali
+        </a>
+        <button onclick="downloadCard()" class="btn-download px-6 py-2.5 bg-[#c9a227] hover:bg-[#b8922a] text-white rounded-full font-semibold shadow-lg flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            Download
+        </button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script>
+        @if($member?->id_amigo && !isset($qrCode))
+        new QRCode(document.getElementById("qrcode"), {
+            text: "{{ $member->id_amigo }}",
+            width: 112,
+            height: 112,
+            colorDark: "#0f2744",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        @endif
+
+        function downloadCard() {
+            const card = document.querySelector('.card');
+            const btn = document.querySelector('.btn-download');
+            btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Processing...';
+            
+            html2canvas(card, {
+                scale: 3,
+                backgroundColor: null,
+                useCORS: true
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'KartuAnggota-{{ $member?->member_id }}.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Downloaded!';
+                setTimeout(() => {
+                    btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Download';
+                }, 2000);
+            });
+        }
+    </script>
+    @endif
+</body>
+</html>

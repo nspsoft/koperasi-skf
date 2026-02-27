@@ -63,16 +63,6 @@
             <span x-show="sidebarOpen" x-transition>{{ __('messages.sidebar.dashboard') }}</span>
         </a>
 
-        <!-- Member Card -->
-        <a href="{{ route('profile.card') }}" 
-           class="{{ request()->routeIs('profile.card') ? 'bg-primary-50 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }} flex items-center gap-3 px-3 py-2 rounded-lg transition-colors mb-2">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-            </svg>
-            <span x-show="sidebarOpen" x-transition>Kartu Anggota</span>
-        </a>
-
-
 
         <!-- Keuangan Group -->
         @if(auth()->user()->hasPermission('menu_finance'))
