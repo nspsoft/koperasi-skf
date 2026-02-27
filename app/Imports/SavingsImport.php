@@ -10,18 +10,31 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\SkipsErrors;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\SkipsFailures;
 use Maatwebsite\Excel\Row;
 use Maatwebsite\Excel\Concerns\OnEachRow;
 use Carbon\Carbon;
 
-class SavingsImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure
+class SavingsImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure, WithChunkReading
 {
     use SkipsErrors, SkipsFailures, \App\Traits\DateParserTrait;
 
     public function onRow(Row $row)
     {
         $rowData = $row->toArray();
+
+        $savingId = $rowData['id_transaksi'] ?? null;
+        if ($savingId) {
+            $saving = Saving::find($savingId);
+            if (! $saving) {
+                return null;
+            }
+            $saving->update([
+                'description' => array_key_exists('keterangan', $rowData) ? $rowData['keterangan'] : $saving->description,
+            ]);
+            return $saving;
+        }
 
         // Find member by member_id
         $member = Member::where('member_id', $rowData['id_anggota'])->first();
@@ -77,11 +90,17 @@ class SavingsImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsO
     public function rules(): array
     {
         return [
-            'id_anggota' => 'required',
-            'jenis' => 'required|in:pokok,wajib,sukarela,Pokok,Wajib,Sukarela',
-            'jumlah' => 'required',
-            'tanggal' => 'required',
+            'id_transaksi' => 'nullable|integer',
+            'id_anggota' => 'required_without:id_transaksi',
+            'jenis' => 'required_without:id_transaksi|in:pokok,wajib,sukarela,Pokok,Wajib,Sukarela',
+            'jumlah' => 'required_without:id_transaksi',
+            'tanggal' => 'required_without:id_transaksi',
         ];
+    }
+
+    public function chunkSize(): int
+    {
+        return 200;
     }
 
     public function customValidationMessages()

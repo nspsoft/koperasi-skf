@@ -97,7 +97,7 @@
                 <div class="mb-4">
                     <label class="form-label">File Excel (.xlsx, .xls)</label>
                     <input type="file" name="file" accept=".xlsx,.xls" class="form-input" required>
-                    <p class="text-xs text-gray-500 mt-1">Kolom: id_anggota, jenis, transaksi, jumlah, tanggal, keterangan (opsional)</p>
+                    <p class="text-xs text-gray-500 mt-1">Kolom: id_anggota, jenis, transaksi, jumlah, tanggal, no_referensi, keterangan (opsional). Untuk update existing: sertakan id_transaksi.</p>
                 </div>
                 
                 <!-- Progress Bar -->
@@ -116,10 +116,28 @@
                     Upload
                 </button>
             </form>
-            <a href="{{ route('import.template', 'savings') }}" class="btn-secondary w-full text-center block">
-                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                Download Template
-            </a>
+            <div class="grid grid-cols-2 gap-2">
+                <a href="{{ route('import.template', 'savings') }}" class="btn-secondary w-full text-center block text-xs">
+                    <svg class="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Template Kosong
+                </a>
+                <form id="form-download-savings-existing" method="GET" action="{{ route('import.template', 'savings_update') }}" class="space-y-2">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="form-label text-xs">Dari</label>
+                            <input type="date" name="start_date" value="{{ request('start_date') }}" class="form-input text-xs py-2">
+                        </div>
+                        <div>
+                            <label class="form-label text-xs">Sampai</label>
+                            <input type="date" name="end_date" value="{{ request('end_date') }}" class="form-input text-xs py-2">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-secondary w-full text-center block text-xs" title="Download data simpanan sesuai rentang tanggal untuk diedit">
+                        <svg class="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Data Existing
+                    </button>
+                </form>
+            </div>
         </div>
 
         {{-- Import Loans --}}

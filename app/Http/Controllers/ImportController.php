@@ -213,21 +213,35 @@ class ImportController extends Controller
     /**
      * Download example Excel templates
      */
-    public function downloadTemplate($type)
+    public function downloadTemplate(Request $request, $type)
     {
         $filename = match($type) {
             'members' => 'Template_Anggota.xlsx',
             'members_update' => 'Data_Anggota_Update.xlsx',
             'savings' => 'Template_Simpanan.xlsx',
+            'savings_update' => 'Data_Simpanan_Update.xlsx',
             'loans' => 'Template_Pinjaman.xlsx',
             'credit_payments' => 'Template_Pelunasan_Kredit.xlsx',
             default => abort(404),
         };
 
+        if ($type === 'savings_update') {
+            $validated = $request->validate([
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+            ]);
+
+            return Excel::download(
+                new \App\Exports\SavingsUpdateTemplateExport($validated['start_date'] ?? null, $validated['end_date'] ?? null),
+                $filename
+            );
+        }
+
         $export = match($type) {
             'members' => new \App\Exports\MembersTemplateExport(),
             'members_update' => new \App\Exports\MembersUpdateTemplateExport(),
             'savings' => new \App\Exports\SavingsTemplateExport(),
+            'savings_update' => new \App\Exports\SavingsUpdateTemplateExport(),
             'loans' => new \App\Exports\LoansTemplateExport(),
             'credit_payments' => new \App\Exports\CreditPaymentsTemplateExport(),
         };
