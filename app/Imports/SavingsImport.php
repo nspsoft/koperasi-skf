@@ -22,6 +22,32 @@ class SavingsImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsO
 
     public function prepareForValidation($data, $index)
     {
+        if (empty($data['id_transaksi'])) {
+            $altKeys = ['id transaksi', 'id-transaksi', 'idtransaksi'];
+            foreach ($altKeys as $altKey) {
+                if (!empty($data[$altKey])) {
+                    $data['id_transaksi'] = $data[$altKey];
+                    break;
+                }
+            }
+        }
+
+        if (isset($data['id_anggota'])) {
+            $data['id_anggota'] = trim((string) $data['id_anggota']);
+        }
+
+        if (isset($data['jenis'])) {
+            $data['jenis'] = strtolower(trim((string) $data['jenis']));
+        }
+
+        if (isset($data['transaksi'])) {
+            $data['transaksi'] = strtolower(trim((string) $data['transaksi']));
+        }
+
+        if (isset($data['keterangan'])) {
+            $data['keterangan'] = trim((string) $data['keterangan']);
+        }
+
         if (!empty($data['id_transaksi'])) {
             $data['id_anggota'] = null;
             $data['jenis'] = null;
