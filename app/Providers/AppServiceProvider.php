@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -64,5 +66,20 @@ class AppServiceProvider extends ServiceProvider
                 ]);
             }
         }
+
+        ResetPassword::toMailUsing(function ($notifiable, $token) {
+            $url = url(route('password.reset', [
+                'token' => $token,
+                'email' => $notifiable->getEmailForPasswordReset(),
+            ], false));
+
+            return (new MailMessage)
+                ->subject('Reset Password Akun')
+                ->greeting('Halo ' . $notifiable->name . '!')
+                ->line('Kami menerima permintaan reset password untuk akun Anda.')
+                ->action('Reset Password', $url)
+                ->line('Link ini berlaku selama 60 menit.')
+                ->line('Jika Anda tidak merasa meminta reset password, abaikan email ini.');
+        });
     }
 }
