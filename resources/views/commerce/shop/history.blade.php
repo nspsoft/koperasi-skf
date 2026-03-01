@@ -78,7 +78,12 @@
                                         <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ __('messages.shop_history.payment_method.cash') }}</span>
                                     @elseif($trx->payment_method == 'kredit')
                                         <div class="w-6 h-6 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center text-xs">📝</div>
-                                        <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ __('messages.shop_history.payment_method.credit') }}</span>
+                                        <div>
+                                            <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ __('messages.shop_history.payment_method.credit') }}</span>
+                                            @if($trx->credit_tenor_months)
+                                                <div class="text-[10px] text-gray-400">Tenor {{ $trx->credit_tenor_months }} bln • Rp {{ number_format($trx->credit_installment_amount, 0, ',', '.') }}/bln</div>
+                                            @endif
+                                        </div>
                                     @else
                                         <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs">💳</div>
                                         <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ __('messages.shop_history.payment_method.balance') }}</span>

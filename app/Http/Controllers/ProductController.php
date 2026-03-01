@@ -118,6 +118,9 @@ class ProductController extends Controller
             'image' => 'nullable|image|max:2048',
             'is_preorder' => 'nullable|boolean',
             'preorder_eta' => 'nullable|string|max:255',
+            'is_credit_eligible' => 'nullable|boolean',
+            'credit_tenors' => 'required_if:is_credit_eligible,1|array',
+            'credit_tenors.*' => 'integer|in:1,2,3,6,12',
             // Consignment Validations
             'is_consignment' => 'nullable|boolean',
             'consignor_type' => 'required_if:is_consignment,1|nullable|in:member,supplier',
@@ -129,6 +132,8 @@ class ProductController extends Controller
         // Ensure boolean fields are set correctly if unchecked
         $data['is_consignment'] = $request->has('is_consignment');
         $data['is_active'] = true; // Default to active for new products
+        $data['is_credit_eligible'] = $request->has('is_credit_eligible');
+        $data['credit_tenors'] = $data['is_credit_eligible'] ? $request->input('credit_tenors', []) : null;
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('products', 'public');
@@ -170,6 +175,9 @@ class ProductController extends Controller
             'image' => 'nullable|image|max:2048',
             'is_preorder' => 'nullable|boolean',
             'preorder_eta' => 'nullable|string|max:255',
+            'is_credit_eligible' => 'nullable|boolean',
+            'credit_tenors' => 'required_if:is_credit_eligible,1|array',
+            'credit_tenors.*' => 'integer|in:1,2,3,6,12',
             // Consignment Validations
             'is_consignment' => 'nullable|boolean',
             'consignor_type' => 'required_if:is_consignment,1|nullable|in:member,supplier',
@@ -181,6 +189,8 @@ class ProductController extends Controller
         $data['is_consignment'] = $request->has('is_consignment'); // Handle boolean checkbox
         $data['is_preorder'] = $request->has('is_preorder'); 
         $data['is_active'] = $request->has('is_active'); 
+        $data['is_credit_eligible'] = $request->has('is_credit_eligible');
+        $data['credit_tenors'] = $data['is_credit_eligible'] ? $request->input('credit_tenors', []) : null;
 
         if ($request->hasFile('image')) {
             if ($product->image) {

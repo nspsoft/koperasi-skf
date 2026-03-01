@@ -135,6 +135,16 @@
                             <span class="text-gray-500">Metode</span>
                             <span class="font-semibold uppercase">{{ str_replace('_', ' ', $transaction->payment_method) }}</span>
                         </div>
+                        @if($transaction->payment_method === 'kredit' && $transaction->credit_tenor_months)
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Tenor</span>
+                            <span class="font-semibold">{{ $transaction->credit_tenor_months }} bulan</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Angsuran / bulan</span>
+                            <span class="font-semibold">Rp {{ number_format($transaction->credit_installment_amount, 0, ',', '.') }}</span>
+                        </div>
+                        @endif
                          <div class="flex justify-between">
                             <span class="text-gray-500">Status</span>
                             <span class="font-bold {{ $transaction->status == 'completed' || $transaction->status == 'paid' ? 'text-green-600' : ($transaction->status == 'pending' ? 'text-yellow-600' : 'text-red-600') }}">

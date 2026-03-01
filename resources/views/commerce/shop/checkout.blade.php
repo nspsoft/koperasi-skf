@@ -12,7 +12,7 @@
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Konfirmasi Pembayaran</h1>
         </div>
 
-        <form action="{{ route('shop.process') }}" method="POST" x-data="{ selectedMethod: '', deliveryMethod: 'pickup' }" class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+        <form action="{{ route('shop.process') }}" method="POST" x-data="{ selectedMethod: '', deliveryMethod: 'pickup', creditTenor: '', total: {{ $total }} }" class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
             @csrf
             
             <!-- LEFT COLUMN: Payment & Delivery Methods -->
@@ -71,13 +71,19 @@
                         Metode Pembayaran
                     </h2>
 
+                    @if(!$member)
+                        <div class="mb-4 p-3 rounded-xl bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800 text-xs text-yellow-800 dark:text-yellow-300">
+                            Hanya anggota aktif yang dapat memilih metode pembayaran.
+                        </div>
+                    @endif
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Saldo Sukarela -->
                         <label class="group relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md"
-                               :class="selectedMethod === 'saldo_sukarela' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/10 ring-1 ring-primary-500 scale-[1.01]' : 'border-gray-200 dark:border-gray-700 hover:border-primary-200 {{ $member->balance < $total ? 'opacity-50 grayscale' : '' }}'">
+                               :class="selectedMethod === 'saldo_sukarela' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/10 ring-1 ring-primary-500 scale-[1.01]' : 'border-gray-200 dark:border-gray-700 hover:border-primary-200 {{ (!$member || ($member?->balance ?? 0) < $total) ? 'opacity-50 grayscale' : '' }}'">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-2xl">💳</span>
-                                <input type="radio" name="payment_method" value="saldo_sukarela" x-model="selectedMethod" class="hidden" {{ $member->balance < $total ? 'disabled' : '' }}>
+                                <input type="radio" name="payment_method" value="saldo_sukarela" x-model="selectedMethod" class="hidden" {{ (!$member || ($member?->balance ?? 0) < $total) ? 'disabled' : '' }}>
                                 <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center transition-colors" 
                                      :class="selectedMethod === 'saldo_sukarela' ? 'border-primary-500' : 'group-hover:border-gray-400'">
                                     <div class="w-2.5 h-2.5 rounded-full bg-primary-500 transform scale-0 transition-transform" 
@@ -85,15 +91,15 @@
                                 </div>
                             </div>
                             <span class="font-bold text-gray-900 dark:text-white mb-1">Saldo Sukarela</span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">Saldo: Rp {{ number_format($member->balance, 0, ',', '.') }}</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Saldo: Rp {{ number_format($member?->balance ?? 0, 0, ',', '.') }}</span>
                         </label>
 
                         <!-- Kredit Mart -->
                         <label class="group relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md"
-                               :class="selectedMethod === 'kredit' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/10 ring-1 ring-primary-500 scale-[1.01]' : 'border-gray-200 dark:border-gray-700 hover:border-primary-200 {{ $member->credit_available < $total ? 'opacity-50 grayscale' : '' }}'">
+                               :class="selectedMethod === 'kredit' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/10 ring-1 ring-primary-500 scale-[1.01]' : 'border-gray-200 dark:border-gray-700 hover:border-primary-200 {{ (!$member || $member->status !== 'active' || !$creditEligible || ($member?->credit_available ?? 0) < $total) ? 'opacity-50 grayscale' : '' }}'">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-2xl">📝</span>
-                                <input type="radio" name="payment_method" value="kredit" x-model="selectedMethod" class="hidden" {{ $member->credit_available < $total ? 'disabled' : '' }}>
+                                <input type="radio" name="payment_method" value="kredit" x-model="selectedMethod" class="hidden" {{ (!$member || $member->status !== 'active' || !$creditEligible || ($member?->credit_available ?? 0) < $total) ? 'disabled' : '' }}>
                                 <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center transition-colors" 
                                      :class="selectedMethod === 'kredit' ? 'border-primary-500' : 'group-hover:border-gray-400'">
                                     <div class="w-2.5 h-2.5 rounded-full bg-primary-500 transform scale-0 transition-transform" 
@@ -101,7 +107,13 @@
                                 </div>
                             </div>
                             <span class="font-bold text-gray-900 dark:text-white mb-1">Kredit Mart</span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">Limit: Rp {{ number_format($member->credit_available, 0, ',', '.') }}</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Limit: Rp {{ number_format($member?->credit_available ?? 0, 0, ',', '.') }}</span>
+                            @if(!$creditEligible)
+                                <span class="text-[10px] text-red-500 mt-1">Produk dalam keranjang tidak semua mendukung kredit</span>
+                            @endif
+                            @if(!$member || $member->status !== 'active')
+                                <span class="text-[10px] text-red-500 mt-1">Kredit hanya untuk anggota aktif</span>
+                            @endif
                         </label>
 
                         <!-- Transfer Bank -->
@@ -167,6 +179,19 @@
                             <span class="font-bold text-gray-900 dark:text-white mb-1">Ambil di Toko</span>
                             <span class="text-xs text-gray-500 dark:text-gray-400">Bayar saat pengambilan</span>
                         </label>
+                    </div>
+
+                    <div x-show="selectedMethod === 'kredit'" x-transition class="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tenor Kredit</label>
+                        <select name="credit_tenor_months" x-model="creditTenor" class="form-input w-full">
+                            <option value="">Pilih tenor</option>
+                            @foreach($creditTenorsAvailable as $tenor)
+                                <option value="{{ $tenor }}">{{ $tenor }} bulan</option>
+                            @endforeach
+                        </select>
+                        <div class="text-xs text-gray-500 mt-2" x-show="creditTenor">
+                            Estimasi angsuran per bulan: <span class="font-bold text-gray-900 dark:text-white" x-text="'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round((total / creditTenor) || 0))"></span>
+                        </div>
                     </div>
 
                     <!-- Payment Info Details -->
@@ -266,6 +291,15 @@
                             </label>
                         </div>
                         @endif
+
+                        <div x-show="selectedMethod === 'kredit' && creditTenor" class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                            <span>Tenor</span>
+                            <span x-text="creditTenor + ' bulan'"></span>
+                        </div>
+                        <div x-show="selectedMethod === 'kredit' && creditTenor" class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                            <span>Angsuran / bulan</span>
+                            <span x-text="'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round((total / creditTenor) || 0))"></span>
+                        </div>
 
                         <div class="flex justify-between items-center pt-4 border-t-2 border-dashed border-gray-200 dark:border-gray-700">
                             <span class="font-bold text-lg text-gray-900 dark:text-white">Total Bayar</span>

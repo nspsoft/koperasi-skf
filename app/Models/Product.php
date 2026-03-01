@@ -12,13 +12,16 @@ class Product extends Model
         'stock', 'min_stock', 'unit', 
         'purchase_unit', 'conversion_factor', 'margin_percent',
         'image', 'is_active', 'is_preorder', 'preorder_eta',
-        'is_consignment', 'consignor_type', 'consignor_id', 'consignment_price', 'consignment_profit_percent'
+        'is_consignment', 'consignor_type', 'consignor_id', 'consignment_price', 'consignment_profit_percent',
+        'is_credit_eligible', 'credit_tenors'
     ];
 
     protected $casts = [
         'is_preorder' => 'boolean',
         'is_active' => 'boolean',
         'is_consignment' => 'boolean',
+        'is_credit_eligible' => 'boolean',
+        'credit_tenors' => 'array',
         'margin_percent' => 'decimal:2',
         'consignment_price' => 'decimal:2',
         'consignment_profit_percent' => 'decimal:2',

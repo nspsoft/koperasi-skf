@@ -223,7 +223,24 @@ class ShopController extends Controller
 
         $settings = \App\Models\Setting::whereIn('key', ['bank_name', 'bank_account_number', 'bank_account_name', 'payment_qris_image'])->pluck('value', 'key');
 
-        return view('commerce.shop.checkout', compact('cart', 'total', 'member', 'settings', 'discount', 'originalTotal'));
+        $cartProductIds = array_keys($cart);
+        $cartProducts = Product::whereIn('id', $cartProductIds)->get(['id', 'is_credit_eligible', 'credit_tenors']);
+        $creditEligible = $member && $cartProducts->count() > 0 && $cartProducts->every(fn ($p) => $p->is_credit_eligible);
+        $creditTenorsAvailable = [];
+        if ($creditEligible) {
+            $creditTenorsAvailable = null;
+            foreach ($cartProducts as $product) {
+                $tenors = array_map('intval', $product->credit_tenors ?? []);
+                $creditTenorsAvailable = is_null($creditTenorsAvailable)
+                    ? $tenors
+                    : array_values(array_intersect($creditTenorsAvailable, $tenors));
+            }
+            $creditTenorsAvailable = array_values(array_unique($creditTenorsAvailable ?? []));
+            sort($creditTenorsAvailable);
+            $creditEligible = $creditEligible && count($creditTenorsAvailable) > 0;
+        }
+
+        return view('commerce.shop.checkout', compact('cart', 'total', 'member', 'settings', 'discount', 'originalTotal', 'creditEligible', 'creditTenorsAvailable'));
     }
 
     public function processCheckout(Request $request)
@@ -234,6 +251,34 @@ class ShopController extends Controller
         $user = auth()->user();
         $member = $user->member;
         if(!$member) return back()->with('error', 'Hanya anggota yang bisa belanja online.');
+
+        $cartProductIds = array_keys($cart);
+        $cartProducts = Product::whereIn('id', $cartProductIds)->get(['id', 'is_credit_eligible', 'credit_tenors']);
+        $creditEligible = $cartProducts->count() > 0 && $cartProducts->every(fn ($p) => $p->is_credit_eligible);
+        $creditTenorsAvailable = [];
+        if ($creditEligible) {
+            $creditTenorsAvailable = null;
+            foreach ($cartProducts as $product) {
+                $tenors = array_map('intval', $product->credit_tenors ?? []);
+                $creditTenorsAvailable = is_null($creditTenorsAvailable)
+                    ? $tenors
+                    : array_values(array_intersect($creditTenorsAvailable, $tenors));
+            }
+            $creditTenorsAvailable = array_values(array_unique($creditTenorsAvailable ?? []));
+            sort($creditTenorsAvailable);
+            $creditEligible = $creditEligible && count($creditTenorsAvailable) > 0;
+        }
+        if ($request->payment_method === 'kredit') {
+            if (! $member || $member->status !== 'active') {
+                return back()->with('error', 'Kredit hanya untuk anggota aktif.');
+            }
+            if (! $creditEligible) {
+                return back()->with('error', 'Produk dalam keranjang tidak memenuhi syarat kredit.');
+            }
+            $request->validate([
+                'credit_tenor_months' => 'required|integer|in:' . implode(',', $creditTenorsAvailable),
+            ]);
+        }
 
         $originalTotal = 0;
         foreach($cart as $id => $details) {
@@ -276,9 +321,11 @@ class ShopController extends Controller
 
         $transaction = null;
         $lowStockProducts = [];
+        $creditTenor = $request->payment_method === 'kredit' ? (int) $request->credit_tenor_months : null;
+        $creditInstallment = $creditTenor ? round($total / $creditTenor, 2) : null;
 
         try {
-            $transaction = \DB::transaction(function () use ($cart, $total, $request, $user, $member, $voucherModel, $discount, $pointsDiscount, $pointsUsed, &$lowStockProducts) {
+            $transaction = \DB::transaction(function () use ($cart, $total, $request, $user, $member, $voucherModel, $discount, $pointsDiscount, $pointsUsed, $creditTenor, $creditInstallment, &$lowStockProducts) {
                 // Create Transaction
                 $invoice = 'INV-' . date('Ymd') . '-' . strtoupper(\Str::random(4));
                 
@@ -314,7 +361,9 @@ class ShopController extends Controller
                     'total_amount' => $total,
                     'paid_amount' => $paid_amount,
                     'change_amount' => 0,
-                    'notes' => $finalNotes
+                    'notes' => $finalNotes,
+                    'credit_tenor_months' => $creditTenor,
+                    'credit_installment_amount' => $creditInstallment,
                 ]);
 
                 foreach($cart as $id => $details) {

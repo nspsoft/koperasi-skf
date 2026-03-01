@@ -148,6 +148,27 @@
                             </div>
                         </div>
 
+                        <div class="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-100 dark:border-orange-800 space-y-3" x-data="{ isCredit: {{ old('is_credit_eligible') ? 'true' : 'false' }} }">
+                            <div class="flex items-center gap-3">
+                                <input type="hidden" name="is_credit_eligible" value="0">
+                                <input type="checkbox" name="is_credit_eligible" id="is_credit_eligible" value="1" class="w-5 h-5 rounded border-gray-300 text-orange-600 focus:ring-orange-500 transition-all" x-model="isCredit">
+                                <label for="is_credit_eligible" class="font-bold text-gray-700 dark:text-gray-300 cursor-pointer select-none">Boleh Kredit</label>
+                            </div>
+                            <div x-show="isCredit" x-transition.opacity.duration.300ms class="pl-8">
+                                <label class="form-label text-sm text-gray-500 mb-2 block">Tenor Kredit</label>
+                                @php $tenorOptions = [1, 2, 3, 6, 12]; @endphp
+                                <div class="grid grid-cols-3 gap-2">
+                                    @foreach($tenorOptions as $tenor)
+                                        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                            <input type="checkbox" name="credit_tenors[]" value="{{ $tenor }}" class="form-checkbox rounded text-orange-600 focus:ring-orange-500" {{ in_array($tenor, old('credit_tenors', [])) ? 'checked' : '' }}>
+                                            {{ $tenor }} bulan
+                                        </label>
+                                    @endforeach
+                                </div>
+                                @error('credit_tenors')<p class="form-error mt-2">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <label for="image" class="form-label">{{ __('messages.product_form.image') }}</label>
                             <input type="file" name="image" id="image" class="form-input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100" accept="image/*">
