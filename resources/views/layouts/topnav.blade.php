@@ -150,6 +150,8 @@
                                     $url = route('shop.track', $data['transaction_id']);
                                 } elseif ($type === 'new_announcement') {
                                     $url = route('announcements.index');
+                                } elseif ($type === 'member_activated') {
+                                    $url = route('dashboard');
                                 }
 
                                 // Icon based on type
@@ -160,6 +162,7 @@
                                     'new_online_order' => 'text-blue-500 bg-blue-100 dark:bg-blue-900/30',
                                     'order_ready' => 'text-green-500 bg-green-100 dark:bg-green-900/30',
                                     'new_announcement' => 'text-purple-500 bg-purple-100 dark:bg-purple-900/30',
+                                    'member_activated' => 'text-green-500 bg-green-100 dark:bg-green-900/30',
                                     default => 'text-blue-500 bg-blue-100 dark:bg-blue-900/30',
                                 };
                             @endphp
@@ -167,7 +170,7 @@
                                onclick="fetch('{{ route('notifications.mark-read', $notification->id) }}', {method: 'POST', headers: {'X-CSRF-TOKEN': '{{ csrf_token() }}'}})"
                                class="flex items-start gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                 <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center {{ $iconColor }}">
-                                    @if($type === 'loan_approved' || $type === 'order_ready')
+                                    @if($type === 'loan_approved' || $type === 'order_ready' || $type === 'member_activated')
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     @elseif($type === 'payment_reminder')
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>

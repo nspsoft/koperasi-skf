@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\MemberRequest;
 use App\Models\Member;
 use App\Models\User;
+use App\Notifications\MemberActivatedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -568,6 +569,11 @@ class MemberController extends Controller
                 $member
             );
         });
+
+        if ($newStatus === 'active' && $member->user && $member->user->email) {
+            $member->refresh();
+            $member->user->notify(new MemberActivatedNotification($member));
+        }
 
         return redirect()->back()
             ->with('success', 'Status anggota berhasil diubah menjadi '.ucfirst($newStatus));
