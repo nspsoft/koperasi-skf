@@ -256,6 +256,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
     Route::get('reports/loans', [ReportController::class, 'loans'])->name('reports.loans');
     Route::get('reports/members', [ReportController::class, 'members'])->name('reports.members');
     Route::get('reports/transactions', [ReportController::class, 'transactions'])->name('reports.transactions');
+    Route::get('reports/credit-receivables', [ReportController::class, 'creditReceivables'])->name('reports.credit-receivables');
     Route::get('reports/financial-health', [App\Http\Controllers\FinancialHealthController::class, 'index'])->name('reports.financial-health');
 
     // Accounting Reports

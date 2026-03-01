@@ -231,7 +231,7 @@ class DashboardController extends Controller
             'credit_used' => \App\Models\Transaction::where('user_id', $user->id)
                 ->where('payment_method', 'kredit')
                 ->whereNotIn('status', ['completed', 'cancelled'])
-                ->sum('total_amount'),
+                ->sum(\DB::raw('total_amount - paid_amount')),
         ];
 
         $stats['credit_available'] = max(0, $stats['credit_limit'] - $stats['credit_used']);
@@ -256,6 +256,13 @@ class DashboardController extends Controller
             })
             ->where('status', 'pending')
             ->orderBy('due_date', 'asc')
+            ->take(5)
+            ->get();
+
+        $creditUpcoming = \App\Models\Transaction::where('user_id', $user->id)
+            ->where('payment_method', 'kredit')
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
         
@@ -289,6 +296,7 @@ class DashboardController extends Controller
             'recentSavings',
             'activeLoans',
             'upcomingPayments',
+            'creditUpcoming',
             'announcements',
             'savingsChart'
         ));

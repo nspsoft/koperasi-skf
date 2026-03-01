@@ -143,7 +143,7 @@
 
                 <!-- Action Button -->
                 @if($credit->status !== 'completed')
-                    <button onclick="openPaymentModal({{ $credit->id }}, '{{ $credit->invoice_number }}', {{ $credit->total_amount }}, '{{ addslashes($credit->user->name ?? 'Unknown') }}')" 
+                    <button onclick="openPaymentModal({{ $credit->id }}, '{{ $credit->invoice_number }}', {{ $credit->total_amount - $credit->paid_amount }}, '{{ addslashes($credit->user->name ?? 'Unknown') }}')" 
                             class="w-full btn-primary py-2.5 flex justify-center items-center gap-2 text-sm">
                         💰 Lunasi Sekarang
                     </button>
@@ -218,7 +218,7 @@
                         </td>
                         <td class="px-4 py-4 text-center">
                             @if($credit->status !== 'completed')
-                                <button onclick="openPaymentModal({{ $credit->id }}, '{{ $credit->invoice_number }}', {{ $credit->total_amount }}, '{{ addslashes($credit->user->name ?? 'Unknown') }}')" 
+                                <button onclick="openPaymentModal({{ $credit->id }}, '{{ $credit->invoice_number }}', {{ $credit->total_amount - $credit->paid_amount }}, '{{ addslashes($credit->user->name ?? 'Unknown') }}')" 
                                         class="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
                                     💰 {{ __('messages.credit_report.lunasi') }}
                                 </button>
@@ -283,6 +283,12 @@
                         </div>
 
                         <div class="mb-5">
+                            <label class="form-label mb-2">Jumlah Bayar</label>
+                            <input type="number" name="amount" id="modalAmountInput" class="form-input" min="1" step="1">
+                            <p class="text-xs text-gray-500 mt-1">Isi sesuai cicilan yang dibayar.</p>
+                        </div>
+
+                        <div class="mb-5">
                             <label class="form-label mb-2">{{ __('messages.credit_report.pilih_metode') }}</label>
                             <div class="grid grid-cols-3 gap-3">
                                 <label class="cursor-pointer">
@@ -330,6 +336,7 @@
             document.getElementById('modalInvoice').textContent = invoice;
             document.getElementById('modalMember').textContent = member;
             document.getElementById('modalAmount').textContent = 'Rp ' + amount.toLocaleString('id-ID');
+            document.getElementById('modalAmountInput').value = Math.round(amount);
             document.getElementById('paymentModal').classList.remove('hidden');
         }
 

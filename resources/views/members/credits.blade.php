@@ -57,7 +57,7 @@
                         <div class="text-xs text-gray-400">{{ $trx->created_at->format('d M Y, H:i') }}</div>
                         <div class="font-mono text-sm font-bold text-primary-600 mt-1">{{ $trx->invoice_number }}</div>
                     </div>
-                    @if($trx->status === 'credit')
+                    @if($trx->payment_method === 'kredit' && !in_array($trx->status, ['completed', 'cancelled']))
                         <span class="px-2 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
                             Belum Lunas
                         </span>
@@ -132,7 +132,7 @@
                             <span class="text-sm font-bold text-gray-900 dark:text-white">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">
-                            @if($trx->status === 'credit')
+                            @if($trx->payment_method === 'kredit' && !in_array($trx->status, ['completed', 'cancelled']))
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
                                     Belum Lunas
                                 </span>

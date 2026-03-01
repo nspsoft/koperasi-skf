@@ -211,6 +211,31 @@
                 Bayar Angsuran
             </a>
             @endif
+
+            <div class="mt-8">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Tagihan Kredit Mart</h3>
+                <div class="space-y-3">
+                    @forelse($creditUpcoming as $trx)
+                        <div class="p-4 rounded-xl border border-orange-100 dark:border-orange-900/30 bg-orange-50 dark:bg-orange-900/10">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ $trx->created_at->format('d M Y, H:i') }}</span>
+                                <span class="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase">Belum Lunas</span>
+                            </div>
+                            <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ $trx->invoice_number }}</div>
+                            <div class="text-lg font-bold text-orange-600 dark:text-orange-400">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</div>
+                        </div>
+                    @empty
+                        <div class="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
+                            Tidak ada tagihan kredit
+                        </div>
+                    @endforelse
+                </div>
+                @if($creditUpcoming->count() > 0)
+                    <a href="{{ route('members.credits') }}" class="btn-secondary w-full mt-4">
+                        Lihat Riwayat Kredit
+                    </a>
+                @endif
+            </div>
         </div>
     </div>
 

@@ -301,6 +301,7 @@
                                 <th class="px-4 py-3 rounded-l-lg">Tanggal</th>
                                 <th class="px-4 py-3">Invoice</th>
                                 <th class="px-4 py-3">Status</th>
+                                <th class="px-4 py-3">Tenor</th>
                                 <th class="px-4 py-3 text-right rounded-r-lg">Total</th>
                             </tr>
                         </thead>
@@ -314,13 +315,21 @@
                                         {{ $credit->status === 'completed' ? 'LUNAS' : 'KREDIT' }}
                                     </span>
                                 </td>
+                                <td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">
+                                    @if($credit->credit_tenor_months)
+                                        {{ $credit->credit_tenor_months }} bln
+                                        <div class="text-[10px] text-gray-400">Rp {{ number_format($credit->credit_installment_amount, 0, ',', '.') }}/bln</div>
+                                    @else
+                                        -
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
                                     Rp {{ number_format($credit->total_amount, 0, ',', '.') }}
                                 </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+                                <td colspan="5" class="px-4 py-8 text-center text-gray-500">
                                     Belum ada transaksi kredit mart
                                 </td>
                             </tr>

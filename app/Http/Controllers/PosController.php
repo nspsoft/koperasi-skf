@@ -287,7 +287,7 @@ class PosController extends Controller
         // Summary
         $totalPending = Transaction::where('payment_method', 'kredit')
             ->whereNotIn('status', ['completed', 'cancelled'])
-            ->sum('total_amount');
+            ->sum(\DB::raw('total_amount - paid_amount'));
         
         $totalPaid = Transaction::where('payment_method', 'kredit')
             ->where('status', 'completed')
@@ -307,22 +307,36 @@ class PosController extends Controller
     {
         $request->validate([
             'payment_method' => 'required|in:cash,transfer,saldo',
+            'amount' => 'nullable|numeric|min:1',
             'notes' => 'nullable|string|max:500',
         ]);
 
-        if ($transaction->status !== 'credit') {
+        if ($transaction->payment_method !== 'kredit' || in_array($transaction->status, ['completed', 'cancelled'])) {
             return redirect()->back()->with('error', 'Transaksi ini sudah dilunasi atau bukan transaksi kredit.');
         }
 
         try {
             \DB::transaction(function () use ($request, $transaction) {
+                $remaining = (float) $transaction->total_amount - (float) $transaction->paid_amount;
+                if ($remaining <= 0) {
+                    throw new \Exception('Tagihan sudah lunas.');
+                }
+
+                $amount = (float) ($request->amount ?? 0);
+                if ($amount <= 0) {
+                    $amount = $remaining;
+                }
+                if ($amount > $remaining) {
+                    throw new \Exception('Jumlah pembayaran melebihi sisa tagihan.');
+                }
+
                 // If paying with saldo, deduct from savings
                 if ($request->payment_method === 'saldo' && $transaction->user_id) {
                     $balance = \App\Models\Saving::where('member_id', $transaction->user->member->id ?? 0)
                         ->where('type', 'sukarela')
                         ->sum('amount');
 
-                    if ($balance < $transaction->total_amount) {
+                    if ($balance < $amount) {
                         throw new \Exception('Saldo tidak mencukupi. Saldo saat ini: Rp ' . number_format($balance, 0, ',', '.'));
                     }
 
@@ -331,7 +345,7 @@ class PosController extends Controller
                         'member_id' => $transaction->user->member->id,
                         'type' => 'sukarela',
                         'transaction_type' => 'withdrawal',
-                        'amount' => $transaction->total_amount, // Positive for consistency
+                        'amount' => $amount, // Positive for consistency
                         'transaction_date' => now(),
                         'description' => 'Pelunasan kredit: ' . $transaction->invoice_number,
                         'created_by' => auth()->id(),
@@ -341,21 +355,50 @@ class PosController extends Controller
                     \App\Services\JournalService::journalSavingWithdrawal($saving);
                 }
 
-                // Update transaction
+                $installments = $transaction->creditInstallments()
+                    ->whereNotIn('status', ['paid'])
+                    ->orderBy('due_date')
+                    ->get();
+
+                if ($installments->isNotEmpty()) {
+                    $amountLeft = $amount;
+                    foreach ($installments as $installment) {
+                        if ($amountLeft + 0.01 < (float) $installment->amount) {
+                            throw new \Exception('Jumlah pembayaran harus sesuai nilai angsuran.');
+                        }
+                        if ($amountLeft >= (float) $installment->amount - 0.01) {
+                            $installment->update([
+                                'status' => 'paid',
+                                'paid_at' => now(),
+                                'payment_method' => $request->payment_method,
+                                'notes' => $request->notes,
+                            ]);
+                            $amountLeft -= (float) $installment->amount;
+                        }
+                        if ($amountLeft <= 0.01) {
+                            break;
+                        }
+                    }
+                    if ($amountLeft > 0.01) {
+                        throw new \Exception('Jumlah pembayaran melebihi angsuran yang tersedia.');
+                    }
+                }
+
+                $newPaid = (float) $transaction->paid_amount + $amount;
+                $isCompleted = $newPaid >= (float) $transaction->total_amount - 0.01;
                 $transaction->update([
-                    'status' => 'completed',
-                    'paid_amount' => $transaction->total_amount,
-                    'notes' => 'Dilunasi via ' . strtoupper($request->payment_method) . 
+                    'status' => $isCompleted ? 'completed' : $transaction->status,
+                    'paid_amount' => $isCompleted ? $transaction->total_amount : $newPaid,
+                    'notes' => ($isCompleted ? 'Dilunasi' : 'Cicilan') . ' via ' . strtoupper($request->payment_method) . 
                               ($request->notes ? ' - ' . $request->notes : '') .
                               ' pada ' . now()->format('d/m/Y H:i') . 
                               ' oleh ' . auth()->user()->name,
                 ]);
 
-                // Journal Credit Payment
-                \App\Services\JournalService::journalTransactionCreditPayment($transaction, $transaction->total_amount, $request->payment_method);
+                \App\Services\JournalService::journalTransactionCreditPayment($transaction, $amount, $request->payment_method);
             });
 
-            return redirect()->route('pos.credits')->with('success', 'Kredit berhasil dilunasi!');
+            return redirect()->route('pos.credits')->with('success', 'Pembayaran kredit berhasil diproses!');
 
         } catch (\Exception $e) {
             return redirect()->back()->with('error', $e->getMessage());

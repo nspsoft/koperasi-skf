@@ -147,7 +147,7 @@ class Member extends Model
         return Transaction::where('user_id', $this->user_id)
             ->where('payment_method', 'kredit')
             ->whereNotIn('status', ['completed', 'cancelled'])
-            ->sum('total_amount');
+            ->sum(\DB::raw('total_amount - paid_amount'));
     }
 
     /**

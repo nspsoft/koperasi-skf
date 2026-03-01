@@ -10,6 +10,7 @@ use App\Models\Voucher;
 use App\Models\Review;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use App\Services\CreditInstallmentService;
 
 class ShopController extends Controller
 {
@@ -365,6 +366,8 @@ class ShopController extends Controller
                     'credit_tenor_months' => $creditTenor,
                     'credit_installment_amount' => $creditInstallment,
                 ]);
+
+                CreditInstallmentService::createSchedule($txn);
 
                 foreach($cart as $id => $details) {
                     $product = Product::lockForUpdate()->find($id);

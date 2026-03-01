@@ -6,6 +6,7 @@ use App\Models\Member;
 use App\Models\Saving;
 use App\Models\Loan;
 use App\Models\Transaction;
+use App\Models\CreditInstallment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -341,6 +342,35 @@ class ReportController extends Controller
             'totalActiveLoans', 'totalOutstanding', 'totalDisbursed',
             'loans', 'byStatus',
             'startDate', 'endDate', 'status'
+        ));
+    }
+
+    public function creditReceivables(Request $request)
+    {
+        $startDate = $request->start_date ? Carbon::parse($request->start_date) : Carbon::now()->startOfMonth();
+        $endDate = $request->end_date ? Carbon::parse($request->end_date) : Carbon::now()->addMonths(11)->endOfMonth();
+
+        $summary = CreditInstallment::select(
+                DB::raw('DATE_FORMAT(due_date, "%Y-%m-01") as month'),
+                DB::raw('SUM(amount) as total')
+            )
+            ->whereBetween('due_date', [$startDate, $endDate])
+            ->whereNotIn('status', ['paid'])
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        $details = CreditInstallment::with(['transaction.user.member'])
+            ->whereBetween('due_date', [$startDate, $endDate])
+            ->whereNotIn('status', ['paid'])
+            ->orderBy('due_date')
+            ->get();
+
+        return view('reports.credit-receivables', compact(
+            'startDate',
+            'endDate',
+            'summary',
+            'details'
         ));
     }
 

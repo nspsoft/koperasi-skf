@@ -134,7 +134,7 @@ class ProfileController extends Controller
             $creditUsed = \App\Models\Transaction::where('user_id', $request->user()->id)
                 ->where('payment_method', 'kredit')
                 ->whereNotIn('status', ['completed', 'cancelled'])
-                ->sum('total_amount');
+                ->sum(\DB::raw('total_amount - paid_amount'));
         }
         $creditAvailable = max(0, $creditLimit - $creditUsed);
 

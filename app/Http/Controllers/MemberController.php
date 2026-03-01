@@ -291,7 +291,7 @@ class MemberController extends Controller
         $unpaidCredit = \App\Models\Transaction::where('user_id', $member->user_id)
             ->where('payment_method', 'kredit')
             ->whereNotIn('status', ['completed', 'cancelled'])
-            ->sum('total_amount');
+            ->sum(\DB::raw('total_amount - paid_amount'));
 
         // Statistics
         $stats = [
@@ -308,7 +308,7 @@ class MemberController extends Controller
         $activeLoans = $member->loans()->whereIn('status', ['active', 'approved'])->get();
         $recentCredits = \App\Models\Transaction::where('user_id', $member->user_id)
             ->where('payment_method', 'kredit')
-            ->where('status', 'credit')
+            ->whereNotIn('status', ['cancelled'])
             ->latest()
             ->take(5)
             ->get();
@@ -780,7 +780,7 @@ class MemberController extends Controller
             $creditUsed = \App\Models\Transaction::where('user_id', $member->user_id)
                 ->where('payment_method', 'kredit')
                 ->whereNotIn('status', ['completed', 'cancelled'])
-                ->sum('total_amount');
+                ->sum(\DB::raw('total_amount - paid_amount'));
 
             $creditLimit = $member->credit_limit ?? 500000;
             $creditAvailable = max(0, $creditLimit - $creditUsed);
@@ -820,7 +820,7 @@ class MemberController extends Controller
         $creditUsed = \App\Models\Transaction::where('user_id', $user->id)
             ->where('payment_method', 'kredit')
             ->whereNotIn('status', ['completed', 'cancelled'])
-            ->sum('total_amount');
+            ->sum(\DB::raw('total_amount - paid_amount'));
 
         $creditAvailable = max(0, ($member->credit_limit ?? 500000) - $creditUsed);
 
