@@ -127,9 +127,24 @@ class ProfileController extends Controller
             ->take(20)
             ->get();
 
+        $member = $request->user()->member;
+        $creditLimit = $member?->credit_limit ?? 500000;
+        $creditUsed = 0;
+        if ($member) {
+            $creditUsed = \App\Models\Transaction::where('user_id', $request->user()->id)
+                ->where('payment_method', 'kredit')
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->sum('total_amount');
+        }
+        $creditAvailable = max(0, $creditLimit - $creditUsed);
+
         return view('profile.edit', [
             'user' => $request->user(),
             'performanceHistories' => $performanceHistories,
+            'creditLimit' => $creditLimit,
+            'creditUsed' => $creditUsed,
+            'creditAvailable' => $creditAvailable,
+            'member' => $member,
         ]);
     }
 
