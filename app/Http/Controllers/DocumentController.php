@@ -57,7 +57,18 @@ class DocumentController extends Controller
                 return $installment->transaction->user_id ?? 0;
             });
 
-        if ($credits->isEmpty()) {
+        $nonTenorCredits = \App\Models\Transaction::with('user')
+            ->where('payment_method', 'kredit')
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->where(function ($q) {
+                $q->whereNull('credit_tenor_months')->orWhere('credit_tenor_months', 0);
+            })
+            ->whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
+            ->get()
+            ->groupBy('user_id');
+
+        if ($credits->isEmpty() && $nonTenorCredits->isEmpty()) {
             return response()->json(['success' => false, 'message' => 'Tidak ada tagihan kredit pada periode ini.'], 404);
         }
 
@@ -68,15 +79,41 @@ class DocumentController extends Controller
         $successCount = 0;
         $failCount = 0;
 
-        foreach ($credits as $userId => $userInstallments) {
-            $user = $userInstallments->first()->transaction->user ?? null;
+        $allUserIds = collect([])
+            ->merge($credits->keys())
+            ->merge($nonTenorCredits->keys())
+            ->unique()
+            ->filter(fn ($id) => (int) $id > 0)
+            ->values();
+
+        foreach ($allUserIds as $userId) {
+            $installments = $credits->get($userId);
+            $transactions = $nonTenorCredits->get($userId);
+
+            $user = null;
+            if ($installments && $installments->isNotEmpty()) {
+                $user = $installments->first()->transaction->user ?? null;
+            } elseif ($transactions && $transactions->isNotEmpty()) {
+                $user = $transactions->first()->user ?? null;
+            }
             if (! $user || ! $user->phone) {
                 $failCount++;
 
                 continue;
             }
 
-            $totalAmount = $userInstallments->sum('amount');
+            $installmentAmount = $installments ? (float) $installments->sum('amount') : 0;
+            $nonTenorAmount = 0;
+            if ($transactions && $transactions->isNotEmpty()) {
+                $nonTenorAmount = (float) $transactions->sum(function ($txn) {
+                    return (float) $txn->total_amount - (float) $txn->paid_amount;
+                });
+            }
+
+            $totalAmount = $installmentAmount + $nonTenorAmount;
+            if ($totalAmount <= 0) {
+                continue;
+            }
             $formattedAmount = number_format($totalAmount, 0, ',', '.');
 
             $message = "*[Pemberitahuan Koperasi]*\n\n";
@@ -401,6 +438,17 @@ class DocumentController extends Controller
                     return $installment->transaction->user_id ?? 0;
                 });
 
+            $nonTenorCredits = \App\Models\Transaction::with('user.member')
+                ->where('payment_method', 'kredit')
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->where(function ($q) {
+                    $q->whereNull('credit_tenor_months')->orWhere('credit_tenor_months', 0);
+                })
+                ->whereYear('created_at', $year)
+                ->whereMonth('created_at', $month)
+                ->get()
+                ->groupBy('user_id');
+
             $table = '<table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 8pt;">';
             $table .= '<thead style="background-color: #f3f4f6;">';
             $table .= '<tr>';
@@ -415,14 +463,55 @@ class DocumentController extends Controller
             $grandTotal = 0;
             $index = 1;
 
-            // Sort grouped result by user name
-            $sortedCredits = $credits->sortBy(function ($group) {
-                return $group->first()->transaction->user->name ?? '';
+            $allUserIds = collect([])
+                ->merge($credits->keys())
+                ->merge($nonTenorCredits->keys())
+                ->unique()
+                ->filter(fn ($id) => (int) $id > 0)
+                ->values();
+
+            $userRows = [];
+            foreach ($allUserIds as $userId) {
+                $installments = $credits->get($userId);
+                $transactions = $nonTenorCredits->get($userId);
+
+                $user = null;
+                if ($installments && $installments->isNotEmpty()) {
+                    $user = $installments->first()->transaction->user ?? null;
+                } elseif ($transactions && $transactions->isNotEmpty()) {
+                    $user = $transactions->first()->user ?? null;
+                }
+
+                if (! $user) {
+                    continue;
+                }
+
+                $installmentAmount = $installments ? (float) $installments->sum('amount') : 0;
+                $nonTenorAmount = 0;
+                if ($transactions && $transactions->isNotEmpty()) {
+                    $nonTenorAmount = (float) $transactions->sum(function ($txn) {
+                        return (float) $txn->total_amount - (float) $txn->paid_amount;
+                    });
+                }
+
+                $totalAmount = $installmentAmount + $nonTenorAmount;
+                if ($totalAmount <= 0) {
+                    continue;
+                }
+
+                $userRows[] = [
+                    'user' => $user,
+                    'total' => $totalAmount,
+                ];
+            }
+
+            usort($userRows, function ($a, $b) {
+                return strcmp($a['user']->name ?? '', $b['user']->name ?? '');
             });
 
-            foreach ($sortedCredits as $userId => $userInstallments) {
-                $user = $userInstallments->first()->transaction->user ?? null;
-                $totalAmount = $userInstallments->sum('amount');
+            foreach ($userRows as $row) {
+                $user = $row['user'];
+                $totalAmount = $row['total'];
 
                 $table .= '<tr>';
                 $table .= '<td style="border: 1px solid #d1d5db; padding: 4px 8px; text-align: center;">'.$index++.'</td>';
@@ -433,7 +522,7 @@ class DocumentController extends Controller
                 $grandTotal += $totalAmount;
             }
 
-            if ($sortedCredits->isEmpty()) {
+            if (empty($userRows)) {
                 $table .= '<tr><td colspan="4" style="border: 1px solid #d1d5db; padding: 10px; text-align: center;">Tidak ada data transaksi kredit untuk periode ini.</td></tr>';
             }
 
