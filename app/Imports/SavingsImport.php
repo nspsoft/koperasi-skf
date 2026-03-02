@@ -150,7 +150,20 @@ class SavingsImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsO
         return [
             'id_transaksi' => 'nullable|integer|exists:savings,id',
             'id_anggota' => 'required_without:id_transaksi',
-            'jenis' => 'required_without:id_transaksi|nullable|in:pokok,wajib,sukarela',
+            'jenis' => [
+                'required_without:id_transaksi',
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+
+                    $normalized = $this->normalizeAlphaLower($value);
+                    if (! in_array($normalized, ['pokok', 'wajib', 'sukarela'], true)) {
+                        $fail('Jenis harus: pokok, wajib, atau sukarela (input="'.$value.'")');
+                    }
+                },
+            ],
             'transaksi' => 'required_without:id_transaksi',
             'jumlah' => 'required_without:id_transaksi',
             'tanggal' => 'required_without:id_transaksi',
@@ -167,7 +180,6 @@ class SavingsImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsO
         return [
             'id_anggota.required' => 'Kolom id_anggota wajib diisi',
             'jenis.required' => 'Kolom jenis wajib diisi',
-            'jenis.in' => 'Jenis harus: pokok, wajib, atau sukarela (input=":input")',
             'jumlah.required' => 'Kolom jumlah wajib diisi',
             'tanggal.required' => 'Kolom tanggal wajib diisi',
         ];
