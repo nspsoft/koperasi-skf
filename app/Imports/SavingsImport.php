@@ -167,7 +167,7 @@ class SavingsImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsO
         return [
             'id_anggota.required' => 'Kolom id_anggota wajib diisi',
             'jenis.required' => 'Kolom jenis wajib diisi',
-            'jenis.in' => 'Jenis harus: pokok, wajib, atau sukarela',
+            'jenis.in' => 'Jenis harus: pokok, wajib, atau sukarela (input=":input")',
             'jumlah.required' => 'Kolom jumlah wajib diisi',
             'tanggal.required' => 'Kolom tanggal wajib diisi',
         ];

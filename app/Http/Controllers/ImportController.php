@@ -43,7 +43,7 @@ class ImportController extends Controller
         $hex = $jenisStr !== null ? bin2hex((string) $jenisStr) : '';
         $keys = implode(',', array_map(fn ($k) => (string) $k, array_keys($values)));
 
-        return "Baris {$row}: {$attribute} - {$errors} (jenis='{$jenisStr}' hex='{$hex}' keys='{$keys}')";
+        return "Baris {$row}: {$attribute} - {$errors} [IMPDBG1] (jenis='{$jenisStr}' hex='{$hex}' keys='{$keys}')";
     }
 
     /**
