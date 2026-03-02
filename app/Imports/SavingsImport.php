@@ -20,6 +20,24 @@ class SavingsImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsO
 {
     use SkipsErrors, SkipsFailures, \App\Traits\DateParserTrait;
 
+    protected function normalizeString($value): string
+    {
+        $value = (string) $value;
+        $value = str_replace(["\xEF\xBB\xBF", "\xC2\xA0", "\xE2\x80\x8B"], ' ', $value);
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+        return trim($value);
+    }
+
+    protected function normalizeAlphaLower($value): string
+    {
+        $value = strtolower($this->normalizeString($value));
+        $value = preg_replace('/\p{Cf}+/u', '', $value) ?? $value;
+        $value = preg_replace('/[^a-z]+/u', '', $value) ?? $value;
+
+        return $value;
+    }
+
     public function prepareForValidation($data, $index)
     {
         if (empty($data['id_transaksi'])) {
@@ -33,19 +51,19 @@ class SavingsImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsO
         }
 
         if (isset($data['id_anggota'])) {
-            $data['id_anggota'] = trim((string) $data['id_anggota']);
+            $data['id_anggota'] = $this->normalizeString($data['id_anggota']);
         }
 
         if (isset($data['jenis'])) {
-            $data['jenis'] = strtolower(trim((string) $data['jenis']));
+            $data['jenis'] = $this->normalizeAlphaLower($data['jenis']);
         }
 
         if (isset($data['transaksi'])) {
-            $data['transaksi'] = strtolower(trim((string) $data['transaksi']));
+            $data['transaksi'] = $this->normalizeAlphaLower($data['transaksi']);
         }
 
         if (isset($data['keterangan'])) {
-            $data['keterangan'] = trim((string) $data['keterangan']);
+            $data['keterangan'] = $this->normalizeString($data['keterangan']);
         }
 
         if (!empty($data['id_transaksi'])) {
@@ -76,15 +94,16 @@ class SavingsImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsO
         }
 
         // Find member by member_id
-        $member = Member::where('member_id', $rowData['id_anggota'])->first();
+        $memberId = isset($rowData['id_anggota']) ? $this->normalizeString($rowData['id_anggota']) : null;
+        $member = $memberId ? Member::where('member_id', $memberId)->first() : null;
         
         if (!$member) {
             return null; // Skip if member not found
         }
 
         $amount = (float) str_replace(['.', ','], ['', '.'], $rowData['jumlah']);
-        $type = strtolower($rowData['jenis']);
-        $transactionType = $this->parseTransactionType($rowData['transaksi'] ?? 'setoran');
+        $type = isset($rowData['jenis']) ? $this->normalizeAlphaLower($rowData['jenis']) : null;
+        $transactionType = $this->parseTransactionType(isset($rowData['transaksi']) ? $this->normalizeAlphaLower($rowData['transaksi']) : 'setoran');
 
         // Create the saving record
         $saving = Saving::create([
@@ -131,7 +150,7 @@ class SavingsImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsO
         return [
             'id_transaksi' => 'nullable|integer|exists:savings,id',
             'id_anggota' => 'required_without:id_transaksi',
-            'jenis' => 'required_without:id_transaksi|nullable|in:pokok,wajib,sukarela,Pokok,Wajib,Sukarela',
+            'jenis' => 'required_without:id_transaksi|nullable|in:pokok,wajib,sukarela',
             'transaksi' => 'required_without:id_transaksi',
             'jumlah' => 'required_without:id_transaksi',
             'tanggal' => 'required_without:id_transaksi',

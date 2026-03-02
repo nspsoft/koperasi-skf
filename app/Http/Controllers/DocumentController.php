@@ -28,13 +28,34 @@ class DocumentController extends Controller
         $year = $dateParts[0];
         $month = $dateParts[1];
 
-        $credits = \App\Models\Transaction::with('user')
-            ->where('payment_method', 'kredit')
+        $creditTransactions = \App\Models\Transaction::where('payment_method', 'kredit')
             ->whereNotIn('status', ['completed', 'cancelled'])
-            ->whereYear('created_at', $year)
-            ->whereMonth('created_at', $month)
+            ->whereNotNull('credit_tenor_months')
+            ->with('creditInstallments')
+            ->get();
+
+        foreach ($creditTransactions as $transaction) {
+            if ($transaction->creditInstallments->isEmpty()) {
+                \App\Services\CreditInstallmentService::createSchedule($transaction);
+                continue;
+            }
+
+            $firstDue = $transaction->creditInstallments->sortBy('due_date')->first()->due_date ?? null;
+            $createdMonth = $transaction->created_at ? $transaction->created_at->format('Y-m') : null;
+            $firstDueMonth = $firstDue ? Carbon::parse($firstDue)->format('Y-m') : null;
+            if ($createdMonth && $firstDueMonth && $createdMonth !== $firstDueMonth) {
+                \App\Services\CreditInstallmentService::rebuildSchedule($transaction);
+            }
+        }
+
+        $credits = \App\Models\CreditInstallment::with('transaction.user')
+            ->whereYear('due_date', $year)
+            ->whereMonth('due_date', $month)
+            ->whereNotIn('status', ['paid'])
             ->get()
-            ->groupBy('user_id');
+            ->groupBy(function ($installment) {
+                return $installment->transaction->user_id ?? 0;
+            });
 
         if ($credits->isEmpty()) {
             return response()->json(['success' => false, 'message' => 'Tidak ada tagihan kredit pada periode ini.'], 404);
@@ -47,15 +68,15 @@ class DocumentController extends Controller
         $successCount = 0;
         $failCount = 0;
 
-        foreach ($credits as $userId => $userTransactions) {
-            $user = $userTransactions->first()->user;
+        foreach ($credits as $userId => $userInstallments) {
+            $user = $userInstallments->first()->transaction->user ?? null;
             if (! $user || ! $user->phone) {
                 $failCount++;
 
                 continue;
             }
 
-            $totalAmount = $userTransactions->sum('total_amount');
+            $totalAmount = $userInstallments->sum('amount');
             $formattedAmount = number_format($totalAmount, 0, ',', '.');
 
             $message = "*[Pemberitahuan Koperasi]*\n\n";
@@ -351,13 +372,34 @@ class DocumentController extends Controller
             $year = $dateParts[0];
             $month = $dateParts[1];
 
-            $credits = \App\Models\Transaction::with('user.member')
-                ->where('payment_method', 'kredit')
+            $creditTransactions = \App\Models\Transaction::where('payment_method', 'kredit')
                 ->whereNotIn('status', ['completed', 'cancelled'])
-                ->whereYear('created_at', $year)
-                ->whereMonth('created_at', $month)
+                ->whereNotNull('credit_tenor_months')
+                ->with('creditInstallments')
+                ->get();
+
+            foreach ($creditTransactions as $transaction) {
+                if ($transaction->creditInstallments->isEmpty()) {
+                    \App\Services\CreditInstallmentService::createSchedule($transaction);
+                    continue;
+                }
+
+                $firstDue = $transaction->creditInstallments->sortBy('due_date')->first()->due_date ?? null;
+                $createdMonth = $transaction->created_at ? $transaction->created_at->format('Y-m') : null;
+                $firstDueMonth = $firstDue ? Carbon::parse($firstDue)->format('Y-m') : null;
+                if ($createdMonth && $firstDueMonth && $createdMonth !== $firstDueMonth) {
+                    \App\Services\CreditInstallmentService::rebuildSchedule($transaction);
+                }
+            }
+
+            $credits = \App\Models\CreditInstallment::with('transaction.user.member')
+                ->whereYear('due_date', $year)
+                ->whereMonth('due_date', $month)
+                ->whereNotIn('status', ['paid'])
                 ->get()
-                ->groupBy('user_id');
+                ->groupBy(function ($installment) {
+                    return $installment->transaction->user_id ?? 0;
+                });
 
             $table = '<table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 8pt;">';
             $table .= '<thead style="background-color: #f3f4f6;">';
@@ -375,12 +417,12 @@ class DocumentController extends Controller
 
             // Sort grouped result by user name
             $sortedCredits = $credits->sortBy(function ($group) {
-                return $group->first()->user->name ?? '';
+                return $group->first()->transaction->user->name ?? '';
             });
 
-            foreach ($sortedCredits as $userId => $userTransactions) {
-                $user = $userTransactions->first()->user;
-                $totalAmount = $userTransactions->sum('total_amount');
+            foreach ($sortedCredits as $userId => $userInstallments) {
+                $user = $userInstallments->first()->transaction->user ?? null;
+                $totalAmount = $userInstallments->sum('amount');
 
                 $table .= '<tr>';
                 $table .= '<td style="border: 1px solid #d1d5db; padding: 4px 8px; text-align: center;">'.$index++.'</td>';

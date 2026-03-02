@@ -18,6 +18,34 @@ use Illuminate\Support\Facades\Auth;
 
 class ImportController extends Controller
 {
+    private function formatImportFailure($failure): string
+    {
+        $row = $failure->row();
+        $attribute = $failure->attribute();
+        $errors = implode(', ', $failure->errors());
+
+        if ($attribute !== 'jenis') {
+            return "Baris {$row}: {$attribute} - {$errors}";
+        }
+
+        $values = $failure->values() ?? [];
+        $jenisRaw = $values['jenis'] ?? null;
+        if ($jenisRaw === null) {
+            foreach ($values as $key => $value) {
+                if (strtolower(trim((string) $key)) === 'jenis') {
+                    $jenisRaw = $value;
+                    break;
+                }
+            }
+        }
+
+        $jenisStr = is_scalar($jenisRaw) ? (string) $jenisRaw : json_encode($jenisRaw, JSON_UNESCAPED_UNICODE);
+        $hex = $jenisStr !== null ? bin2hex((string) $jenisStr) : '';
+        $keys = implode(',', array_map(fn ($k) => (string) $k, array_keys($values)));
+
+        return "Baris {$row}: {$attribute} - {$errors} (jenis='{$jenisStr}' hex='{$hex}' keys='{$keys}')";
+    }
+
     /**
      * Show import page
      */
@@ -69,10 +97,7 @@ class ImportController extends Controller
             // Check for validation failures
             $failures = $import->failures();
             foreach ($failures as $failure) {
-                $row = $failure->row();
-                $attribute = $failure->attribute();
-                $errors = implode(', ', $failure->errors());
-                $errorMessages[] = "Baris {$row}: {$attribute} - {$errors}";
+                $errorMessages[] = $this->formatImportFailure($failure);
             }
 
             // Check for execution errors (SQL errors, etc)
@@ -147,10 +172,7 @@ class ImportController extends Controller
             $failures = $e->failures();
             $errorMessages = [];
             foreach ($failures as $failure) {
-                $row = $failure->row();
-                $attribute = $failure->attribute();
-                $errors = implode(', ', $failure->errors());
-                $errorMessages[] = "Baris {$row}: {$attribute} - {$errors}";
+                $errorMessages[] = $this->formatImportFailure($failure);
             }
             return redirect()->back()->with('error', 'Validasi gagal:')->with('import_errors', $errorMessages);
         } catch (\Exception $e) {
