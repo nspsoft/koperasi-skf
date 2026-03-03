@@ -17,6 +17,58 @@ class PurchasesImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
     public $importedCount = 0;
     public $errors = [];
 
+    private function parseDecimal($value): float
+    {
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (float) $value;
+        }
+
+        $raw = trim((string) $value);
+        $raw = str_replace(["\xC2\xA0", ' '], '', $raw);
+        $raw = preg_replace('/[^\d\.,-]/u', '', $raw) ?? $raw;
+
+        $hasComma = str_contains($raw, ',');
+        $hasDot = str_contains($raw, '.');
+
+        if ($hasComma && $hasDot) {
+            $raw = str_replace('.', '', $raw);
+            $raw = str_replace(',', '.', $raw);
+        } elseif ($hasComma && ! $hasDot) {
+            $raw = str_replace(',', '.', $raw);
+        } else {
+            $raw = str_replace(',', '', $raw);
+        }
+
+        return is_numeric($raw) ? (float) $raw : 0.0;
+    }
+
+    private function parseInt($value): int
+    {
+        if ($value === null || $value === '') {
+            return 0;
+        }
+
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_float($value)) {
+            return (int) round($value);
+        }
+
+        $raw = trim((string) $value);
+        $raw = str_replace(["\xC2\xA0", ' '], '', $raw);
+        $raw = preg_replace('/[^\d\.,-]/u', '', $raw) ?? $raw;
+
+        $num = $this->parseDecimal($raw);
+
+        return (int) round($num);
+    }
+
     public function collection(Collection $rows)
     {
         // Group by PO Number
@@ -65,8 +117,8 @@ class PurchasesImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
                     // 3. Create Items
                     foreach ($items as $row) {
                         $productCode = trim((string)($row['kode_produk'] ?? $row['product_code']));
-                        $quantity = $row['jumlah'] ?? $row['qty'] ?? $row['quantity'] ?? 0;
-                        $cost = $row['harga'] ?? $row['price'] ?? $row['cost'] ?? 0;
+                        $quantity = $this->parseInt($row['jumlah'] ?? $row['qty'] ?? $row['quantity'] ?? 0);
+                        $cost = $this->parseDecimal($row['harga'] ?? $row['price'] ?? $row['cost'] ?? 0);
 
                         if (empty($productCode)) continue;
 
@@ -75,7 +127,15 @@ class PurchasesImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
                             throw new \Exception("Produk dengan kode '$productCode' tidak ditemukan");
                         }
 
-                        $subtotal = $quantity * $cost;
+                        if ($quantity <= 0) {
+                            throw new \Exception("Jumlah wajib diisi untuk produk '$productCode'");
+                        }
+
+                        if ($cost <= 0) {
+                            throw new \Exception("Harga wajib diisi untuk produk '$productCode'");
+                        }
+
+                        $subtotal = (float) $quantity * (float) $cost;
                         $totalAmount += $subtotal;
 
                         PurchaseItem::create([
