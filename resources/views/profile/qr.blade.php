@@ -24,7 +24,7 @@
                 @if($qrCode)
                     <img src="{{ $qrCode }}" alt="QR id_amigo" class="w-64 h-64">
                 @else
-                    <div id="qrcode" class="w-64 h-64"></div>
+                    <div id="qrcode" class="w-64 h-64" data-text="{{ $member->id_amigo }}" data-filename="QR-ID-Amigo-{{ $member->id_amigo }}.png"></div>
                 @endif
             </div>
             <p class="mt-4 font-mono text-lg tracking-widest text-slate-700">{{ $member->id_amigo }}</p>
@@ -38,24 +38,32 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
-        @if($member && $member->id_amigo && !$qrCode)
-        const el = document.getElementById('qrcode');
-        if (el) {
-            new QRCode(el, {
-                text: "{{ $member->id_amigo }}",
-                width: 256,
-                height: 256
-            });
-        }
-        @endif
+        (function () {
+            const el = document.getElementById('qrcode');
+            if (!el) return;
+            const text = el.dataset.text || '';
+            if (!text) return;
+            new QRCode(el, { text, width: 256, height: 256 });
+        })();
 
         function downloadQR() {
-            const img = document.querySelector('img[alt=\"QR id_amigo\"]') || document.querySelector('#qrcode canvas');
-            if (!img) return;
-            let dataUrl = img.tagName === 'IMG' ? img.src : img.toDataURL('image/png');
+            const node =
+                document.querySelector('img[alt="QR id_amigo"]') ||
+                document.querySelector('#qrcode img') ||
+                document.querySelector('#qrcode canvas');
+            if (!node) return;
+
+            let dataUrl = '';
+            if (node.tagName === 'IMG') {
+                dataUrl = node.src;
+            } else if (node.tagName === 'CANVAS') {
+                dataUrl = node.toDataURL('image/png');
+            } else {
+                return;
+            }
             const a = document.createElement('a');
             a.href = dataUrl;
-            a.download = 'QR-ID-Amigo.png';
+            a.download = document.getElementById('qrcode')?.dataset.filename || 'QR-ID-Amigo.png';
             a.click();
         }
     </script>
