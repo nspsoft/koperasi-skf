@@ -31,6 +31,7 @@ class ReportController extends Controller
         $startDate = $request->start_date ? Carbon::parse($request->start_date) : Carbon::now()->startOfMonth();
         $endDate = $request->end_date ? Carbon::parse($request->end_date) : Carbon::now()->endOfDay();
         $accountId = $request->account_id;
+        $aggregateSavings = $request->has('aggregate_savings') ? $request->boolean('aggregate_savings') : true;
 
         // Simplified list for the dropdown
         $excludedCodes = [
@@ -63,11 +64,80 @@ class ReportController extends Controller
                 ->sortBy(function($line) {
                     return $line->journalEntry->transaction_date . '-' . $line->created_at;
                 });
+
+            if ($aggregateSavings) {
+                $summaries = [];
+                $plainLines = collect();
+
+                foreach ($lines as $line) {
+                    $meta = $this->extractSavingLedgerMeta($line);
+                    if (!$meta) {
+                        $plainLines->push($line);
+                        continue;
+                    }
+
+                    $key = implode('|', [$meta['date'], $meta['action'], $meta['type_label']]);
+                    if (!isset($summaries[$key])) {
+                        $summaries[$key] = [
+                            'date' => $meta['date'],
+                            'action' => $meta['action'],
+                            'type_label' => $meta['type_label'],
+                            'debit' => 0.0,
+                            'credit' => 0.0,
+                            'count' => 0,
+                            'first_journal_number' => $line->journalEntry->journal_number,
+                        ];
+                    }
+
+                    $summaries[$key]['debit'] += (float) $line->debit;
+                    $summaries[$key]['credit'] += (float) $line->credit;
+                    $summaries[$key]['count']++;
+                }
+
+                $summaryLines = collect($summaries)->map(function ($summary) {
+                    $line = new \stdClass();
+                    $line->debit = $summary['debit'];
+                    $line->credit = $summary['credit'];
+                    $line->description = "{$summary['count']} transaksi";
+                    $line->journalEntry = (object) [
+                        'transaction_date' => $summary['date'],
+                        'journal_number' => $summary['first_journal_number'],
+                        'description' => "{$summary['action']} Simpanan {$summary['type_label']} (Ringkas)",
+                    ];
+                    return $line;
+                });
+
+                $lines = $plainLines
+                    ->concat($summaryLines)
+                    ->sortBy(function ($line) {
+                        return (string) $line->journalEntry->transaction_date . '-' . (string) $line->journalEntry->journal_number;
+                    })
+                    ->values();
+            }
         }
 
         return view('reports.accounting.ledger', compact(
-            'accounts', 'accountsGrouped', 'lines', 'startDate', 'endDate', 'accountId', 'openingBalance'
+            'accounts', 'accountsGrouped', 'lines', 'startDate', 'endDate', 'accountId', 'openingBalance', 'aggregateSavings'
         ));
+    }
+
+    private function extractSavingLedgerMeta($line): ?array
+    {
+        $referenceType = $line->journalEntry->reference_type ?? null;
+        if (!in_array($referenceType, [Saving::class, 'saving'], true)) {
+            return null;
+        }
+
+        $description = (string) ($line->journalEntry->description ?? '');
+        if (!preg_match('/^(Setoran|Penarikan)\s+Simpanan\s+(.+?)\s*-\s*/u', $description, $m)) {
+            return null;
+        }
+
+        return [
+            'date' => (string) $line->journalEntry->transaction_date,
+            'action' => $m[1],
+            'type_label' => trim($m[2]),
+        ];
     }
 
     /**

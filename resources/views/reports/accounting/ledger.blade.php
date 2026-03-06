@@ -41,6 +41,10 @@
             <div class="w-full md:w-auto">
                 <button type="submit" class="btn btn-primary w-full">Filter</button>
             </div>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 w-full md:w-auto">
+                <input type="checkbox" name="aggregate_savings" value="1" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500" {{ $aggregateSavings ? 'checked' : '' }}>
+                Ringkas simpanan payroll
+            </label>
         </form>
     </div>
 
@@ -57,6 +61,9 @@
                 <div>
                     <h3 class="text-lg font-bold">{{ $selectedAccount->code }} - {{ $selectedAccount->name }}</h3>
                     <p class="text-sm text-gray-500">Saldo Awal: <span class="font-mono font-medium {{ $openingBalance >= 0 ? 'text-green-600' : 'text-red-600' }}">Rp {{ number_format($openingBalance, 0, ',', '.') }}</span></p>
+                    @if($aggregateSavings)
+                        <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">Mode ringkas aktif untuk jurnal simpanan.</p>
+                    @endif
                 </div>
                 <div class="text-right">
                     <span class="badge {{ $selectedAccount->normal_balance == 'debit' ? 'badge-primary' : 'badge-warning' }}">
