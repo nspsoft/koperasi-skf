@@ -107,11 +107,69 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div class="rounded-xl border border-blue-200 bg-blue-50/70 dark:border-blue-900 dark:bg-blue-900/20 p-4">
+                        <h4 class="font-semibold text-blue-700 dark:text-blue-300 mb-2">Template Siap Pakai (Pembayaran Tunai)</h4>
+                        <ul class="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                            <li><span class="font-medium">Tanggal:</span> isi sesuai tanggal transaksi</li>
+                            <li><span class="font-medium">Keterangan:</span> Beli [Nama Aset] - Tunai</li>
+                            <li><span class="font-medium">Debit:</span> 1302 - Peralatan Kantor = [Nominal]</li>
+                            <li><span class="font-medium">Kredit:</span> 1101 - Kas = [Nominal]</li>
+                        </ul>
+                    </div>
+                    <div class="rounded-xl border border-indigo-200 bg-indigo-50/70 dark:border-indigo-900 dark:bg-indigo-900/20 p-4">
+                        <h4 class="font-semibold text-indigo-700 dark:text-indigo-300 mb-2">Template Siap Pakai (Pembayaran Transfer)</h4>
+                        <ul class="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                            <li><span class="font-medium">Tanggal:</span> isi sesuai tanggal transaksi</li>
+                            <li><span class="font-medium">Keterangan:</span> Beli [Nama Aset] - Transfer</li>
+                            <li><span class="font-medium">Debit:</span> 1302 - Peralatan Kantor = [Nominal]</li>
+                            <li><span class="font-medium">Kredit:</span> 1102 - Bank = [Nominal]</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
 
-            {{-- Kasus 2 --}}
             <div>
-                <h3 class="font-bold text-lg mb-3">2. Setoran Modal Tambahan (Misal: Tunai Rp 10.000.000)</h3>
+                <h3 class="font-bold text-lg mb-3">2. Pembelian Aset via Hutang (Misal: Printer Rp 3.000.000)</h3>
+                <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-gray-50 dark:bg-gray-800/50">
+                            <tr>
+                                <th class="px-4 py-3">Nama Akun</th>
+                                <th class="px-4 py-3 text-right">Debit (Rp)</th>
+                                <th class="px-4 py-3 text-right">Kredit (Rp)</th>
+                                <th class="px-4 py-3">Fungsi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                            <tr>
+                                <td class="px-4 py-3 font-medium">1302 - Peralatan Kantor</td>
+                                <td class="px-4 py-3 text-right text-green-600 font-bold">3.000.000</td>
+                                <td class="px-4 py-3 text-right">0</td>
+                                <td class="px-4 py-3 text-gray-500 italic">Aset bertambah saat barang diterima</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium">2201 - Hutang Usaha</td>
+                                <td class="px-4 py-3 text-right">0</td>
+                                <td class="px-4 py-3 text-right text-red-600 font-bold">3.000.000</td>
+                                <td class="px-4 py-3 text-gray-500 italic">Muncul kewajiban ke supplier</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="rounded-xl border border-amber-200 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-900/20 p-4 mt-4">
+                    <h4 class="font-semibold text-amber-700 dark:text-amber-300 mb-2">Template Pelunasan Hutang Aset</h4>
+                    <ul class="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                        <li><span class="font-medium">Keterangan:</span> Pelunasan hutang beli [Nama Aset]</li>
+                        <li><span class="font-medium">Debit:</span> 2201 - Hutang Usaha = [Nominal pelunasan]</li>
+                        <li><span class="font-medium">Kredit:</span> 1101 - Kas / 1102 - Bank = [Nominal pelunasan]</li>
+                    </ul>
+                </div>
+            </div>
+
+            {{-- Kasus 3 --}}
+            <div>
+                <h3 class="font-bold text-lg mb-3">3. Setoran Modal Tambahan (Misal: Tunai Rp 10.000.000)</h3>
                 <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-gray-50 dark:bg-gray-800/50">
