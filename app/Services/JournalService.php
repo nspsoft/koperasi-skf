@@ -37,7 +37,7 @@ class JournalService
             // Create journal entry
             $journal = JournalEntry::create([
                 'journal_number' => JournalEntry::generateJournalNumber(),
-                'reference_type' => get_class($reference),
+                'reference_type' => $reference->getMorphClass(),
                 'reference_id' => $reference->id,
                 'transaction_date' => $date ?? now()->toDateString(),
                 'description' => $description,

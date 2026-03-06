@@ -153,7 +153,8 @@ class SavingController extends Controller
             DB::beginTransaction();
 
             // Delete related journal entries first
-            \App\Models\JournalEntry::where('reference_type', Saving::class)
+            $savingMorph = (new Saving())->getMorphClass();
+            \App\Models\JournalEntry::whereIn('reference_type', array_unique([Saving::class, $savingMorph, 'saving']))
                 ->where('reference_id', $saving->id)
                 ->each(function ($journal) {
                     $journal->lines()->delete();
@@ -198,7 +199,8 @@ class SavingController extends Controller
                 $saving = Saving::find($id);
                 
                 // Delete related journal entries first
-                \App\Models\JournalEntry::where('reference_type', Saving::class)
+                $savingMorph = (new Saving())->getMorphClass();
+                \App\Models\JournalEntry::whereIn('reference_type', array_unique([Saving::class, $savingMorph, 'saving']))
                     ->where('reference_id', $saving->id)
                     ->each(function ($journal) {
                         $journal->lines()->delete();

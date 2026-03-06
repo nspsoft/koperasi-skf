@@ -91,6 +91,8 @@ class Saving extends Model
      */
     public function journalEntry()
     {
-        return $this->morphOne(JournalEntry::class, 'reference');
+        $morphType = $this->getMorphClass();
+        return $this->hasOne(JournalEntry::class, 'reference_id')
+            ->whereIn('reference_type', array_unique([self::class, $morphType, 'saving']));
     }
 }

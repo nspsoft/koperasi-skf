@@ -368,7 +368,8 @@ class ImportController extends Controller
             DB::beginTransaction();
 
             // Delete related journals
-            \App\Models\JournalEntry::where('reference_type', Saving::class)
+            $savingMorph = (new Saving())->getMorphClass();
+            \App\Models\JournalEntry::whereIn('reference_type', array_unique([Saving::class, $savingMorph, 'saving']))
                 ->each(function ($journal) {
                     $journal->lines()->delete();
                     $journal->delete();
@@ -545,8 +546,15 @@ class ImportController extends Controller
         try {
             DB::beginTransaction();
 
-            // Get savings without journal entries
-            $savingsWithoutJournals = Saving::whereDoesntHave('journalEntry')
+            $savingMorph = (new Saving())->getMorphClass();
+
+            // Get savings without any journal entries (support old class-string + morph alias)
+            $savingsWithoutJournals = Saving::whereNotExists(function ($q) use ($savingMorph) {
+                    $q->select(DB::raw(1))
+                        ->from('journal_entries')
+                        ->whereColumn('journal_entries.reference_id', 'savings.id')
+                        ->whereIn('journal_entries.reference_type', array_unique([Saving::class, $savingMorph, 'saving']));
+                })
                 ->with(['member.user'])
                 ->get();
 
