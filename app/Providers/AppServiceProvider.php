@@ -33,6 +33,10 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Gate::define('admin', function ($user) {
             return $user->hasAdminAccess();
         });
+
+        \Illuminate\Support\Facades\Gate::define('store', function ($user) {
+            return $user->hasStoreAccess();
+        });
         
         \Illuminate\Support\Facades\Gate::define('member', function ($user) {
             return $user->isMember();

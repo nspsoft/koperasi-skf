@@ -117,12 +117,23 @@
                             @else
                                 <span class="badge badge-danger">{{ $trx->status }}</span>
                             @endif
+                            @if(in_array($trx->status, ['paid', 'completed', 'delivered']) && ! $trx->journalEntry)
+                                <span class="badge badge-warning ml-2">Belum Jurnal</span>
+                            @endif
                         </td>
                         <td>
                             <div class="flex items-center gap-1">
                                 <a href="{{ route('pos.receipt', $trx) }}" target="_blank" class="p-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200" title="Cetak Struk">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                 </a>
+                                @if(in_array($trx->status, ['paid', 'completed', 'delivered']) && ! $trx->journalEntry)
+                                    <form action="{{ route('pos.journals.generate', $trx) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="p-1.5 bg-amber-100 text-amber-700 rounded hover:bg-amber-600 hover:text-white transition-colors" title="Generate Jurnal">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        </button>
+                                    </form>
+                                @endif
                                 
                                 @if($trx->type == 'online')
                                     @if($trx->status == 'pending')

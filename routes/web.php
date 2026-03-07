@@ -365,23 +365,6 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
         Route::post('import/reset-polls', [ImportController::class, 'resetPolls'])->name('import.reset.polls');
         
         Route::resource('vouchers', App\Http\Controllers\VoucherController::class);
-        Route::get('pos', [PosController::class, 'index'])->name('pos.index');
-        Route::post('pos/transaction', [PosController::class, 'store'])->name('pos.store');
-        Route::get('pos/search', [PosController::class, 'search'])->name('pos.search');
-        Route::get('pos/history', [PosController::class, 'history'])->name('pos.history');
-        Route::get('pos/history/print', [PosController::class, 'printHistory'])->name('pos.history.print');
-        Route::get('pos/history/export', [PosController::class, 'export'])->name('pos.history.export');
-        
-        // POS Scanning Routes
-        Route::get('pos/scan', [PosController::class, 'scan'])->name('pos.scan');
-        Route::post('pos/scan', [PosController::class, 'processScan'])->name('pos.scan.process');
-        Route::get('pos/manage/{transaction}', [PosController::class, 'manage'])->name('pos.manage');
-
-        Route::get('pos/receipt/{transaction}', [PosController::class, 'receipt'])->name('pos.receipt');
-        Route::post('pos/orders/{transaction}/process', [PosController::class, 'processOrder'])->name('pos.orders.process');
-        Route::get('pos/credits', [PosController::class, 'credits'])->name('pos.credits');
-        Route::post('pos/credits/remind-all', [PosController::class, 'remindAll'])->name('pos.credits.remind-all');
-        Route::post('pos/credits/{transaction}/pay', [PosController::class, 'payCredit'])->name('pos.credits.pay');
 
         // Poll Management (Shared Access)
         Route::get('polls/create', [App\Http\Controllers\PollController::class, 'create'])->name('polls.create');
@@ -453,6 +436,26 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
             Route::post('settings/ai/test-fonnte', [App\Http\Controllers\AiSettingController::class, 'testFonnte'])->name('settings.ai.test-fonnte');
             Route::post('ai/chat', [App\Http\Controllers\AiSettingController::class, 'chat'])->name('ai.chat');
         });
+    });
+
+    Route::middleware('can:store')->group(function () {
+        Route::get('pos', [PosController::class, 'index'])->name('pos.index');
+        Route::post('pos/transaction', [PosController::class, 'store'])->name('pos.store');
+        Route::get('pos/search', [PosController::class, 'search'])->name('pos.search');
+        Route::get('pos/history', [PosController::class, 'history'])->name('pos.history');
+        Route::get('pos/history/print', [PosController::class, 'printHistory'])->name('pos.history.print');
+        Route::get('pos/history/export', [PosController::class, 'export'])->name('pos.history.export');
+        
+        Route::get('pos/scan', [PosController::class, 'scan'])->name('pos.scan');
+        Route::post('pos/scan', [PosController::class, 'processScan'])->name('pos.scan.process');
+        Route::get('pos/manage/{transaction}', [PosController::class, 'manage'])->name('pos.manage');
+
+        Route::get('pos/receipt/{transaction}', [PosController::class, 'receipt'])->name('pos.receipt');
+        Route::post('pos/orders/{transaction}/process', [PosController::class, 'processOrder'])->name('pos.orders.process');
+        Route::post('pos/journals/{transaction}/generate', [PosController::class, 'generateJournal'])->name('pos.journals.generate');
+        Route::get('pos/credits', [PosController::class, 'credits'])->name('pos.credits');
+        Route::post('pos/credits/remind-all', [PosController::class, 'remindAll'])->name('pos.credits.remind-all');
+        Route::post('pos/credits/{transaction}/pay', [PosController::class, 'payCredit'])->name('pos.credits.pay');
     });
 
     // Member voting (show must stay below create to avoid conflict)

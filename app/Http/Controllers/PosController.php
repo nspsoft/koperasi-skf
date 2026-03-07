@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\JournalEntry;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 
@@ -172,7 +174,7 @@ class PosController extends Controller
 
     public function history(Request $request)
     {
-        $query = Transaction::with(['items.product', 'cashier', 'user'])->latest();
+        $query = Transaction::with(['items.product', 'cashier', 'user', 'journalEntry'])->latest();
 
         // Filter by date
         if ($request->date) {
@@ -191,6 +193,33 @@ class PosController extends Controller
         $todayCount = Transaction::whereDate('created_at', now())->count();
 
         return view('commerce.pos.history', compact('transactions', 'todaySales', 'todayCount'));
+    }
+
+    public function generateJournal(Transaction $transaction)
+    {
+        if (! auth()->user()->hasStoreAccess()) {
+            abort(403);
+        }
+
+        if (! in_array($transaction->status, ['paid', 'completed', 'delivered'])) {
+            return redirect()->back()->with('error', 'Transaksi belum selesai, jurnal tidak dapat dibuat.');
+        }
+
+        $hasJournal = JournalEntry::where('reference_id', $transaction->id)
+            ->whereIn('reference_type', [Transaction::class, 'transaction'])
+            ->exists();
+
+        if ($hasJournal) {
+            return redirect()->back()->with('info', 'Jurnal sudah ada untuk transaksi ini.');
+        }
+
+        try {
+            $transaction->load('items.product');
+            \App\Services\JournalService::journalSale($transaction);
+            return redirect()->back()->with('success', 'Jurnal penjualan berhasil dibuat.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal membuat jurnal: ' . $e->getMessage());
+        }
     }
 
     public function printHistory(Request $request)
@@ -234,6 +263,24 @@ class PosController extends Controller
             'status' => $request->status,
             'cashier_id' => auth()->id()
         ]);
+
+        if (in_array($request->status, ['paid', 'completed', 'delivered'])) {
+            $hasJournal = JournalEntry::where('reference_id', $transaction->id)
+                ->whereIn('reference_type', [Transaction::class, 'transaction'])
+                ->exists();
+
+            if (! $hasJournal) {
+                try {
+                    $transaction->load('items.product');
+                    \App\Services\JournalService::journalSale($transaction);
+                } catch (\Exception $e) {
+                    Log::error('Process Order: Failed to create journal', [
+                        'invoice' => $transaction->invoice_number,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+        }
 
         // Notify member when order is ready
         if ($request->status == 'ready' && $transaction->user) {
