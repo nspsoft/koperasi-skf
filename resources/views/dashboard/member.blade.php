@@ -21,11 +21,11 @@
                     </svg>
                     Kartu Anggota
                 </button>
-                <a href="{{ route('profile.qr') }}" class="btn-secondary flex items-center">
+                <a href="{{ route('profile.card') }}" class="btn-secondary flex items-center">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h7v7H3V3zm0 11h7v7H3v-7zm11-11h7v7h-7V3zm0 11h7v7h-7v-7z"></path>
                     </svg>
-                    QR Amigo
+                    QR Amigo (Kartu)
                 </a>
             </div>
         </div>
@@ -325,6 +325,7 @@
 
     @push('scripts')
     <script>
+        window.runApex(() => {
         const savingsOptions = {
             chart: {
                 type: 'area',
@@ -379,6 +380,7 @@
         
         const savingsChart = new ApexCharts(document.querySelector("#savingsChart"), savingsOptions);
         savingsChart.render();
+        });
     </script>
     @endpush
 @endsection

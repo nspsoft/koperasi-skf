@@ -17,9 +17,9 @@
                     <p class="mt-2 text-gray-600">{{ __('messages.dashboard.member_id') }}: {{ auth()->user()->member->member_id }}</p>
                     <div class="mt-4">
                         @if(auth()->user()->member->id_amigo)
-                            <a href="{{ route('profile.qr') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white">
+                            <a href="{{ route('profile.card') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h7v7H3V3zm0 11h7v7H3v-7zm11-11h7v7h-7V3zm0 11h7v7h-7v-7z"/></svg>
-                                Tampilkan QR
+                                Tampilkan Kartu QR
                             </a>
                         @else
                             <button class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-300 text-gray-600 cursor-not-allowed">
