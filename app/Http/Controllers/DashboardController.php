@@ -35,7 +35,7 @@ class DashboardController extends Controller
     {
         $currentYear = date('Y');
 
-        $data = Cache::remember("dashboard_admin_{$currentYear}", 60, function () use ($currentYear) {
+        $data = Cache::remember("dashboard_admin_{$currentYear}_v3", 60, function () use ($currentYear) {
             $stats = [
                 'total_members' => Member::where('status', 'active')->count(),
                 'total_savings' => Saving::where('transaction_type', 'deposit')->sum('amount') -
@@ -92,14 +92,17 @@ class DashboardController extends Controller
                 ->join('accounts', 'accounts.id', '=', 'journal_entry_lines.account_id')
                 ->where('journal_entries.status', 'posted')
                 ->whereYear('journal_entries.transaction_date', $currentYear)
-                ->whereIn('accounts.type', ['revenue', 'expense'])
-                ->selectRaw('MONTH(journal_entries.transaction_date) as month, accounts.type as type, SUM(journal_entry_lines.debit) as debit, SUM(journal_entry_lines.credit) as credit')
-                ->groupBy('month', 'type')
+                ->where(function ($q) {
+                    $q->where('accounts.code', 'like', '4%')
+                        ->orWhere('accounts.code', 'like', '5%');
+                })
+                ->selectRaw("MONTH(journal_entries.transaction_date) as month, CASE WHEN accounts.code LIKE '4%' THEN 'revenue' ELSE 'expense' END as account_group, SUM(journal_entry_lines.debit) as debit, SUM(journal_entry_lines.credit) as credit")
+                ->groupBy('month', DB::raw("CASE WHEN accounts.code LIKE '4%' THEN 'revenue' ELSE 'expense' END"))
                 ->get();
 
             foreach ($monthlyMovements as $row) {
                 $index = (int) $row->month - 1;
-                if ($row->type === 'revenue') {
+                if ($row->account_group === 'revenue') {
                     $monthlyRevenue[$index] = (float) $row->credit - (float) $row->debit;
                 } else {
                     $monthlyExpense[$index] = (float) $row->debit - (float) $row->credit;
