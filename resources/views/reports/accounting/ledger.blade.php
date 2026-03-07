@@ -45,6 +45,14 @@
                 <input type="checkbox" name="aggregate_savings" value="1" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500" {{ $aggregateSavings ? 'checked' : '' }}>
                 Ringkas simpanan payroll
             </label>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 w-full md:w-auto">
+                <input type="checkbox" name="aggregate_sales" value="1" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500" {{ $aggregateSales ? 'checked' : '' }}>
+                Ringkas penjualan harian
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 w-full md:w-auto">
+                <input type="checkbox" name="aggregate_credit_payments" value="1" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500" {{ $aggregateCreditPayments ? 'checked' : '' }}>
+                Ringkas pelunasan kredit
+            </label>
         </form>
     </div>
 
@@ -61,8 +69,22 @@
                 <div>
                     <h3 class="text-lg font-bold">{{ $selectedAccount->code }} - {{ $selectedAccount->name }}</h3>
                     <p class="text-sm text-gray-500">Saldo Awal: <span class="font-mono font-medium {{ $openingBalance >= 0 ? 'text-green-600' : 'text-red-600' }}">Rp {{ number_format($openingBalance, 0, ',', '.') }}</span></p>
-                    @if($aggregateSavings)
-                        <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">Mode ringkas aktif untuk jurnal simpanan.</p>
+                    @if($aggregateSavings || $aggregateSales || $aggregateCreditPayments)
+                        @php
+                            $activeModes = [];
+                            if ($aggregateSavings) {
+                                $activeModes[] = 'jurnal simpanan';
+                            }
+                            if ($aggregateSales) {
+                                $activeModes[] = 'transaksi penjualan harian';
+                            }
+                            if ($aggregateCreditPayments) {
+                                $activeModes[] = 'pelunasan kredit harian';
+                            }
+                        @endphp
+                        <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            Mode ringkas aktif untuk {{ implode(', ', $activeModes) }}.
+                        </p>
                     @endif
                 </div>
                 <div class="text-right">

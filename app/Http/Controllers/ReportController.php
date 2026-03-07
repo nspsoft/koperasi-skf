@@ -32,6 +32,8 @@ class ReportController extends Controller
         $endDate = $request->end_date ? Carbon::parse($request->end_date) : Carbon::now()->endOfDay();
         $accountId = $request->account_id;
         $aggregateSavings = $request->has('aggregate_savings') ? $request->boolean('aggregate_savings') : true;
+        $aggregateSales = $request->has('aggregate_sales') ? $request->boolean('aggregate_sales') : true;
+        $aggregateCreditPayments = $request->has('aggregate_credit_payments') ? $request->boolean('aggregate_credit_payments') : true;
 
         // Simplified list for the dropdown
         $excludedCodes = [
@@ -114,10 +116,106 @@ class ReportController extends Controller
                     })
                     ->values();
             }
+
+            if ($aggregateSales) {
+                $summaries = [];
+                $plainLines = collect();
+
+                foreach ($lines as $line) {
+                    $meta = $this->extractSalesLedgerMeta($line);
+                    if (!$meta) {
+                        $plainLines->push($line);
+                        continue;
+                    }
+
+                    $key = $meta['date'];
+                    if (!isset($summaries[$key])) {
+                        $summaries[$key] = [
+                            'date' => $meta['date'],
+                            'debit' => 0.0,
+                            'credit' => 0.0,
+                            'count' => 0,
+                            'first_journal_number' => $line->journalEntry->journal_number,
+                        ];
+                    }
+
+                    $summaries[$key]['debit'] += (float) $line->debit;
+                    $summaries[$key]['credit'] += (float) $line->credit;
+                    $summaries[$key]['count']++;
+                }
+
+                $summaryLines = collect($summaries)->map(function ($summary) {
+                    $line = new \stdClass();
+                    $line->debit = $summary['debit'];
+                    $line->credit = $summary['credit'];
+                    $line->description = "{$summary['count']} transaksi";
+                    $line->journalEntry = (object) [
+                        'transaction_date' => $summary['date'],
+                        'journal_number' => $summary['first_journal_number'],
+                        'description' => 'Penjualan Harian (Ringkas)',
+                    ];
+                    return $line;
+                });
+
+                $lines = $plainLines
+                    ->concat($summaryLines)
+                    ->sortBy(function ($line) {
+                        return (string) $line->journalEntry->transaction_date . '-' . (string) $line->journalEntry->journal_number;
+                    })
+                    ->values();
+            }
+
+            if ($aggregateCreditPayments) {
+                $summaries = [];
+                $plainLines = collect();
+
+                foreach ($lines as $line) {
+                    $meta = $this->extractCreditPaymentLedgerMeta($line);
+                    if (!$meta) {
+                        $plainLines->push($line);
+                        continue;
+                    }
+
+                    $key = $meta['date'];
+                    if (!isset($summaries[$key])) {
+                        $summaries[$key] = [
+                            'date' => $meta['date'],
+                            'debit' => 0.0,
+                            'credit' => 0.0,
+                            'count' => 0,
+                            'first_journal_number' => $line->journalEntry->journal_number,
+                        ];
+                    }
+
+                    $summaries[$key]['debit'] += (float) $line->debit;
+                    $summaries[$key]['credit'] += (float) $line->credit;
+                    $summaries[$key]['count']++;
+                }
+
+                $summaryLines = collect($summaries)->map(function ($summary) {
+                    $line = new \stdClass();
+                    $line->debit = $summary['debit'];
+                    $line->credit = $summary['credit'];
+                    $line->description = "{$summary['count']} transaksi";
+                    $line->journalEntry = (object) [
+                        'transaction_date' => $summary['date'],
+                        'journal_number' => $summary['first_journal_number'],
+                        'description' => 'Pelunasan Kredit Harian (Ringkas)',
+                    ];
+                    return $line;
+                });
+
+                $lines = $plainLines
+                    ->concat($summaryLines)
+                    ->sortBy(function ($line) {
+                        return (string) $line->journalEntry->transaction_date . '-' . (string) $line->journalEntry->journal_number;
+                    })
+                    ->values();
+            }
         }
 
         return view('reports.accounting.ledger', compact(
-            'accounts', 'accountsGrouped', 'lines', 'startDate', 'endDate', 'accountId', 'openingBalance', 'aggregateSavings'
+            'accounts', 'accountsGrouped', 'lines', 'startDate', 'endDate', 'accountId', 'openingBalance', 'aggregateSavings', 'aggregateSales', 'aggregateCreditPayments'
         ));
     }
 
@@ -137,6 +235,40 @@ class ReportController extends Controller
             'date' => (string) $line->journalEntry->transaction_date,
             'action' => $m[1],
             'type_label' => trim($m[2]),
+        ];
+    }
+
+    private function extractSalesLedgerMeta($line): ?array
+    {
+        $referenceType = $line->journalEntry->reference_type ?? null;
+        if (!in_array($referenceType, [Transaction::class, 'transaction'], true)) {
+            return null;
+        }
+
+        $description = (string) ($line->journalEntry->description ?? '');
+        if (!preg_match('/^Penjualan\s*-\s*/u', $description)) {
+            return null;
+        }
+
+        return [
+            'date' => (string) $line->journalEntry->transaction_date,
+        ];
+    }
+
+    private function extractCreditPaymentLedgerMeta($line): ?array
+    {
+        $referenceType = $line->journalEntry->reference_type ?? null;
+        if (!in_array($referenceType, [Transaction::class, 'transaction'], true)) {
+            return null;
+        }
+
+        $description = (string) ($line->journalEntry->description ?? '');
+        if (!preg_match('/^Pelunasan\s+Kredit\s*-\s*/u', $description)) {
+            return null;
+        }
+
+        return [
+            'date' => (string) $line->journalEntry->transaction_date,
         ];
     }
 
