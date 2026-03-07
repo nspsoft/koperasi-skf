@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use App\Models\Saving;
 use App\Models\JournalEntry;
+use App\Models\Account;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -61,3 +62,36 @@ Artisan::command('journals:dedupe-savings {--dry-run}', function () {
         $this->warn('Mode dry-run aktif. Tidak ada data yang dihapus.');
     }
 })->purpose('Hapus jurnal simpanan duplikat berdasarkan reference_id');
+
+Artisan::command('journals:reclassify-consignment-expense {--dry-run}', function () {
+    $fromAccount = Account::where('code', '5102')->first();
+    $toAccount = Account::where('code', '5201')->first();
+
+    if (! $fromAccount || ! $toAccount) {
+        $this->error('Akun 5102 atau 5201 tidak ditemukan.');
+        return;
+    }
+
+    $query = DB::table('journal_entry_lines')
+        ->join('journal_entries', 'journal_entries.id', '=', 'journal_entry_lines.journal_entry_id')
+        ->where('journal_entries.reference_type', \App\Models\ConsignmentSettlement::class)
+        ->where('journal_entry_lines.account_id', $fromAccount->id);
+
+    $affected = (clone $query)->count();
+    if ($affected === 0) {
+        $this->info('Tidak ada jurnal konsinyasi pada akun 5102.');
+        return;
+    }
+
+    $dryRun = (bool) $this->option('dry-run');
+    if (! $dryRun) {
+        $query->update(['journal_entry_lines.account_id' => $toAccount->id]);
+    }
+
+    $this->info("Baris jurnal terdampak: {$affected}");
+    if ($dryRun) {
+        $this->warn('Mode dry-run aktif. Tidak ada perubahan data.');
+    } else {
+        $this->info('Reklasifikasi selesai: 5102 -> 5201 untuk settlement konsinyasi.');
+    }
+})->purpose('Reklasifikasi biaya settlement konsinyasi dari 5102 ke 5201');

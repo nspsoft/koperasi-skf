@@ -412,7 +412,7 @@ class JournalService
         // 1101 : Cash
         // 1102 : Bank
 
-        $expenseAccount = '5102'; // HPP Konsinyasi (Adjust code as needed)
+        $expenseAccount = '5201';
         
         $isBank = in_array(strtolower($paymentMethod), ['bank', 'transfer']);
         $assetAccount = $isBank ? '1102' : '1101'; // Bank vs Cash
