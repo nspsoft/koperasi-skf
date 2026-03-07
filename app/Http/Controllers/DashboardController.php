@@ -10,6 +10,7 @@ use App\Models\Announcement;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -34,178 +35,141 @@ class DashboardController extends Controller
     {
         $currentYear = date('Y');
 
-        // Statistics
-        $stats = [
-            'total_members' => Member::where('status', 'active')->count(),
-            'total_savings' => Saving::where('transaction_type', 'deposit')->sum('amount') - 
-                              Saving::where('transaction_type', 'withdrawal')->sum('amount'),
-            'total_loans' => Loan::whereIn('status', ['active', 'approved'])->sum('amount'),
-            'total_outstanding' => Loan::where('status', 'active')->sum('remaining_amount'),
-            'pending_orders' => Transaction::where('type', 'online')->where('status', 'pending')->count(),
-            // Kredit Mart Monitoring
-            'total_kredit' => Transaction::where('payment_method', 'kredit')->whereNotIn('status', ['completed', 'cancelled'])->sum('total_amount'),
-            'kredit_member_count' => Transaction::where('payment_method', 'kredit')->whereNotIn('status', ['completed', 'cancelled'])->distinct('user_id')->count('user_id'),
-        ];
-        
-        // Top Kredit Mart Debtors
-        $topKreditDebtors = Transaction::where('payment_method', 'kredit')
-            ->whereNotIn('status', ['completed', 'cancelled'])
-            ->select('user_id', DB::raw('SUM(total_amount) as total_tagihan'))
-            ->groupBy('user_id')
-            ->orderBy('total_tagihan', 'desc')
-            ->with('user.member')
-            ->take(5)
-            ->get();
-        
-        // Top Selling Products
-        $topProducts = TransactionItem::select('product_id', DB::raw('SUM(quantity) as total_qty'))
-            ->with('product')
-            ->groupBy('product_id')
-            ->orderBy('total_qty', 'desc')
-            ->take(5)
-            ->get();
-
-        // --- NEW ANALYTICS ---
-
-        // 1. Top 5 Customers (Sultan)
-        $topCustomers = Transaction::select('user_id', DB::raw('SUM(total_amount) as total_spent'))
-            ->where('status', 'completed')
-            ->whereNotNull('user_id')
-            ->groupBy('user_id')
-            ->orderByDesc('total_spent')
-            ->with('user.member')
-            ->take(5)
-            ->get();
-
-        // 2. Sales Channel Distribution (Offline vs Online)
-        $salesChannel = Transaction::select('type', DB::raw('COUNT(*) as count'))
-            ->where('status', 'completed')
-            ->whereYear('created_at', $currentYear)
-            ->groupBy('type')
-            ->pluck('count', 'type')
-            ->toArray();
-        
-        $salesChannelData = [
-            $salesChannel['offline'] ?? 0,
-            $salesChannel['online'] ?? 0
-        ];
-
-        // 3. Revenue & Profit Chart (Monthly)
-        // Revenue = Class 4 (Credit - Debit)
-        // Expenses = Class 5 (Debit - Credit)
-        // Profit = Revenue - Expenses
-        
-        $monthlyRevenue = [];
-        $monthlyProfit = [];
-
-        for ($m = 1; $m <= 12; $m++) {
-            // Revenue (Class 4)
-            $revCredit = \App\Models\JournalEntryLine::whereHas('account', function($q) {
-                    $q->where('code', 'like', '4%');
-                })
-                ->whereHas('journalEntry', function($q) use ($currentYear, $m) {
-                    $q->whereYear('transaction_date', $currentYear)
-                      ->whereMonth('transaction_date', $m);
-                })->sum('credit');
+        $data = Cache::remember("dashboard_admin_{$currentYear}", 60, function () use ($currentYear) {
+            $stats = [
+                'total_members' => Member::where('status', 'active')->count(),
+                'total_savings' => Saving::where('transaction_type', 'deposit')->sum('amount') -
+                                  Saving::where('transaction_type', 'withdrawal')->sum('amount'),
+                'total_loans' => Loan::whereIn('status', ['active', 'approved'])->sum('amount'),
+                'total_outstanding' => Loan::where('status', 'active')->sum('remaining_amount'),
+                'pending_orders' => Transaction::where('type', 'online')->where('status', 'pending')->count(),
+                'total_kredit' => Transaction::where('payment_method', 'kredit')->whereNotIn('status', ['completed', 'cancelled'])->sum('total_amount'),
+                'kredit_member_count' => Transaction::where('payment_method', 'kredit')->whereNotIn('status', ['completed', 'cancelled'])->distinct('user_id')->count('user_id'),
+            ];
             
-            $revDebit = \App\Models\JournalEntryLine::whereHas('account', function($q) {
-                    $q->where('code', 'like', '4%');
-                })
-                ->whereHas('journalEntry', function($q) use ($currentYear, $m) {
-                    $q->whereYear('transaction_date', $currentYear)
-                      ->whereMonth('transaction_date', $m);
-                })->sum('debit');
+            $topKreditDebtors = Transaction::where('payment_method', 'kredit')
+                ->whereNotIn('status', ['completed', 'cancelled'])
+                ->select('user_id', DB::raw('SUM(total_amount) as total_tagihan'))
+                ->groupBy('user_id')
+                ->orderBy('total_tagihan', 'desc')
+                ->with('user.member')
+                ->take(5)
+                ->get();
             
-            $revenue = $revCredit - $revDebit;
+            $topProducts = TransactionItem::select('product_id', DB::raw('SUM(quantity) as total_qty'))
+                ->with('product')
+                ->groupBy('product_id')
+                ->orderBy('total_qty', 'desc')
+                ->take(5)
+                ->get();
 
-            // Expenses (Class 5)
-            $expDebit = \App\Models\JournalEntryLine::whereHas('account', function($q) {
-                    $q->where('code', 'like', '5%');
-                })
-                ->whereHas('journalEntry', function($q) use ($currentYear, $m) {
-                    $q->whereYear('transaction_date', $currentYear)
-                      ->whereMonth('transaction_date', $m);
-                })->sum('debit');
+            $topCustomers = Transaction::select('user_id', DB::raw('SUM(total_amount) as total_spent'))
+                ->where('status', 'completed')
+                ->whereNotNull('user_id')
+                ->groupBy('user_id')
+                ->orderByDesc('total_spent')
+                ->with('user.member')
+                ->take(5)
+                ->get();
 
-            $expCredit = \App\Models\JournalEntryLine::whereHas('account', function($q) {
-                    $q->where('code', 'like', '5%');
-                })
-                ->whereHas('journalEntry', function($q) use ($currentYear, $m) {
-                    $q->whereYear('transaction_date', $currentYear)
-                      ->whereMonth('transaction_date', $m);
-                })->sum('credit');
-
-            $expense = $expDebit - $expCredit;
+            $salesChannel = Transaction::select('type', DB::raw('COUNT(*) as count'))
+                ->where('status', 'completed')
+                ->whereYear('created_at', $currentYear)
+                ->groupBy('type')
+                ->pluck('count', 'type')
+                ->toArray();
             
-            $monthlyRevenue[] = $revenue;
-            $monthlyProfit[] = $revenue - $expense;
-        }
+            $salesChannelData = [
+                $salesChannel['offline'] ?? 0,
+                $salesChannel['online'] ?? 0
+            ];
 
-        // ---------------------
-        
-        // Recent Members (5 newest)
-        $recentMembers = Member::with('user')
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
-        
-        // Pending Loans
-        $pendingLoans = Loan::with('member.user')
-            ->where('status', 'pending')
-            ->orderBy('application_date', 'desc')
-            ->take(5)
-            ->get();
-        
-        // Active Announcements
-        $announcements = Announcement::active()
-            ->take(3)
-            ->get();
+            $monthlyRevenue = array_fill(0, 12, 0);
+            $monthlyExpense = array_fill(0, 12, 0);
+
+            $monthlyMovements = \App\Models\JournalEntryLine::query()
+                ->join('journal_entries', 'journal_entries.id', '=', 'journal_entry_lines.journal_entry_id')
+                ->join('accounts', 'accounts.id', '=', 'journal_entry_lines.account_id')
+                ->where('journal_entries.status', 'posted')
+                ->whereYear('journal_entries.transaction_date', $currentYear)
+                ->whereIn('accounts.type', ['revenue', 'expense'])
+                ->selectRaw('MONTH(journal_entries.transaction_date) as month, accounts.type as type, SUM(journal_entry_lines.debit) as debit, SUM(journal_entry_lines.credit) as credit')
+                ->groupBy('month', 'type')
+                ->get();
+
+            foreach ($monthlyMovements as $row) {
+                $index = (int) $row->month - 1;
+                if ($row->type === 'revenue') {
+                    $monthlyRevenue[$index] = (float) $row->credit - (float) $row->debit;
+                } else {
+                    $monthlyExpense[$index] = (float) $row->debit - (float) $row->credit;
+                }
+            }
+
+            $monthlyProfit = [];
+            for ($i = 0; $i < 12; $i++) {
+                $monthlyProfit[] = $monthlyRevenue[$i] - $monthlyExpense[$i];
+            }
             
-        // Recent Activities
-        $recentActivities = \App\Models\AuditLog::with('user')
-            ->latest()
-            ->take(10)
-            ->get();
-        
-        // Chart Data - Monthly Savings (MySQL Compatible)
-        $monthlySavings = Saving::select(
-                DB::raw("MONTH(transaction_date) as month"),
-                DB::raw('SUM(CASE WHEN transaction_type = "deposit" THEN amount ELSE -amount END) as total')
-            )
-            ->whereYear('transaction_date', $currentYear)
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->pluck('total', 'month')
-            ->toArray();
-        
-        // Fill missing months with 0
-        $savingsChart = [];
-        for ($i = 1; $i <= 12; $i++) {
-            $savingsChart[] = $monthlySavings[$i] ?? 0;
-        }
-        
-        // Chart Data - Loan Types Distribution
-        $loanDistribution = Loan::select('loan_type', DB::raw('COUNT(*) as count'))
-            ->where('status', 'active')
-            ->groupBy('loan_type')
-            ->get();
-        
-        return view('dashboard.admin', compact(
-            'stats',
-            'recentMembers',
-            'pendingLoans',
-            'announcements',
-            'savingsChart',
-            'loanDistribution',
-            'topProducts',
-            'topKreditDebtors',
-            'recentActivities',
-            'salesChannelData',
-            'monthlyRevenue',
-            'monthlyProfit',
-            'topCustomers'
-        ));
+            $recentMembers = Member::with('user')
+                ->orderBy('created_at', 'desc')
+                ->take(5)
+                ->get();
+            
+            $pendingLoans = Loan::with('member.user')
+                ->where('status', 'pending')
+                ->orderBy('application_date', 'desc')
+                ->take(5)
+                ->get();
+            
+            $announcements = Announcement::active()
+                ->take(3)
+                ->get();
+                
+            $recentActivities = \App\Models\AuditLog::with('user')
+                ->latest()
+                ->take(10)
+                ->get();
+            
+            $monthlySavings = Saving::select(
+                    DB::raw("MONTH(transaction_date) as month"),
+                    DB::raw('SUM(CASE WHEN transaction_type = "deposit" THEN amount ELSE -amount END) as total')
+                )
+                ->whereYear('transaction_date', $currentYear)
+                ->groupBy('month')
+                ->orderBy('month')
+                ->get()
+                ->pluck('total', 'month')
+                ->toArray();
+            
+            $savingsChart = [];
+            for ($i = 1; $i <= 12; $i++) {
+                $savingsChart[] = $monthlySavings[$i] ?? 0;
+            }
+            
+            $loanDistribution = Loan::select('loan_type', DB::raw('COUNT(*) as count'))
+                ->where('status', 'active')
+                ->groupBy('loan_type')
+                ->get();
+
+            return compact(
+                'stats',
+                'recentMembers',
+                'pendingLoans',
+                'announcements',
+                'savingsChart',
+                'loanDistribution',
+                'topProducts',
+                'topKreditDebtors',
+                'recentActivities',
+                'salesChannelData',
+                'monthlyRevenue',
+                'monthlyProfit',
+                'topCustomers'
+            );
+        });
+
+        return view('dashboard.admin', $data);
     }
     
     /**
