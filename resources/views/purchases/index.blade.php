@@ -83,9 +83,18 @@
                             {{ $purchase->creator->name ?? '-' }}
                         </td>
                         <td>
-                            <a href="{{ route('purchases.show', $purchase) }}" class="btn-secondary-sm text-xs">
-                                {{ __('messages.purchases.btn_detail') }}
-                            </a>
+                            <div class="flex items-center gap-2">
+                                <a href="{{ route('purchases.show', $purchase) }}" class="btn-secondary-sm text-xs">
+                                    {{ __('messages.purchases.btn_detail') }}
+                                </a>
+                                @if(auth()->user()->isAdmin() && $purchase->status === 'cancelled')
+                                    <form action="{{ route('purchases.destroy', $purchase) }}" method="POST" onsubmit="return confirm('Hapus purchase cancelled ini? Tindakan ini tidak bisa dibatalkan.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn-danger text-xs px-2 py-1">Delete</button>
+                                    </form>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                     @empty

@@ -377,6 +377,41 @@ class PurchaseController extends Controller
         }
     }
 
+    public function destroy(Purchase $purchase)
+    {
+        if (! auth()->user()->isAdmin()) {
+            abort(403, 'Hanya admin yang dapat menghapus data pembelian.');
+        }
+
+        if ($purchase->status !== 'cancelled') {
+            return back()->with('error', 'Hanya purchase dengan status cancelled yang dapat dihapus.');
+        }
+
+        try {
+            DB::transaction(function () use ($purchase) {
+                $journals = \App\Models\JournalEntry::where('reference_type', Purchase::class)
+                    ->where('reference_id', $purchase->id)
+                    ->get();
+
+                foreach ($journals as $journal) {
+                    $journal->lines()->delete();
+                    $journal->delete();
+                }
+
+                if ($purchase->receipt_image && \Storage::disk('public')->exists($purchase->receipt_image)) {
+                    \Storage::disk('public')->delete($purchase->receipt_image);
+                }
+
+                $purchase->items()->delete();
+                $purchase->delete();
+            });
+
+            return back()->with('success', 'Purchase cancelled berhasil dihapus.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus purchase: ' . $e->getMessage());
+        }
+    }
+
     /**
      * Export purchase transactions to Excel.
      */
