@@ -3,6 +3,13 @@
 @section('title', 'Print Label Produk')
 
 @section('content')
+@php
+    $cols = (int) request('cols', 3);
+    $rows = (int) request('rows', 8);
+    $labelsPerSheet = $cols * $rows;
+    $totalLabels = $products->count() * ($quantity ?? 1);
+    $sheetsNeeded = (int) ceil($totalLabels / max($labelsPerSheet, 1));
+@endphp
 <style>
     @page {
         size: A4;
@@ -193,14 +200,6 @@
 </style>
 
 <div class="print-controls no-print">
-    @php
-        $cols = request('cols', 3);
-        $rows = request('rows', 8);
-        $labelsPerSheet = $cols * $rows;
-        $totalLabels = $products->count() * ($quantity ?? 1);
-        $sheetsNeeded = ceil($totalLabels / $labelsPerSheet);
-    @endphp
-    
     <!-- Sheet Calculator -->
     <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
         <div style="font-size: 11px; color: #166534; font-weight: 600; margin-bottom: 8px;">📊 Kebutuhan Sticker</div>
