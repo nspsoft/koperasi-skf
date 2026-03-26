@@ -100,15 +100,19 @@
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Omset & Profit Bulanan</h2>
-                <p class="text-sm text-gray-500">Perbandingan pendapatan vs keuntungan bersih tahun ini (klik titik/batang untuk detail harian)</p>
+                <p class="text-sm text-gray-500">Perbandingan pendapatan vs profit akuntansi tahun ini (klik titik/batang untuk detail harian)</p>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-3">
                 <span class="flex items-center text-xs text-gray-500">
                     <span class="w-2 h-2 rounded-full bg-indigo-500 mr-1"></span> Pendapatan
                 </span>
                 <span class="flex items-center text-xs text-gray-500">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1"></span> Profit
                 </span>
+                <label class="flex items-center text-xs text-gray-500 cursor-pointer select-none">
+                    <input id="toggleExConsignmentSeries" type="checkbox" class="mr-2 rounded border-gray-300 text-amber-500 focus:ring-amber-500">
+                    Tampilkan Profit ex-Settlement Konsinyasi
+                </label>
             </div>
         </div>
         <div id="revenueProfitChart"></div>
@@ -119,7 +123,7 @@
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <div>
                     <h3 id="dailyRevenueTitle" class="text-lg font-semibold text-gray-900 dark:text-white">Detail Harian</h3>
-                    <p class="text-xs text-gray-500">Omset dan profit per hari</p>
+                    <p class="text-xs text-gray-500">Omset dan profit akuntansi per hari</p>
                 </div>
                 <button id="closeDailyRevenueModal" type="button" class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700">Tutup</button>
             </div>
@@ -509,7 +513,20 @@
         const modalEl = document.getElementById('dailyRevenueModal');
         const closeModalButton = document.getElementById('closeDailyRevenueModal');
         const modalTitle = document.getElementById('dailyRevenueTitle');
+        const toggleExConsignmentSeries = document.getElementById('toggleExConsignmentSeries');
         let dailyChart = null;
+        let revenueProfitChart = null;
+
+        const syncExConsignmentSeriesVisibility = (chartInstance) => {
+            if (!chartInstance) {
+                return;
+            }
+            if (toggleExConsignmentSeries && toggleExConsignmentSeries.checked) {
+                chartInstance.showSeries('Profit ex-Settlement Konsinyasi');
+            } else {
+                chartInstance.hideSeries('Profit ex-Settlement Konsinyasi');
+            }
+        };
 
         const openDailyRevenueModal = (monthIndex) => {
             const dataset = dailyRevenueProfit[monthIndex] ? dailyRevenueProfit[monthIndex] : null;
@@ -535,6 +552,10 @@
                     name: 'Profit',
                     type: 'line',
                     data: dataset.profit
+                }, {
+                    name: 'Profit ex-Settlement Konsinyasi',
+                    type: 'line',
+                    data: dataset.operational_profit
                 }],
                 chart: {
                     height: 360,
@@ -543,7 +564,7 @@
                     fontFamily: 'Inter, sans-serif',
                 },
                 stroke: {
-                    width: [0, 3],
+                    width: [0, 3, 3],
                     curve: 'smooth'
                 },
                 plotOptions: {
@@ -552,7 +573,7 @@
                         columnWidth: '55%'
                     }
                 },
-                colors: ['#6366f1', '#10b981'],
+                colors: ['#6366f1', '#10b981', '#f59e0b'],
                 labels: dataset.labels,
                 xaxis: {
                     axisBorder: { show: false },
@@ -588,7 +609,9 @@
                     }
                 }
             });
-            dailyChart.render();
+            dailyChart.render().then(() => {
+                syncExConsignmentSeriesVisibility(dailyChart);
+            });
         };
 
         if (closeModalButton && modalEl) {
@@ -605,6 +628,13 @@
             });
         }
 
+        if (toggleExConsignmentSeries) {
+            toggleExConsignmentSeries.addEventListener('change', () => {
+                syncExConsignmentSeriesVisibility(revenueProfitChart);
+                syncExConsignmentSeriesVisibility(dailyChart);
+            });
+        }
+
         // Revenue & Profit Chart (Bar + Line)
         const revenueProfitOptions = {
             ...commonOptions,
@@ -616,6 +646,10 @@
                 name: 'Profit',
                 type: 'line',
                 data: @json($monthlyProfit)
+            }, {
+                name: 'Profit ex-Settlement Konsinyasi',
+                type: 'line',
+                data: @json($monthlyOperationalProfit)
             }],
             chart: {
                 height: 350,
@@ -629,7 +663,7 @@
                 }
             },
             stroke: {
-                width: [0, 4],
+                width: [0, 4, 3],
                 curve: 'smooth'
             },
             plotOptions: {
@@ -638,7 +672,7 @@
                     columnWidth: '40%'
                 }
             },
-            colors: ['#6366f1', '#10b981'],
+            colors: ['#6366f1', '#10b981', '#f59e0b'],
             fill: {
                 opacity: [1, 1]
             },
@@ -678,8 +712,10 @@
             }
         };
 
-        const revenueProfitChart = new ApexCharts(document.querySelector("#revenueProfitChart"), revenueProfitOptions);
-        revenueProfitChart.render();
+        revenueProfitChart = new ApexCharts(document.querySelector("#revenueProfitChart"), revenueProfitOptions);
+        revenueProfitChart.render().then(() => {
+            syncExConsignmentSeriesVisibility(revenueProfitChart);
+        });
 
         // Sales Channel Chart (Donut)
         const salesChannelOptions = {

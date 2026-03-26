@@ -36,7 +36,7 @@ class DashboardController extends Controller
     {
         $currentYear = date('Y');
 
-        $data = Cache::remember("dashboard_admin_{$currentYear}_v3", 60, function () use ($currentYear) {
+        $data = Cache::remember("dashboard_admin_{$currentYear}_v4", 60, function () use ($currentYear) {
             $stats = [
                 'total_members' => Member::where('status', 'active')->count(),
                 'total_savings' => Saving::where('transaction_type', 'deposit')->sum('amount') -
@@ -87,6 +87,7 @@ class DashboardController extends Controller
 
             $monthlyRevenue = array_fill(0, 12, 0);
             $monthlyExpense = array_fill(0, 12, 0);
+            $monthlyConsignmentExpense = array_fill(0, 12, 0);
 
             $monthlyMovements = \App\Models\JournalEntryLine::query()
                 ->join('journal_entries', 'journal_entries.id', '=', 'journal_entry_lines.journal_entry_id')
@@ -97,8 +98,8 @@ class DashboardController extends Controller
                     $q->where('accounts.code', 'like', '4%')
                         ->orWhere('accounts.code', 'like', '5%');
                 })
-                ->selectRaw("MONTH(journal_entries.transaction_date) as month, CASE WHEN accounts.code LIKE '4%' THEN 'revenue' ELSE 'expense' END as account_group, SUM(journal_entry_lines.debit) as debit, SUM(journal_entry_lines.credit) as credit")
-                ->groupBy('month', DB::raw("CASE WHEN accounts.code LIKE '4%' THEN 'revenue' ELSE 'expense' END"))
+                ->selectRaw("MONTH(journal_entries.transaction_date) as month, CASE WHEN accounts.code LIKE '4%' THEN 'revenue' ELSE 'expense' END as account_group, CASE WHEN accounts.code = '5201' THEN 1 ELSE 0 END as is_consignment, SUM(journal_entry_lines.debit) as debit, SUM(journal_entry_lines.credit) as credit")
+                ->groupBy('month', DB::raw("CASE WHEN accounts.code LIKE '4%' THEN 'revenue' ELSE 'expense' END"), DB::raw("CASE WHEN accounts.code = '5201' THEN 1 ELSE 0 END"))
                 ->get();
 
             foreach ($monthlyMovements as $row) {
@@ -106,13 +107,19 @@ class DashboardController extends Controller
                 if ($row->account_group === 'revenue') {
                     $monthlyRevenue[$index] = (float) $row->credit - (float) $row->debit;
                 } else {
-                    $monthlyExpense[$index] = (float) $row->debit - (float) $row->credit;
+                    $expenseValue = (float) $row->debit - (float) $row->credit;
+                    $monthlyExpense[$index] += $expenseValue;
+                    if ((int) $row->is_consignment === 1) {
+                        $monthlyConsignmentExpense[$index] += $expenseValue;
+                    }
                 }
             }
 
             $monthlyProfit = [];
+            $monthlyOperationalProfit = [];
             for ($i = 0; $i < 12; $i++) {
                 $monthlyProfit[] = $monthlyRevenue[$i] - $monthlyExpense[$i];
+                $monthlyOperationalProfit[] = ($monthlyRevenue[$i] - $monthlyExpense[$i]) + $monthlyConsignmentExpense[$i];
             }
 
             $dailyRevenueProfit = [];
@@ -122,7 +129,9 @@ class DashboardController extends Controller
                     'labels' => array_map(fn ($day) => (string) $day, range(1, $daysInMonth)),
                     'revenue' => array_fill(0, $daysInMonth, 0),
                     'expense' => array_fill(0, $daysInMonth, 0),
+                    'consignment_expense' => array_fill(0, $daysInMonth, 0),
                     'profit' => array_fill(0, $daysInMonth, 0),
+                    'operational_profit' => array_fill(0, $daysInMonth, 0),
                 ];
             }
 
@@ -135,8 +144,8 @@ class DashboardController extends Controller
                     $q->where('accounts.code', 'like', '4%')
                         ->orWhere('accounts.code', 'like', '5%');
                 })
-                ->selectRaw("MONTH(journal_entries.transaction_date) as month, DAY(journal_entries.transaction_date) as day, CASE WHEN accounts.code LIKE '4%' THEN 'revenue' ELSE 'expense' END as account_group, SUM(journal_entry_lines.debit) as debit, SUM(journal_entry_lines.credit) as credit")
-                ->groupBy('month', 'day', DB::raw("CASE WHEN accounts.code LIKE '4%' THEN 'revenue' ELSE 'expense' END"))
+                ->selectRaw("MONTH(journal_entries.transaction_date) as month, DAY(journal_entries.transaction_date) as day, CASE WHEN accounts.code LIKE '4%' THEN 'revenue' ELSE 'expense' END as account_group, CASE WHEN accounts.code = '5201' THEN 1 ELSE 0 END as is_consignment, SUM(journal_entry_lines.debit) as debit, SUM(journal_entry_lines.credit) as credit")
+                ->groupBy('month', 'day', DB::raw("CASE WHEN accounts.code LIKE '4%' THEN 'revenue' ELSE 'expense' END"), DB::raw("CASE WHEN accounts.code = '5201' THEN 1 ELSE 0 END"))
                 ->get();
 
             foreach ($dailyMovements as $row) {
@@ -148,15 +157,21 @@ class DashboardController extends Controller
                 if ($row->account_group === 'revenue') {
                     $dailyRevenueProfit[$monthIndex]['revenue'][$dayIndex] = (float) $row->credit - (float) $row->debit;
                 } else {
-                    $dailyRevenueProfit[$monthIndex]['expense'][$dayIndex] = (float) $row->debit - (float) $row->credit;
+                    $expenseValue = (float) $row->debit - (float) $row->credit;
+                    $dailyRevenueProfit[$monthIndex]['expense'][$dayIndex] += $expenseValue;
+                    if ((int) $row->is_consignment === 1) {
+                        $dailyRevenueProfit[$monthIndex]['consignment_expense'][$dayIndex] += $expenseValue;
+                    }
                 }
             }
 
             foreach ($dailyRevenueProfit as $monthIndex => $dataset) {
                 foreach ($dataset['revenue'] as $dayIndex => $revenue) {
                     $dailyRevenueProfit[$monthIndex]['profit'][$dayIndex] = $revenue - $dataset['expense'][$dayIndex];
+                    $dailyRevenueProfit[$monthIndex]['operational_profit'][$dayIndex] = ($revenue - $dataset['expense'][$dayIndex]) + $dataset['consignment_expense'][$dayIndex];
                 }
                 unset($dailyRevenueProfit[$monthIndex]['expense']);
+                unset($dailyRevenueProfit[$monthIndex]['consignment_expense']);
             }
             
             $recentMembers = Member::with('user')
@@ -213,6 +228,7 @@ class DashboardController extends Controller
                 'salesChannelData',
                 'monthlyRevenue',
                 'monthlyProfit',
+                'monthlyOperationalProfit',
                 'dailyRevenueProfit',
                 'topCustomers'
             );
