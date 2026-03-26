@@ -100,7 +100,7 @@
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Omset & Profit Bulanan</h2>
-                <p class="text-sm text-gray-500">Perbandingan pendapatan vs keuntungan bersih tahun ini</p>
+                <p class="text-sm text-gray-500">Perbandingan pendapatan vs keuntungan bersih tahun ini (klik titik/batang untuk detail harian)</p>
             </div>
             <div class="flex items-center gap-2">
                 <span class="flex items-center text-xs text-gray-500">
@@ -112,6 +112,21 @@
             </div>
         </div>
         <div id="revenueProfitChart"></div>
+    </div>
+
+    <div id="dailyRevenueModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+        <div class="w-full max-w-5xl rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                    <h3 id="dailyRevenueTitle" class="text-lg font-semibold text-gray-900 dark:text-white">Detail Harian</h3>
+                    <p class="text-xs text-gray-500">Omset dan profit per hari</p>
+                </div>
+                <button id="closeDailyRevenueModal" type="button" class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700">Tutup</button>
+            </div>
+            <div class="p-6">
+                <div id="dailyRevenueChart"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Row 2: Savings, Sales & Loans -->
@@ -402,6 +417,7 @@
 
     @push('scripts')
     <script>
+        window.runApex(() => {
         // Common Options
         const commonOptions = {
             chart: {
@@ -478,6 +494,105 @@
         const savingsChart = new ApexCharts(document.querySelector("#savingsChart"), savingsOptions);
         savingsChart.render();
 
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        const dailyRevenueProfit = @json($dailyRevenueProfit);
+        const modalEl = document.getElementById('dailyRevenueModal');
+        const closeModalButton = document.getElementById('closeDailyRevenueModal');
+        const modalTitle = document.getElementById('dailyRevenueTitle');
+        let dailyChart = null;
+
+        const openDailyRevenueModal = (monthIndex) => {
+            const dataset = dailyRevenueProfit[monthIndex] ?? null;
+            if (!dataset) {
+                return;
+            }
+
+            modalTitle.textContent = `Detail Harian Omset & Profit - ${monthNames[monthIndex]}`;
+            modalEl.classList.remove('hidden');
+            modalEl.classList.add('flex');
+
+            if (dailyChart) {
+                dailyChart.destroy();
+            }
+
+            dailyChart = new ApexCharts(document.querySelector("#dailyRevenueChart"), {
+                ...commonOptions,
+                series: [{
+                    name: 'Omset',
+                    type: 'column',
+                    data: dataset.revenue
+                }, {
+                    name: 'Profit',
+                    type: 'line',
+                    data: dataset.profit
+                }],
+                chart: {
+                    height: 360,
+                    type: 'line',
+                    toolbar: { show: false },
+                    fontFamily: 'Inter, sans-serif',
+                },
+                stroke: {
+                    width: [0, 3],
+                    curve: 'smooth'
+                },
+                plotOptions: {
+                    bar: {
+                        borderRadius: 4,
+                        columnWidth: '55%'
+                    }
+                },
+                colors: ['#6366f1', '#10b981'],
+                labels: dataset.labels,
+                xaxis: {
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                    labels: {
+                        style: { colors: '#9ca3af' }
+                    }
+                },
+                yaxis: [{
+                    title: { text: 'Omset', style: { color: '#6366f1' } },
+                    labels: {
+                        style: { colors: '#9ca3af' },
+                        formatter: (value) => 'Rp ' + new Intl.NumberFormat('id-ID').format(value)
+                    }
+                }, {
+                    opposite: true,
+                    title: { text: 'Profit', style: { color: '#10b981' } },
+                    labels: {
+                        style: { colors: '#9ca3af' },
+                        formatter: (value) => 'Rp ' + new Intl.NumberFormat('id-ID').format(value)
+                    }
+                }],
+                grid: {
+                    borderColor: '#e5e7eb',
+                    strokeDashArray: 4
+                },
+                tooltip: {
+                    theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+                    y: {
+                        formatter: function (val) {
+                            return 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
+                        }
+                    }
+                }
+            });
+            dailyChart.render();
+        };
+
+        closeModalButton.addEventListener('click', () => {
+            modalEl.classList.add('hidden');
+            modalEl.classList.remove('flex');
+        });
+
+        modalEl.addEventListener('click', (event) => {
+            if (event.target === modalEl) {
+                modalEl.classList.add('hidden');
+                modalEl.classList.remove('flex');
+            }
+        });
+
         // Revenue & Profit Chart (Bar + Line)
         const revenueProfitOptions = {
             ...commonOptions,
@@ -495,6 +610,11 @@
                 type: 'line',
                 toolbar: { show: false },
                 fontFamily: 'Inter, sans-serif',
+                events: {
+                    dataPointSelection: function(event, chartContext, config) {
+                        openDailyRevenueModal(config.dataPointIndex);
+                    }
+                }
             },
             stroke: {
                 width: [0, 4],
@@ -510,7 +630,7 @@
             fill: {
                 opacity: [1, 1]
             },
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+            labels: monthNames,
             xaxis: {
                 axisBorder: { show: false },
                 axisTicks: { show: false },
@@ -652,6 +772,7 @@
             const isDark = event.detail; // true or false
             // Update ApexCharts theme/colors if needed
             // Currently utilizing CSS vars or simple checks
+        });
         });
     </script>
     @endpush
