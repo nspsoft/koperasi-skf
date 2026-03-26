@@ -417,7 +417,17 @@
 
     @push('scripts')
     <script>
-        window.runApex(() => {
+        (function (initCharts) {
+            if (typeof window.runApex === 'function') {
+                window.runApex(initCharts);
+                return;
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initCharts);
+            } else {
+                initCharts();
+            }
+        })(function () {
         // Common Options
         const commonOptions = {
             chart: {
@@ -502,7 +512,7 @@
         let dailyChart = null;
 
         const openDailyRevenueModal = (monthIndex) => {
-            const dataset = dailyRevenueProfit[monthIndex] ?? null;
+            const dataset = dailyRevenueProfit[monthIndex] ? dailyRevenueProfit[monthIndex] : null;
             if (!dataset) {
                 return;
             }
@@ -581,17 +591,19 @@
             dailyChart.render();
         };
 
-        closeModalButton.addEventListener('click', () => {
-            modalEl.classList.add('hidden');
-            modalEl.classList.remove('flex');
-        });
-
-        modalEl.addEventListener('click', (event) => {
-            if (event.target === modalEl) {
+        if (closeModalButton && modalEl) {
+            closeModalButton.addEventListener('click', () => {
                 modalEl.classList.add('hidden');
                 modalEl.classList.remove('flex');
-            }
-        });
+            });
+
+            modalEl.addEventListener('click', (event) => {
+                if (event.target === modalEl) {
+                    modalEl.classList.add('hidden');
+                    modalEl.classList.remove('flex');
+                }
+            });
+        }
 
         // Revenue & Profit Chart (Bar + Line)
         const revenueProfitOptions = {
