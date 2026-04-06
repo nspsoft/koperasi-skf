@@ -131,7 +131,7 @@ class ProductController extends Controller
         $data = $request->all();
         // Ensure boolean fields are set correctly if unchecked
         $data['is_consignment'] = $request->has('is_consignment');
-        $data['is_active'] = true; // Default to active for new products
+        $data['is_active'] = $request->has('is_active');
         $data['is_credit_eligible'] = $request->has('is_credit_eligible');
         $data['credit_tenors'] = $data['is_credit_eligible'] ? $request->input('credit_tenors', []) : null;
 

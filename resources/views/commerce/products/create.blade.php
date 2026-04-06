@@ -113,6 +113,58 @@
                             </div>
                         </div>
 
+                        <!-- Consignment Section (Titip Jual) -->
+                        <div class="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800 space-y-4 mb-6">
+                            <h3 class="font-bold text-purple-800 dark:text-purple-300 text-sm flex items-center gap-2">
+                                🤝 Konsinyasi (Titip Jual)
+                            </h3>
+
+                            <div class="form-group">
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" name="is_consignment" id="is_consignment" value="1" class="form-checkbox text-purple-600 rounded" {{ old('is_consignment') ? 'checked' : '' }} onchange="toggleConsignment()">
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Produk ini adalah barang titipan (Konsinyasi)</span>
+                                </label>
+                            </div>
+
+                            <div id="consignment_fields" class="space-y-4 {{ old('is_consignment') ? '' : 'hidden' }}">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="form-group">
+                                        <label for="consignor_type" class="form-label text-xs">Tipe Mitra</label>
+                                        <select name="consignor_type" id="consignor_type" class="form-input text-sm" onchange="toggleConsignorType()">
+                                            <option value="">Pilih Tipe</option>
+                                            <option value="supplier" {{ old('consignor_type') == 'supplier' ? 'selected' : '' }}>Supplier</option>
+                                            <option value="member" {{ old('consignor_type') == 'member' ? 'selected' : '' }}>Anggota</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="consignor_id" class="form-label text-xs">Pilih Mitra</label>
+                                        <!-- Supplier Select -->
+                                        <select name="consignor_id" id="consignor_id_supplier" class="form-input text-sm {{ old('consignor_type') == 'supplier' ? '' : 'hidden' }}" {{ old('consignor_type') == 'supplier' ? '' : 'disabled' }}>
+                                            <option value="">Pilih Supplier</option>
+                                            @foreach($suppliers as $supplier)
+                                                <option value="{{ $supplier->id }}" {{ old('consignor_id') == $supplier->id ? 'selected' : '' }}>{{ $supplier->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <!-- Member Select -->
+                                        <select name="consignor_id" id="consignor_id_member" class="form-input text-sm {{ old('consignor_type') == 'member' ? '' : 'hidden' }}" {{ old('consignor_type') == 'member' ? '' : 'disabled' }}>
+                                            <option value="">Pilih Anggota</option>
+                                            @foreach($members as $member)
+                                                <option value="{{ $member->id }}" {{ old('consignor_id') == $member->id ? 'selected' : '' }}>
+                                                    {{ $member->member_id }} - {{ $member->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="consignment_price" class="form-label text-xs">Harga Setor ke Mitra (Cost)</label>
+                                    <input type="number" name="consignment_price" id="consignment_price" class="form-input @error('consignment_price') border-red-500 @enderror" value="{{ old('consignment_price', 0) }}" min="0">
+                                    <p class="text-[10px] text-gray-400 mt-0.5">{{ __('messages.product_form.consignment_price_help') }}</p>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <label for="stock" class="form-label">{{ __('messages.product_form.stock') }}</label>
                             <input type="number" name="stock" id="stock" class="form-input @error('stock') border-red-500 @enderror" value="{{ old('stock', 0) }}" required min="0">
@@ -167,6 +219,16 @@
                                 </div>
                                 @error('credit_tenors')<p class="form-error mt-2">{{ $message }}</p>@enderror
                             </div>
+                        </div>
+
+                        <!-- Product Active Toggle -->
+                        <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800 space-y-3">
+                            <div class="flex items-center gap-3">
+                                <input type="hidden" name="is_active" value="0">
+                                <input type="checkbox" name="is_active" id="is_active" value="1" class="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500 transition-all" {{ old('is_active', true) ? 'checked' : '' }}>
+                                <label for="is_active" class="font-bold text-gray-700 dark:text-gray-300 cursor-pointer select-none">✅ Produk Aktif (Tampil di Kasir)</label>
+                            </div>
+                            <p class="text-xs text-gray-500 pl-8">Jika tidak dicentang, produk tidak akan muncul di halaman kasir POS.</p>
                         </div>
 
                         <div class="form-group">
@@ -294,6 +356,61 @@
                 html5QrCode.stop().catch(err => console.log("Stop error:", err));
             }
         }
+    </script>
+    <script>
+    function toggleConsignment() {
+        const isInfo = document.getElementById('is_consignment').checked;
+        const fields = document.getElementById('consignment_fields');
+        if (isInfo) {
+            fields.classList.remove('hidden');
+        } else {
+            fields.classList.add('hidden');
+        }
+    }
+
+    function toggleConsignorType() {
+        const type = document.getElementById('consignor_type').value;
+        const supplierInput = document.getElementById('consignor_id_supplier');
+        const memberInput = document.getElementById('consignor_id_member');
+        
+        if (type === 'supplier') {
+            supplierInput.classList.remove('hidden');
+            supplierInput.removeAttribute('disabled');
+            supplierInput.setAttribute('name', 'consignor_id');
+            
+            memberInput.classList.add('hidden');
+            memberInput.setAttribute('disabled', 'disabled');
+            memberInput.removeAttribute('name');
+        } else if (type === 'member') {
+            memberInput.classList.remove('hidden');
+            memberInput.removeAttribute('disabled');
+            memberInput.setAttribute('name', 'consignor_id');
+            
+            supplierInput.classList.add('hidden');
+            supplierInput.setAttribute('disabled', 'disabled');
+            supplierInput.removeAttribute('name');
+        } else {
+            supplierInput.classList.add('hidden');
+            memberInput.classList.add('hidden');
+        }
+    }
+
+    // Initialize logic on load
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleConsignment();
+        // Don't auto-reset inputs on load, just set visibility
+        const type = document.getElementById('consignor_type').value;
+        const supplierInput = document.getElementById('consignor_id_supplier');
+        const memberInput = document.getElementById('consignor_id_member');
+
+        if (type === 'supplier') {
+            supplierInput.classList.remove('hidden'); 
+            memberInput.classList.add('hidden');
+        } else if (type === 'member') {
+            memberInput.classList.remove('hidden');
+            supplierInput.classList.add('hidden');
+        }
+    });
     </script>
     @endpush
 @endsection
