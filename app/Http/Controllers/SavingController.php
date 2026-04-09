@@ -226,6 +226,89 @@ class SavingController extends Controller
         }
     }
 
+    public function countByDate(Request $request)
+    {
+        \Illuminate\Support\Facades\Gate::authorize('delete-data');
+
+        $request->validate([
+            'date_start' => 'required|date',
+            'date_end' => 'required|date|after_or_equal:date_start',
+            'type' => 'nullable|in:pokok,wajib,sukarela',
+            'transaction_type' => 'nullable|in:deposit,withdrawal',
+        ]);
+
+        $query = Saving::query()
+            ->whereDate('transaction_date', '>=', $request->date_start)
+            ->whereDate('transaction_date', '<=', $request->date_end);
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+        if ($request->filled('transaction_type')) {
+            $query->where('transaction_type', $request->transaction_type);
+        }
+
+        return response()->json([
+            'count' => $query->count()
+        ]);
+    }
+
+    public function bulkDestroyByDate(Request $request)
+    {
+        \Illuminate\Support\Facades\Gate::authorize('delete-data');
+
+        $request->validate([
+            'date_start' => 'required|date',
+            'date_end' => 'required|date|after_or_equal:date_start',
+            'type' => 'nullable|in:pokok,wajib,sukarela',
+            'transaction_type' => 'nullable|in:deposit,withdrawal',
+        ]);
+
+        try {
+            $count = 0;
+            DB::beginTransaction();
+
+            $query = Saving::query()
+                ->whereDate('transaction_date', '>=', $request->date_start)
+                ->whereDate('transaction_date', '<=', $request->date_end);
+
+            if ($request->filled('type')) {
+                $query->where('type', $request->type);
+            }
+            if ($request->filled('transaction_type')) {
+                $query->where('transaction_type', $request->transaction_type);
+            }
+
+            $query->orderBy('id')->chunk(500, function ($chunk) use (&$count) {
+                foreach ($chunk as $saving) {
+                    $savingMorph = (new Saving())->getMorphClass();
+                    \App\Models\JournalEntry::whereIn('reference_type', array_unique([Saving::class, $savingMorph, 'saving']))
+                        ->where('reference_id', $saving->id)
+                        ->each(function ($journal) {
+                            $journal->lines()->delete();
+                            $journal->delete();
+                        });
+                    $saving->delete();
+                    $count++;
+                }
+            });
+
+            DB::commit();
+
+            \App\Models\AuditLog::log(
+                'delete',
+                "Menghapus {$count} transaksi simpanan berdasarkan rentang tanggal {$request->date_start} s.d. {$request->date_end}" . 
+                ($request->filled('type') ? " (jenis: {$request->type})" : "") . 
+                ($request->filled('transaction_type') ? " (transaksi: {$request->transaction_type})" : "")
+            );
+
+            return redirect()->back()->with('success', "Berhasil menghapus {$count} transaksi dalam rentang tanggal.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+        }
+    }
+
     /**
      * Print savings book (Buku Tabungan) for a member.
      */

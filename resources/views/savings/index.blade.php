@@ -85,6 +85,102 @@
                 @endif
             </div>
         </form>
+        @can('delete-data')
+        <div class="mt-4 p-4 rounded-xl border border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-800">
+            <h3 class="text-sm font-bold text-red-800 dark:text-red-400 mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                Hapus Massal per Tanggal
+            </h3>
+            <form id="bulkDeleteByDateForm" method="POST" action="{{ route('savings.bulk_destroy_by_date') }}">
+                @csrf
+                @method('DELETE')
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                    <div>
+                        <label class="form-label text-sm">Dari Tanggal</label>
+                        <input type="date" name="date_start" id="bulk_date_start" value="{{ request('date_start') }}" class="form-input">
+                    </div>
+                    <div>
+                        <label class="form-label text-sm">Sampai Tanggal</label>
+                        <input type="date" name="date_end" id="bulk_date_end" value="{{ request('date_end') }}" class="form-input">
+                    </div>
+                    <div>
+                        <label class="form-label text-sm">Jenis Simpanan (opsional)</label>
+                        <select name="type" id="bulk_type" class="form-input">
+                            <option value="">Semua</option>
+                            <option value="pokok" {{ request('type')=='pokok' ? 'selected' : '' }}>Pokok</option>
+                            <option value="wajib" {{ request('type')=='wajib' ? 'selected' : '' }}>Wajib</option>
+                            <option value="sukarela" {{ request('type')=='sukarela' ? 'selected' : '' }}>Sukarela</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        <select name="transaction_type" id="bulk_transaction_type" class="form-input">
+                            <option value="">Semua Transaksi</option>
+                            <option value="deposit" {{ request('transaction_type')=='deposit' ? 'selected' : '' }}>Setoran</option>
+                            <option value="withdrawal" {{ request('transaction_type')=='withdrawal' ? 'selected' : '' }}>Penarikan</option>
+                        </select>
+                        <button type="button" onclick="confirmBulkDeleteByDate()" class="btn-danger whitespace-nowrap flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            Hapus per Tanggal
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <script>
+            async function confirmBulkDeleteByDate() {
+                const dateStart = document.getElementById('bulk_date_start').value;
+                const dateEnd = document.getElementById('bulk_date_end').value;
+                const type = document.getElementById('bulk_type').value;
+                const trxType = document.getElementById('bulk_transaction_type').value;
+
+                if (!dateStart || !dateEnd) {
+                    alert('Silakan pilih rentang tanggal terlebih dahulu.');
+                    return;
+                }
+
+                try {
+                    const params = new URLSearchParams({
+                        date_start: dateStart,
+                        date_end: dateEnd,
+                        type: type,
+                        transaction_type: trxType
+                    });
+
+                    const response = await fetch(`{{ route('savings.count_by_date') }}?${params.toString()}`, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) throw new Error('Gagal mengambil data');
+                    
+                    const data = await response.json();
+                    const count = data.count;
+
+                    if (count === 0) {
+                        alert('Tidak ada data transaksi yang ditemukan pada rentang tanggal dan kriteria tersebut.');
+                        return;
+                    }
+
+                    const confirmMsg = `Terdeteksi ${count} data transaksi yang akan dihapus.\n\n` +
+                                     `PERHATIAN:\n` +
+                                     `- Seluruh data transaksi terpilih akan dihapus selamanya.\n` +
+                                     `- Jurnal akuntansi terkait juga akan dihapus.\n` +
+                                     `- Aksi ini tidak dapat dibatalkan.\n\n` +
+                                     `Apakah Anda yakin ingin melanjutkan penghapusan massal ini?`;
+
+                    if (confirm(confirmMsg)) {
+                        document.getElementById('bulkDeleteByDateForm').submit();
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert('Terjadi kesalahan saat mengecek data. Silakan coba lagi.');
+                }
+            }
+        </script>
+        @endcan
     </div>
 
     <!-- Savings Table -->

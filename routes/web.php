@@ -134,6 +134,8 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
     Route::get('members/{member}/transactions/print', [MemberController::class, 'printTransactionHistory'])->name('members.transactions.print');
 
     // Savings
+    Route::get('savings/count-by-date', [App\Http\Controllers\SavingController::class, 'countByDate'])->name('savings.count_by_date');
+    Route::delete('savings/bulk-destroy-by-date', [App\Http\Controllers\SavingController::class, 'bulkDestroyByDate'])->name('savings.bulk_destroy_by_date');
     Route::delete('savings/bulk-destroy', [App\Http\Controllers\SavingController::class, 'bulkDestroy'])->name('savings.bulk_destroy');
     Route::resource('savings', App\Http\Controllers\SavingController::class);
     Route::get('savings/{member}/print', [App\Http\Controllers\SavingController::class, 'printBook'])->name('savings.print');
