@@ -447,6 +447,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
         Route::get('pos/history', [PosController::class, 'history'])->name('pos.history');
         Route::get('pos/history/print', [PosController::class, 'printHistory'])->name('pos.history.print');
         Route::get('pos/history/export', [PosController::class, 'export'])->name('pos.history.export');
+        Route::get('pos/history/export-items', [PosController::class, 'exportItems'])->name('pos.history.export-items');
         
         Route::get('pos/scan', [PosController::class, 'scan'])->name('pos.scan');
         Route::post('pos/scan', [PosController::class, 'processScan'])->name('pos.scan.process');

@@ -747,4 +747,132 @@ class PosController extends Controller
             return redirect()->back()->with('error', 'Gagal membatalkan transaksi: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Export detailed product sales to Excel.
+     */
+    public function exportItems(Request $request)
+    {
+        if (!auth()->user()->hasAdminAccess()) {
+            abort(403);
+        }
+
+        $query = \App\Models\TransactionItem::query()
+            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_items.product_id', '=', 'products.id')
+            ->leftJoin('product_categories', 'products.category_id', '=', 'product_categories.id')
+            ->whereIn('transactions.status', ['completed', 'paid', 'delivered', 'credit'])
+            ->select(
+                'transactions.created_at as transaction_date',
+                'transactions.invoice_number',
+                'products.name as product_name',
+                'products.code as product_code',
+                'product_categories.name as category_name',
+                'transaction_items.quantity',
+                'transaction_items.price',
+                'transaction_items.subtotal'
+            )
+            ->orderBy('transactions.created_at', 'desc');
+
+        // Filter by date range
+        if ($request->start_date) {
+            $query->whereDate('transactions.created_at', '>=', $request->start_date);
+        }
+        if ($request->end_date) {
+            $query->whereDate('transactions.created_at', '<=', $request->end_date);
+        }
+
+        // Filter by type
+        if ($request->type) {
+            $query->where('transactions.type', $request->type);
+        }
+
+        $items = $query->get();
+
+        // Create Excel file
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Detail Produk Terjual');
+
+        // Style Settings
+        $titleStyle = [
+            'font' => ['bold' => true, 'size' => 16],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+        ];
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '4F46E5']],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]],
+        ];
+        $subtitleStyle = [
+            'font' => ['italic' => true, 'size' => 10, 'color' => ['rgb' => '666666']],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+        ];
+
+        // Report Title
+        $sheet->mergeCells('A1:H1');
+        $sheet->setCellValue('A1', 'LAPORAN DETAIL PRODUK TERJUAL');
+        $sheet->getStyle('A1')->applyFromArray($titleStyle);
+
+        // Filter Info
+        $filterInfo = [];
+        if ($request->start_date) $filterInfo[] = "Mulai: " . Carbon::parse($request->start_date)->format('d/m/Y');
+        if ($request->end_date) $filterInfo[] = "Sampai: " . Carbon::parse($request->end_date)->format('d/m/Y');
+        if ($request->type) $filterInfo[] = "Tipe: " . ucfirst($request->type);
+        
+        $sheet->mergeCells('A2:H2');
+        $sheet->setCellValue('A2', empty($filterInfo) ? 'Semua Data - Diunduh: ' . date('d/m/Y H:i') : implode(' | ', $filterInfo) . ' | Diunduh: ' . date('d/m/Y H:i'));
+        $sheet->getStyle('A2')->applyFromArray($subtitleStyle);
+
+        // Column Headers
+        $headers = ['No', 'Tanggal', 'Invoice', 'Nama Produk', 'Kode/SKU', 'Kategori', 'Qty', 'Harga Satuan', 'Subtotal'];
+        $col = 'A';
+        foreach (['No', 'Tanggal', 'Invoice', 'Nama Produk', 'SKU', 'Kategori', 'Qty', 'Harga', 'Subtotal'] as $header) {
+            $sheet->setCellValue($col . '4', $header);
+            $col++;
+        }
+        $sheet->getStyle('A4:I4')->applyFromArray($headerStyle);
+
+        // Data
+        $row = 5;
+        foreach ($items as $index => $item) {
+            $sheet->setCellValue('A' . $row, $index + 1);
+            $sheet->setCellValue('B' . $row, Carbon::parse($item->transaction_date)->format('d/m/Y H:i'));
+            $sheet->setCellValue('C' . $row, $item->invoice_number);
+            $sheet->setCellValue('D' . $row, $item->product_name);
+            $sheet->setCellValue('E' . $row, $item->product_code);
+            $sheet->setCellValue('F' . $row, $item->category_name ?? '-');
+            $sheet->setCellValue('G' . $row, $item->quantity);
+            $sheet->setCellValue('H' . $row, $item->price);
+            $sheet->setCellValue('I' . $row, $item->subtotal);
+            $row++;
+        }
+
+        // Totals
+        $sheet->mergeCells('A' . $row . ':F' . $row);
+        $sheet->setCellValue('A' . $row, 'TOTAL KESELURUHAN');
+        $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+        $sheet->setCellValue('G' . $row, $items->sum('quantity'));
+        $sheet->setCellValue('I' . $row, $items->sum('subtotal'));
+        $sheet->getStyle('G' . $row . ':I' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('A' . $row . ':I' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('F3F4F6');
+
+        // Formats
+        $sheet->getStyle('H5:I' . $row)->getNumberFormat()->setFormatCode('#,##0');
+        
+        foreach (range('A', 'I') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = 'Detail_Produk_Terjual_' . date('Y-m-d_His') . '.xlsx';
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        
+        $writer->save('php://output');
+        exit;
+    }
 }
