@@ -760,14 +760,14 @@ class PosController extends Controller
         $query = \App\Models\TransactionItem::query()
             ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
             ->join('products', 'transaction_items.product_id', '=', 'products.id')
-            ->leftJoin('product_categories', 'products.category_id', '=', 'product_categories.id')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
             ->whereIn('transactions.status', ['completed', 'paid', 'delivered', 'credit'])
             ->select(
                 'transactions.created_at as transaction_date',
                 'transactions.invoice_number',
                 'products.name as product_name',
                 'products.code as product_code',
-                'product_categories.name as category_name',
+                'categories.name as category_name',
                 'transaction_items.quantity',
                 'transaction_items.price',
                 'transaction_items.subtotal'
