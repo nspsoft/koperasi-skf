@@ -250,6 +250,16 @@ class DocumentController extends Controller
                     'nama_penerima_kuasa' => auth()->user()->name,
                     'nama_koperasi' => 'Koperasi Konsumen Sejahtera Bersama',
                 ];
+            } elseif ($template->name === 'Invoice Penagihan') {
+                $defaults = [
+                    'perihal' => 'Penagihan Iuran / Pinjaman',
+                    'tanggal_invoice' => date('Y-m-d'),
+                    'jatuh_tempo' => date('Y-m-d', strtotime('+7 days')),
+                    'catatan_pembayaran' => "Pembayaran dapat dilakukan melalui Transfer Bank ke Rekening Koperasi:\nBank: ...\nNo. Rekening: ...\na/n Koperasi Spindo Karawang Factory",
+                    'item_tagihan' => "1. Tagihan Iuran Wajib\tRp 100.000\n2. Tagihan Kredit Mart\tRp ...",
+                    'total_tagihan' => '100.000',
+                    'terbilang' => 'Seratus Ribu Rupiah',
+                ];
             }
 
             // Default recipient based on template type
@@ -329,7 +339,7 @@ class DocumentController extends Controller
         }
 
         // Handle multiline textareas (convert key newlines to <br>)
-        $multilineKeys = ['agenda', 'isi_pernyataan', 'isi_pemberitahuan', 'alasan', 'keperluan', 'susunan_pengurus_lainnya', 'susunan_pengawas_lainnya'];
+        $multilineKeys = ['agenda', 'isi_pernyataan', 'isi_pemberitahuan', 'alasan', 'keperluan', 'susunan_pengurus_lainnya', 'susunan_pengawas_lainnya', 'item_tagihan', 'catatan_pembayaran'];
         foreach ($multilineKeys as $key) {
             if (isset($data[$key])) {
                 $data[$key] = nl2br($data[$key]);
