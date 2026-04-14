@@ -251,11 +251,15 @@ class DocumentController extends Controller
                     'nama_koperasi' => 'Koperasi Konsumen Sejahtera Bersama',
                 ];
             } elseif ($template->name === 'Invoice Penagihan') {
+                $bankName = \App\Models\Setting::get('bank_name', '...');
+                $bankAccount = \App\Models\Setting::get('bank_account', '...');
+                $bankHolder = \App\Models\Setting::get('bank_holder', 'Koperasi Spindo Karawang Factory');
+
                 $defaults = [
                     'perihal' => 'Penagihan Iuran / Pinjaman',
                     'tanggal_invoice' => date('Y-m-d'),
                     'jatuh_tempo' => date('Y-m-d', strtotime('+7 days')),
-                    'catatan_pembayaran' => "Pembayaran dapat dilakukan melalui Transfer Bank ke Rekening Koperasi:\nBank: ...\nNo. Rekening: ...\na/n Koperasi Spindo Karawang Factory",
+                    'catatan_pembayaran' => "Pembayaran dapat dilakukan melalui Transfer Bank ke Rekening Koperasi:\nBank: {$bankName}\nNo. Rekening: {$bankAccount}\na/n {$bankHolder}",
                     'item_tagihan' => "1. Tagihan Iuran Wajib\tRp 100.000\n2. Tagihan Kredit Mart\tRp ...",
                     'total_tagihan' => '100.000',
                     'terbilang' => 'Seratus Ribu Rupiah',
