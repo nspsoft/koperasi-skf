@@ -189,8 +189,9 @@ class PosController extends Controller
         $transactions = $query->paginate(20);
 
         // Get summary
-        $todaySales = Transaction::whereDate('created_at', now())->sum('total_amount');
-        $todayCount = Transaction::whereDate('created_at', now())->count();
+        $summaryQuery = Transaction::whereDate('created_at', now())->whereNot('status', 'cancelled');
+        $todaySales = $summaryQuery->sum('total_amount');
+        $todayCount = $summaryQuery->count();
 
         return view('commerce.pos.history', compact('transactions', 'todaySales', 'todayCount'));
     }
@@ -644,5 +645,93 @@ class PosController extends Controller
         }
 
         return redirect()->back()->with('success', "Berhasil mengirim {$sentCount} email tagihan ke anggota.");
+    }
+
+    /**
+     * Cancel a transaction
+     */
+    public function cancel(Request $request, Transaction $transaction)
+    {
+        if (!auth()->user()->hasAdminAccess() && !auth()->user()->hasStoreAccess()) {
+            abort(403);
+        }
+
+        if ($transaction->status === 'cancelled') {
+            return redirect()->back()->with('error', 'Transaksi sudah dibatalkan sebelumnya.');
+        }
+
+        try {
+            \DB::transaction(function () use ($transaction, $request) {
+                // 1. Restore Stock
+                foreach ($transaction->items as $item) {
+                    if ($item->product) {
+                        $item->product->increment('stock', $item->quantity);
+                    }
+                }
+
+                // 2. Reverse Points (if member transaction)
+                if ($transaction->user_id) {
+                    $member = \App\Models\Member::where('user_id', $transaction->user_id)->first();
+                    if ($member) {
+                        $earnRate = \App\Models\Setting::get('point_earn_rate', 10000);
+                        $pointsToDeduct = floor($transaction->total_amount / $earnRate);
+                        if ($pointsToDeduct > 0) {
+                            $member->decrement('points', min($member->points, $pointsToDeduct));
+                        }
+                    }
+                }
+
+                // 3. Refund Savings (if paid via saldo)
+                if ($transaction->payment_method === 'saldo' && $transaction->user_id) {
+                    $member = \App\Models\Member::where('user_id', $transaction->user_id)->first();
+                    if ($member) {
+                        $refund = \App\Models\Saving::create([
+                            'member_id' => $member->id,
+                            'type' => 'sukarela',
+                            'transaction_type' => 'deposit',
+                            'amount' => $transaction->total_amount,
+                            'transaction_date' => now(),
+                            'description' => 'Refund Pembatalan Transaksi: ' . $transaction->invoice_number,
+                            'created_by' => auth()->id(),
+                        ]);
+
+                        // Journal Refund Deposit
+                        \App\Services\JournalService::journalSavingDeposit($refund);
+                    }
+                }
+
+                // 4. Reverse Journal Entry
+                if ($transaction->journalEntry) {
+                    \App\Services\JournalService::reverseJournal(
+                        $transaction->journalEntry, 
+                        "Pembatalan Transaksi - {$transaction->invoice_number}"
+                    );
+                }
+
+                // 5. Cancel Credit Installments
+                if ($transaction->payment_method === 'kredit') {
+                    $transaction->creditInstallments()->update(['status' => 'cancelled']);
+                }
+
+                // 6. Update Transaction Status
+                $transaction->update([
+                    'status' => 'cancelled',
+                    'notes' => ($transaction->notes ? $transaction->notes . ' | ' : '') . 
+                               'Dibatalkan oleh ' . auth()->user()->name . ' pada ' . now()->format('d/m/Y H:i') . 
+                               ($request->reason ? ' Alasan: ' . $request->reason : '')
+                ]);
+
+                \App\Models\AuditLog::log(
+                    'cancel_transaction',
+                    "Membatalkan transaksi {$transaction->invoice_number}",
+                    $transaction
+                );
+            });
+
+            return redirect()->back()->with('success', 'Transaksi berhasil dibatalkan dan stok telah dikembalikan.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal membatalkan transaksi: ' . $e->getMessage());
+        }
     }
 }

@@ -453,6 +453,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
         Route::get('pos/manage/{transaction}', [PosController::class, 'manage'])->name('pos.manage');
 
         Route::get('pos/receipt/{transaction}', [PosController::class, 'receipt'])->name('pos.receipt');
+        Route::post('pos/transactions/{transaction}/cancel', [PosController::class, 'cancel'])->name('pos.cancel');
         Route::post('pos/orders/{transaction}/process', [PosController::class, 'processOrder'])->name('pos.orders.process');
         Route::post('pos/journals/{transaction}/generate', [PosController::class, 'generateJournal'])->name('pos.journals.generate');
         Route::get('pos/credits', [PosController::class, 'credits'])->name('pos.credits');

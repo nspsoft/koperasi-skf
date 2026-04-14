@@ -188,9 +188,6 @@ class JournalService
     /**
      * Create journal for POS sale
      */
-    /**
-     * Create journal for POS sale
-     */
     public static function journalSale($transaction): ?JournalEntry
     {
         $entries = [];
@@ -401,26 +398,11 @@ class JournalService
      */
     public static function journalConsignmentSettlement($settlement, string $paymentMethod = 'cash'): ?JournalEntry
     {
-        // 1. Decouple Component: What are we paying?
-        // We are paying the "HPP" part to the Partner. 
-        // In standard accounting, when we sold the item, we recognized Revenue.
-        // If we didn't recognize Cost at point of sale, we recognize it NOW as Expense + PayOut.
-        // Entry: Debit Cost of Consignment (Expense), Credit Cash.
-        
-        // Account Mapping (Assumed Standard COA)
-        // 510x : COGS / HPP
-        // 1101 : Cash
-        // 1102 : Bank
-
         $expenseAccount = '5201';
         
         $isBank = in_array(strtolower($paymentMethod), ['bank', 'transfer']);
         $assetAccount = $isBank ? '1102' : '1101'; // Bank vs Cash
 
-        // If payment method was 'savings', we treat it as Cash Out (virtual) -> Savings In.
-        // So we still Credit 1101 (Cash) here to balance the Debit 1101 in journalSavingDeposit.
-        // Net effect: 1101 cancels out. Dr HPP, Cr Savings.
-        
         return self::createJournal(
             $settlement,
             "Settlement Konsinyasi #{$settlement->transaction_number} - {$settlement->consignor->name}",
@@ -440,5 +422,43 @@ class JournalService
             ],
             $settlement->paid_at
         );
+    }
+
+    /**
+     * Create a reversing journal entry from an existing one
+     * 
+     * @param JournalEntry $journal The original journal entry to reverse
+     * @param string|null $newDescription Custom description for the reversing entry
+     * @return JournalEntry|null
+     */
+    public static function reverseJournal(JournalEntry $journal, ?string $newDescription = null): ?JournalEntry
+    {
+        return DB::transaction(function () use ($journal, $newDescription) {
+            $description = $newDescription ?? "Pembalikan Jurnal #{$journal->journal_number}";
+            
+            // Collect original lines and flip debit/credit
+            $entries = [];
+            foreach ($journal->lines as $line) {
+                $entries[] = [
+                    'account_code' => $line->account->code,
+                    'debit' => $line->credit, // Flip: credit becomes debit
+                    'credit' => $line->debit, // Flip: debit becomes credit
+                    'description' => "Pembalikan: " . ($line->description ?? $journal->description)
+                ];
+            }
+
+            // Reference back to the same model
+            $reference = $journal->reference;
+            if (!$reference) {
+                 throw new \Exception("Tidak dapat membalikkan jurnal tanpa model referensi.");
+            }
+
+            return self::createJournal(
+                $reference,
+                $description,
+                $entries,
+                now()->toDateString()
+            );
+        });
     }
 }

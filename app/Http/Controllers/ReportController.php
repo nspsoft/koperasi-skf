@@ -597,8 +597,9 @@ class ReportController extends Controller
         }
 
         // 1. Summary Stats
-        $totalSales = (clone $query)->where('status', 'completed')->sum('total_amount');
-        $totalTransactions = (clone $query)->where('status', 'completed')->count();
+        $salesQuery = (clone $query)->whereIn('status', ['completed', 'paid', 'delivered', 'credit']);
+        $totalSales = $salesQuery->sum('total_amount');
+        $totalTransactions = $salesQuery->count();
         $averageTransaction = $totalTransactions > 0 ? $totalSales / $totalTransactions : 0;
         
         // Pending/Processing Orders
@@ -606,14 +607,14 @@ class ReportController extends Controller
         
         // 2. Payment Method Distribution
         $byPaymentMethod = Transaction::whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'completed')
+            ->whereIn('status', ['completed', 'paid', 'delivered', 'credit'])
             ->select('payment_method', DB::raw('count(*) as count'), DB::raw('sum(total_amount) as total'))
             ->groupBy('payment_method')
             ->get();
 
         // 3. Daily Sales (for chart)
         $dailySales = Transaction::whereBetween('created_at', [$startDate, $endDate])
-            ->where('status', 'completed')
+            ->whereIn('status', ['completed', 'paid', 'delivered', 'credit'])
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('sum(total_amount) as total'))
             ->groupBy('date')
             ->orderBy('date')
@@ -629,7 +630,7 @@ class ReportController extends Controller
             ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
             ->join('products', 'transaction_items.product_id', '=', 'products.id')
             ->whereBetween('transactions.created_at', [$startDate, $endDate])
-            ->where('transactions.status', 'completed')
+            ->whereIn('transactions.status', ['completed', 'paid', 'delivered', 'credit'])
             ->select('products.name', 'products.code', 
                 DB::raw('sum(transaction_items.quantity) as total_qty'),
                 DB::raw('sum(transaction_items.subtotal) as total_sales'))

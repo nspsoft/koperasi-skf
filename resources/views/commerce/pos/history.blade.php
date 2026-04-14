@@ -110,10 +110,12 @@
                         <td class="px-6 py-4 capitalize text-gray-700 dark:text-gray-300">{{ str_replace('_', ' ', $trx->payment_method) }}</td>
                         <td class="px-6 py-4 font-bold text-gray-900 dark:text-white">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</td>
                         <td class="px-6 py-4">
-                            @if($trx->status == 'completed' || $trx->status == 'paid')
+                            @if($trx->status == 'completed' || $trx->status == 'paid' || $trx->status == 'delivered')
                                 <span class="badge badge-success">{{ __('messages.titles.paid_off') }}</span>
                             @elseif($trx->status == 'pending')
                                 <span class="badge badge-warning">Pending</span>
+                            @elseif($trx->status == 'cancelled')
+                                <span class="badge badge-danger">Dibatalkan</span>
                             @else
                                 <span class="badge badge-danger">{{ $trx->status }}</span>
                             @endif
@@ -126,6 +128,16 @@
                                 <a href="{{ route('pos.receipt', $trx) }}" target="_blank" class="p-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200" title="Cetak Struk">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                 </a>
+
+                                @if($trx->status !== 'cancelled' && auth()->user()->hasStoreAccess())
+                                <form action="{{ route('pos.cancel', $trx) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan transaksi ini? Stok akan dikembalikan dan jurnal akan dibalik.')">
+                                    @csrf
+                                    <button type="submit" class="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-600 hover:text-white transition-colors" title="Batalkan Transaksi">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </button>
+                                </form>
+                                @endif
+
                                 @if(in_array($trx->status, ['paid', 'completed', 'delivered']) && ! $trx->journalEntry)
                                     <form action="{{ route('pos.journals.generate', $trx) }}" method="POST">
                                         @csrf
@@ -233,7 +245,7 @@
                                 <div class="flex flex-col items-center gap-2 bg-white dark:bg-gray-800 px-1" :class="getStepClass('ready')">
                                     <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors duration-300 z-10"
                                          :class="getStepCircleClass('ready')">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 11-4 0 2 2 0 014 0z"></path></svg>
                                     </div>
                                     <span class="text-[10px] sm:text-xs font-medium text-center" :class="getStepTextClass('ready')">{{ __('messages.titles.ready_to_deliver') }}</span>
                                 </div>
@@ -393,14 +405,10 @@
 
             getProgressWidth() {
                 if (!this.selectedTrx) return 'width: 0%';
-                const step = this.getStatusStep(this.selectedTrx.status);
-                // Step 1: 0%
-                // Step 2: 33%
-                // Step 3: 66%
-                // Step 4: 100%
+                if (this.selectedTrx.status === 'cancelled') return 'width: 0%';
                 
-                if (status === 'cancelled') return 'width: 0%; background-color: #EF4444'; 
-
+                const step = this.getStatusStep(this.selectedTrx.status);
+                
                 // Custom logic for Paid/Credit (Visual enhancement)
                 if (this.selectedTrx.status === 'paid' || this.selectedTrx.status === 'credit') return 'width: 10%'; 
 
