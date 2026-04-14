@@ -104,6 +104,17 @@
                     @enderror
                 </div>
 
+                <!-- ID Amigo -->
+                <div class="form-group">
+                    <label for="id_amigo" class="form-label">ID Amigo (QR Code)</label>
+                    <input type="text" id="id_amigo" name="id_amigo" value="{{ old('id_amigo') }}"
+                           placeholder="Contoh: cmbh4lcqmvs"
+                           class="form-input @error('id_amigo') !border-red-500 @enderror">
+                    @error('id_amigo')
+                    <p class="form-error">{{ $message }}</p>
+                    @enderror
+                </div>
+
                 <!-- Department -->
                 <div class="form-group">
                     <label for="department" class="form-label">Departemen</label>

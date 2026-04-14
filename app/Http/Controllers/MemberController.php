@@ -229,6 +229,7 @@ class MemberController extends Controller
             $member = Member::create([
                 'user_id' => $user->id,
                 'member_id' => Member::generateMemberId(),
+                'id_amigo' => $request->id_amigo,
                 'employee_id' => $request->employee_id,
                 'department' => $request->department,
                 'position' => $request->position,
@@ -366,8 +367,8 @@ class MemberController extends Controller
                 $photoPath = $member->photo;
             }
 
-            // Update Member Profile
             $member->update([
+                'id_amigo' => $request->id_amigo,
                 'employee_id' => $request->employee_id,
                 'department' => $request->department,
                 'position' => $request->position,

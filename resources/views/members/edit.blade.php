@@ -85,9 +85,20 @@
                 <div class="form-group">
                     <label for="employee_id" class="form-label">NIK Karyawan</label>
                     <input type="text" id="employee_id" name="employee_id" value="{{ old('employee_id', $member->employee_id) }}"
-                           placeholder="Contoh: EMP001"
+                           placeholder="Contoh: KA001"
                            class="form-input @error('employee_id') !border-red-500 @enderror">
                     @error('employee_id')
+                    <p class="form-error">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- ID Amigo -->
+                <div class="form-group">
+                    <label for="id_amigo" class="form-label">ID Amigo (QR Code)</label>
+                    <input type="text" id="id_amigo" name="id_amigo" value="{{ old('id_amigo', $member->id_amigo) }}"
+                           placeholder="Contoh: cmbh4lcqmvs"
+                           class="form-input @error('id_amigo') !border-red-500 @enderror">
+                    @error('id_amigo')
                     <p class="form-error">{{ $message }}</p>
                     @enderror
                 </div>
