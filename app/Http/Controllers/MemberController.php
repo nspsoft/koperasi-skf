@@ -742,6 +742,8 @@ class MemberController extends Controller
             ->where(function ($query) use ($q) {
                 $query->where('member_id', $q)
                     ->orWhere('member_id', 'like', '%'.$q.'%')
+                    ->orWhere('id_amigo', $q)
+                    ->orWhere('id_amigo', 'like', '%'.$q.'%')
                     ->orWhere('employee_id', $q)
                     ->orWhereHas('user', function ($userQuery) use ($q) {
                         $userQuery->where('name', 'like', '%'.$q.'%');
@@ -752,7 +754,10 @@ class MemberController extends Controller
         $member = $matches->count() === 1 ? $matches->first() : null; // exact match or single result behavior?
 
         // If query matches exact ID, prioritize it
-        $exactMatch = $matches->firstWhere('member_id', $q) ?? $matches->firstWhere('employee_id', $q);
+        $exactMatch = $matches->firstWhere('member_id', $q) 
+            ?? $matches->firstWhere('employee_id', $q)
+            ?? $matches->firstWhere('id_amigo', $q);
+
         if ($exactMatch) {
             $member = $exactMatch;
         }
