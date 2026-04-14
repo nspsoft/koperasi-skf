@@ -52,8 +52,11 @@
             </div>
         </div>
         <div class="glass-card-solid p-6">
-            <form action="" method="GET" class="flex gap-2">
-                <input type="date" name="date" value="{{ request('date') }}" class="form-input flex-1">
+            <form action="" method="GET" class="flex flex-wrap gap-2">
+                <div class="flex-1 flex gap-2">
+                    <input type="date" name="start_date" value="{{ request('start_date') }}" class="form-input flex-1" title="Tanggal Mulai">
+                    <input type="date" name="end_date" value="{{ request('end_date') }}" class="form-input flex-1" title="Tanggal Selesai">
+                </div>
                 <select name="type" class="form-input">
                     <option value="">{{ __('messages.titles.all_types') }}</option>
                     <option value="offline" {{ request('type') == 'offline' ? 'selected' : '' }}>Offline (POS)</option>

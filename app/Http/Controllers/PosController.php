@@ -176,9 +176,12 @@ class PosController extends Controller
     {
         $query = Transaction::with(['items.product', 'cashier', 'user', 'journalEntry'])->latest();
 
-        // Filter by date
-        if ($request->date) {
-            $query->whereDate('created_at', $request->date);
+        // Filter by date range
+        if ($request->start_date) {
+            $query->whereDate('created_at', '>=', $request->start_date);
+        }
+        if ($request->end_date) {
+            $query->whereDate('created_at', '<=', $request->end_date);
         }
 
         // Filter by type
@@ -228,9 +231,14 @@ class PosController extends Controller
         $query = Transaction::latest();
 
         // Use same filters as history
-        if ($request->date) {
-            $query->whereDate('created_at', $request->date);
-        } else {
+        if ($request->start_date) {
+            $query->whereDate('created_at', '>=', $request->start_date);
+        }
+        if ($request->end_date) {
+            $query->whereDate('created_at', '<=', $request->end_date);
+        }
+
+        if (!$request->start_date && !$request->end_date) {
              // Default to today if no date filter is applied
              $query->whereDate('created_at', \Carbon\Carbon::today());
         }
@@ -464,8 +472,12 @@ class PosController extends Controller
 
         $query = Transaction::with(['items.product', 'cashier'])->latest();
 
-        if ($request->date) {
-            $query->whereDate('created_at', $request->date);
+        // Filter by date range
+        if ($request->start_date) {
+            $query->whereDate('created_at', '>=', $request->start_date);
+        }
+        if ($request->end_date) {
+            $query->whereDate('created_at', '<=', $request->end_date);
         }
 
         if ($request->type) {
@@ -502,7 +514,8 @@ class PosController extends Controller
 
         // Filter Info
         $filterInfo = [];
-        if ($request->date) $filterInfo[] = "Tanggal: " . Carbon::parse($request->date)->format('d/m/Y');
+        if ($request->start_date) $filterInfo[] = "Mulai: " . Carbon::parse($request->start_date)->format('d/m/Y');
+        if ($request->end_date) $filterInfo[] = "Sampai: " . Carbon::parse($request->end_date)->format('d/m/Y');
         if ($request->type) $filterInfo[] = "Tipe: " . ucfirst($request->type);
         
         $sheet->mergeCells('A2:I2');
