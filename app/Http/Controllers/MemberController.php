@@ -817,7 +817,7 @@ class MemberController extends Controller
             return redirect()->route('dashboard')->with('error', 'Data anggota tidak ditemukan.');
         }
 
-        $transactions = \App\Models\Transaction::with(['items.product'])
+        $transactions = \App\Models\Transaction::with(['items.product', 'creditInstallments'])
             ->where('user_id', $user->id)
             ->where('payment_method', 'kredit')
             ->orderBy('created_at', 'desc')

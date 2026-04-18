@@ -233,6 +233,7 @@
 @if($dailySales->count() > 0)
 @push('scripts')
 <script>
+window.runApex(() => {
 document.addEventListener('DOMContentLoaded', function() {
     var options = {
         series: [{
@@ -287,6 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var chart = new ApexCharts(document.querySelector("#dailySalesChart"), options);
     chart.render();
+});
 });
 </script>
 @endpush

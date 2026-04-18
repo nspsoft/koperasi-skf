@@ -79,107 +79,105 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Saldo Sukarela -->
-                        <label class="group relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md"
-                               :class="selectedMethod === 'saldo_sukarela' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/10 ring-1 ring-primary-500 scale-[1.01]' : 'border-gray-200 dark:border-gray-700 hover:border-primary-200 {{ (!$member || ($member?->balance ?? 0) < $total) ? 'opacity-50 grayscale' : '' }}'">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-2xl">💳</span>
+                        <label class="group relative flex flex-col p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg"
+                               :class="selectedMethod === 'saldo_sukarela' ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/20 ring-1 ring-primary-500 scale-[1.02]' : 'border-gray-100 dark:border-gray-800 hover:border-primary-200 {{ (!$member || ($member?->balance ?? 0) < $total) ? 'opacity-50 grayscale cursor-not-allowed' : '' }}'">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-xl">💳</div>
                                 <input type="radio" name="payment_method" value="saldo_sukarela" x-model="selectedMethod" class="hidden" {{ (!$member || ($member?->balance ?? 0) < $total) ? 'disabled' : '' }}>
-                                <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center transition-colors" 
-                                     :class="selectedMethod === 'saldo_sukarela' ? 'border-primary-500' : 'group-hover:border-gray-400'">
-                                    <div class="w-2.5 h-2.5 rounded-full bg-primary-500 transform scale-0 transition-transform" 
+                                <div class="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all" 
+                                     :class="selectedMethod === 'saldo_sukarela' ? 'border-primary-500 bg-primary-500' : 'group-hover:border-primary-400'">
+                                    <div class="w-2 h-2 rounded-full bg-white transform scale-0 transition-transform" 
                                          :class="selectedMethod === 'saldo_sukarela' ? 'scale-100' : ''"></div>
                                 </div>
                             </div>
-                            <span class="font-bold text-gray-900 dark:text-white mb-1">Saldo Sukarela</span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">Saldo: Rp {{ number_format($member?->balance ?? 0, 0, ',', '.') }}</span>
+                            <span class="font-bold text-gray-900 dark:text-white text-base">Saldo Sukarela</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Tersedia: <span class="font-bold text-primary-600">Rp {{ number_format($member?->balance ?? 0, 0, ',', '.') }}</span></span>
                         </label>
 
                         <!-- Kredit Mart -->
-                        <label class="group relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md"
-                               :class="selectedMethod === 'kredit' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/10 ring-1 ring-primary-500 scale-[1.01]' : 'border-gray-200 dark:border-gray-700 hover:border-primary-200 {{ (!$member || $member->status !== 'active' || !$creditEligible || ($member?->credit_available ?? 0) < $total) ? 'opacity-50 grayscale' : '' }}'">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-2xl">📝</span>
-                                <input type="radio" name="payment_method" value="kredit" x-model="selectedMethod" class="hidden" {{ (!$member || $member->status !== 'active' || !$creditEligible || ($member?->credit_available ?? 0) < $total) ? 'disabled' : '' }}>
-                                <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center transition-colors" 
-                                     :class="selectedMethod === 'kredit' ? 'border-primary-500' : 'group-hover:border-gray-400'">
-                                    <div class="w-2.5 h-2.5 rounded-full bg-primary-500 transform scale-0 transition-transform" 
+                        <label class="group relative flex flex-col p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg"
+                               :class="selectedMethod === 'kredit' ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/20 ring-1 ring-primary-500 scale-[1.02]' : 'border-gray-100 dark:border-gray-800 hover:border-primary-200 {{ (!$member || ($member?->status !== 'active') || !$creditEligible || ($member?->credit_available ?? 0) < $total) ? 'opacity-50 grayscale cursor-not-allowed' : '' }}'">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-xl">📝</div>
+                                <input type="radio" name="payment_method" value="kredit" x-model="selectedMethod" class="hidden" {{ (!$member || ($member?->status !== 'active') || !$creditEligible || ($member?->credit_available ?? 0) < $total) ? 'disabled' : '' }}>
+                                <div class="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all" 
+                                     :class="selectedMethod === 'kredit' ? 'border-primary-500 bg-primary-500' : 'group-hover:border-primary-400'">
+                                    <div class="w-2 h-2 rounded-full bg-white transform scale-0 transition-transform" 
                                          :class="selectedMethod === 'kredit' ? 'scale-100' : ''"></div>
                                 </div>
                             </div>
-                            <span class="font-bold text-gray-900 dark:text-white mb-1">Kredit Mart</span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">Limit: Rp {{ number_format($member?->credit_available ?? 0, 0, ',', '.') }}</span>
-                            @if(!$creditEligible)
-                                <span class="text-[10px] text-red-500 mt-1">Produk dalam keranjang tidak semua mendukung kredit</span>
-                            @endif
-                            @if(!$member || $member->status !== 'active')
-                                <span class="text-[10px] text-red-500 mt-1">Kredit hanya untuk anggota aktif</span>
+                            <span class="font-bold text-gray-900 dark:text-white text-base">Kredit Mart</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Limit: <span class="font-bold text-primary-600">Rp {{ number_format($member?->credit_available ?? 0, 0, ',', '.') }}</span></span>
+                            @if(!$creditEligible && $member)
+                                <span class="text-[10px] text-rose-500 mt-2 font-medium">Beberapa produk tidak mendukung kredit</span>
                             @endif
                         </label>
 
                         <!-- Transfer Bank -->
-                        <label class="group relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md"
-                               :class="selectedMethod === 'transfer' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/10 ring-1 ring-primary-500 scale-[1.01]' : 'border-gray-200 dark:border-gray-700 hover:border-primary-200'">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-2xl">🏦</span>
+                        <label class="group relative flex flex-col p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg"
+                               :class="selectedMethod === 'transfer' ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/20 ring-1 ring-primary-500 scale-[1.02]' : 'border-gray-100 dark:border-gray-800 hover:border-primary-200'">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-xl">🏦</div>
                                 <input type="radio" name="payment_method" value="transfer" x-model="selectedMethod" class="hidden">
-                                <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center transition-colors" 
-                                     :class="selectedMethod === 'transfer' ? 'border-primary-500' : 'group-hover:border-gray-400'">
-                                    <div class="w-2.5 h-2.5 rounded-full bg-primary-500 transform scale-0 transition-transform" 
+                                <div class="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all" 
+                                     :class="selectedMethod === 'transfer' ? 'border-primary-500 bg-primary-500' : 'group-hover:border-primary-400'">
+                                    <div class="w-2 h-2 rounded-full bg-white transform scale-0 transition-transform" 
                                          :class="selectedMethod === 'transfer' ? 'scale-100' : ''"></div>
                                 </div>
                             </div>
-                            <span class="font-bold text-gray-900 dark:text-white mb-1">Transfer Bank</span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">Verifikasi Manual</span>
+                            <span class="font-bold text-gray-900 dark:text-white text-base">Transfer Bank</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Verifikasi Manual (Admin)</span>
                         </label>
 
                         <!-- QRIS -->
-                        <label class="group relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md"
-                               :class="selectedMethod === 'qris' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/10 ring-1 ring-primary-500 scale-[1.01]' : 'border-gray-200 dark:border-gray-700 hover:border-primary-200'">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-2xl">📱</span>
+                        <label class="group relative flex flex-col p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg"
+                               :class="selectedMethod === 'qris' ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/20 ring-1 ring-primary-500 scale-[1.02]' : 'border-gray-100 dark:border-gray-800 hover:border-primary-200'">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-xl">📱</div>
                                 <input type="radio" name="payment_method" value="qris" x-model="selectedMethod" class="hidden">
-                                <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center transition-colors" 
-                                     :class="selectedMethod === 'qris' ? 'border-primary-500' : 'group-hover:border-gray-400'">
-                                    <div class="w-2.5 h-2.5 rounded-full bg-primary-500 transform scale-0 transition-transform" 
+                                <div class="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all" 
+                                     :class="selectedMethod === 'qris' ? 'border-primary-500 bg-primary-500' : 'group-hover:border-primary-400'">
+                                    <div class="w-2 h-2 rounded-full bg-white transform scale-0 transition-transform" 
                                          :class="selectedMethod === 'qris' ? 'scale-100' : ''"></div>
                                 </div>
                             </div>
-                            <span class="font-bold text-gray-900 dark:text-white mb-1">QRIS / E-Wallet</span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">Scan & Upload Bukti</span>
+                            <span class="font-bold text-gray-900 dark:text-white text-base">QRIS / E-Wallet</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Otomatis / Upload Bukti</span>
                         </label>
 
                         <!-- Virtual Account -->
-                        <label class="group relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md"
-                               :class="selectedMethod === 'va' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/10 ring-1 ring-primary-500 scale-[1.01]' : 'border-gray-200 dark:border-gray-700 hover:border-primary-200'">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-2xl">🏢</span>
+                        <label class="group relative flex flex-col p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg"
+                               :class="selectedMethod === 'va' ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/20 ring-1 ring-primary-500 scale-[1.02]' : 'border-gray-100 dark:border-gray-800 hover:border-primary-200'">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-xl">🏢</div>
                                 <input type="radio" name="payment_method" value="va" x-model="selectedMethod" class="hidden">
-                                <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center transition-colors" 
-                                     :class="selectedMethod === 'va' ? 'border-primary-500' : 'group-hover:border-gray-400'">
-                                    <div class="w-2.5 h-2.5 rounded-full bg-primary-500 transform scale-0 transition-transform" 
+                                <div class="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all" 
+                                     :class="selectedMethod === 'va' ? 'border-primary-500 bg-primary-500' : 'group-hover:border-primary-400'">
+                                    <div class="w-2 h-2 rounded-full bg-white transform scale-0 transition-transform" 
                                          :class="selectedMethod === 'va' ? 'scale-100' : ''"></div>
                                 </div>
                             </div>
-                            <span class="font-bold text-gray-900 dark:text-white mb-1">Virtual Account</span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">Konfirmasi Otomatis</span>
+                            <span class="font-bold text-gray-900 dark:text-white text-base">Virtual Account</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Konfirmasi 24 Jam Otomatis</span>
                         </label>
 
                         <!-- Bayar di Toko -->
-                        <label class="group relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md"
-                               :class="selectedMethod === 'cash_pickup' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/10 ring-1 ring-primary-500 scale-[1.01]' : 'border-gray-200 dark:border-gray-700 hover:border-primary-200'">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-2xl">🏪</span>
+                        <label class="group relative flex flex-col p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg"
+                               :class="selectedMethod === 'cash_pickup' ? 'border-primary-500 bg-primary-50/50 dark:bg-primary-900/20 ring-1 ring-primary-500 scale-[1.02]' : 'border-gray-100 dark:border-gray-800 hover:border-primary-200'">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center text-xl">🏪</div>
                                 <input type="radio" name="payment_method" value="cash_pickup" x-model="selectedMethod" class="hidden">
-                                <div class="w-5 h-5 rounded-full border-2 border-gray-300 flex items-center justify-center transition-colors" 
-                                     :class="selectedMethod === 'cash_pickup' ? 'border-primary-500' : 'group-hover:border-gray-400'">
-                                    <div class="w-2.5 h-2.5 rounded-full bg-primary-500 transform scale-0 transition-transform" 
+                                <div class="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all" 
+                                     :class="selectedMethod === 'cash_pickup' ? 'border-primary-500 bg-primary-500' : 'group-hover:border-primary-400'">
+                                    <div class="w-2 h-2 rounded-full bg-white transform scale-0 transition-transform" 
                                          :class="selectedMethod === 'cash_pickup' ? 'scale-100' : ''"></div>
                                 </div>
                             </div>
-                            <span class="font-bold text-gray-900 dark:text-white mb-1">Ambil di Toko</span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">Bayar saat pengambilan</span>
+                            <span class="font-bold text-gray-900 dark:text-white text-base">Tunai (Bayar di Toko)</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Bayar saat ambil pesanan</span>
                         </label>
                     </div>
+                 </div>
 
                     <div x-show="selectedMethod === 'kredit'" x-transition class="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
                         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tenor Kredit</label>
@@ -266,7 +264,7 @@
 
                     <!-- Calculation -->
                     <div class="space-y-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-                        <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                        <div class="flex justify-between text-sm text-gray-600 dark:border-gray-400">
                             <span>Subtotal</span>
                             <span>Rp {{ number_format($originalTotal ?? $total, 0, ',', '.') }}</span>
                         </div>
@@ -279,7 +277,7 @@
                         @endif
 
                         <!-- Point Redemption Option -->
-                        @if($member->points > 0)
+                        @if($member && $member->points > 0)
                         <div class="p-3 bg-yellow-50 dark:bg-yellow-900/10 rounded-xl border border-yellow-100 dark:border-yellow-900/30 mt-2">
                              <label class="flex items-start gap-3 cursor-pointer">
                                 <input type="checkbox" name="use_points" value="1" class="form-checkbox mt-1 text-yellow-500 rounded focus:ring-yellow-500">

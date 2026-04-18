@@ -162,6 +162,7 @@
 
 @push('scripts')
 <script>
+    window.runApex(() => {
     document.addEventListener('DOMContentLoaded', function() {
         // System Preference Chart
         const systemOptions = {
@@ -194,6 +195,7 @@
             }
         };
         new ApexCharts(document.querySelector("#paymentChart"), paymentOptions).render();
+    });
     });
 </script>
 @endpush

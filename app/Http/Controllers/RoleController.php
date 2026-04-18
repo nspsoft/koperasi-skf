@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class RoleController extends Controller
 {
@@ -177,5 +178,47 @@ class RoleController extends Controller
             'role' => $role,
             'permissions' => $role->permissions->pluck('label')->toArray()
         ]);
+    }
+
+    /**
+     * Show form to create a new system user
+     */
+    public function createUser()
+    {
+        $roles = Role::orderBy('label')->get();
+        return view('roles.create_user', compact('roles'));
+    }
+
+    /**
+     * Store a new system user
+     */
+    public function storeUser(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+            'role_id' => 'required|exists:roles,id',
+            'phone' => 'nullable|string|max:20',
+        ]);
+
+        $role = Role::findOrFail($request->role_id);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $role->name,
+            'role_id' => $role->id,
+            'phone' => $request->phone,
+            'is_active' => true,
+        ]);
+
+        \App\Models\AuditLog::log(
+            'create', 
+            "Mendaftarkan user sistem baru: {$user->name} ({$role->label})"
+        );
+
+        return redirect()->route('roles.index')->with('success', "User sistem '{$user->name}' berhasil ditambahkan dengan role {$role->label}!");
     }
 }

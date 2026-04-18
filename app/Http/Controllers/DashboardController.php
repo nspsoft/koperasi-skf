@@ -117,9 +117,11 @@ class DashboardController extends Controller
 
             $monthlyProfit = [];
             $monthlyOperationalProfit = [];
+            $monthlyOperationalExpense = [];
             for ($i = 0; $i < 12; $i++) {
                 $monthlyProfit[] = $monthlyRevenue[$i] - $monthlyExpense[$i];
                 $monthlyOperationalProfit[] = ($monthlyRevenue[$i] - $monthlyExpense[$i]) + $monthlyConsignmentExpense[$i];
+                $monthlyOperationalExpense[] = $monthlyExpense[$i] - $monthlyConsignmentExpense[$i];
             }
 
             $dailyRevenueProfit = [];
@@ -214,7 +216,7 @@ class DashboardController extends Controller
                 ->where('status', 'active')
                 ->groupBy('loan_type')
                 ->get();
-
+ 
             return compact(
                 'stats',
                 'recentMembers',
@@ -229,6 +231,7 @@ class DashboardController extends Controller
                 'monthlyRevenue',
                 'monthlyProfit',
                 'monthlyOperationalProfit',
+                'monthlyOperationalExpense',
                 'dailyRevenueProfit',
                 'topCustomers'
             );

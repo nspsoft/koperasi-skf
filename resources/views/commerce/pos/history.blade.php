@@ -31,31 +31,105 @@
         </div>
     </div>
 
+    <style>
+        .glass-glow-card {
+            position: relative;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+        }
+
+        .dark .glass-glow-card {
+            background: rgba(31, 41, 55, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-glow-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .dark .glass-glow-card::before {
+            background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+        }
+
+        .glass-glow-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border-color: rgba(16, 185, 129, 0.5); /* Emerald glow border */
+        }
+
+        .dark .glass-glow-card:hover {
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        .glass-glow-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-stats-label {
+            transition: all 0.3s ease;
+        }
+
+        .glass-glow-card:hover .card-stats-label {
+            transform: scale(1.1) rotate(5deg);
+        }
+    </style>
+
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="glass-card-solid p-6">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <!-- Revenue Card -->
+        <div class="glass-glow-card p-5 group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
+                <!-- Trend Badge -->
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold {{ $salesTrend >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/40' }}">
+                    <span>{!! $salesTrend >= 0 ? '↑' : '↓' !!} {{ abs(round($salesTrend, 1)) }}%</span>
+                </div>
+            </div>
+            <div class="flex items-end justify-between">
                 <div>
-                    <p class="text-sm text-gray-500">{{ __('messages.titles.sales_today') }}</p>
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">Rp {{ number_format($todaySales, 0, ',', '.') }}</p>
+                    <p class="text-xs font-medium text-gray-500 mb-1">{{ __('messages.titles.sales_today') }}</p>
+                    <p class="text-xl lg:text-2xl font-black text-gray-900 dark:text-white leading-none">Rp {{ number_format($todaySales, 0, ',', '.') }}</p>
+                </div>
+                <div class="w-24 h-12 -mb-2 -mr-2">
+                    <div id="salesSparkline"></div>
                 </div>
             </div>
         </div>
-        <div class="glass-card-solid p-6">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+
+        <!-- Transactions Card -->
+        <div class="glass-glow-card p-5 group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                 </div>
+                <!-- Trend Badge -->
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold {{ $trxTrend >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/40' }}">
+                    <span>{!! $trxTrend >= 0 ? '↑' : '↓' !!} {{ abs(round($trxTrend, 1)) }}%</span>
+                </div>
+            </div>
+            <div class="flex items-end justify-between">
                 <div>
-                    <p class="text-sm text-gray-500">{{ __('messages.titles.trx_today') }}</p>
-                    <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $todayCount }} {{ __('messages.sidebar.transactions') ?? 'Transaksi' }}</p>
+                    <p class="text-xs font-medium text-gray-500 mb-1">{{ __('messages.titles.trx_today') }}</p>
+                    <p class="text-xl lg:text-2xl font-black text-gray-900 dark:text-white leading-none">{{ $todayCount }} <span class="text-sm font-bold text-gray-400">Trx</span></p>
+                </div>
+                <div class="w-24 h-12 -mb-2 -mr-2">
+                    <div id="trxSparkline"></div>
                 </div>
             </div>
         </div>
-        <div class="glass-card-solid p-6">
+        <div class="glass-glow-card p-6">
             <form action="" method="GET" class="flex flex-wrap gap-2">
                 <div class="flex-1 flex gap-2">
                     <input type="date" name="start_date" value="{{ request('start_date') }}" class="form-input flex-1" title="Tanggal Mulai">
@@ -66,16 +140,94 @@
                     <option value="offline" {{ request('type') == 'offline' ? 'selected' : '' }}>Offline (POS)</option>
                     <option value="online" {{ request('type') == 'online' ? 'selected' : '' }}>Online</option>
                 </select>
+                <select name="cashier_id" class="form-input">
+                    <option value="">Semua Kasir</option>
+                    @foreach($cashiers as $cashier)
+                        <option value="{{ $cashier->id }}" {{ request('cashier_id') == $cashier->id ? 'selected' : '' }}>
+                            {{ $cashier->name }}
+                        </option>
+                    @endforeach
+                </select>
                 <div class="flex gap-1">
                     <button type="submit" class="btn-secondary">{{ __('messages.search') }}</button>
-
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- Analysis Charts Section -->
+    <div x-data="{ activeChart: 'timeline' }" class="glass-glow-card p-6 mb-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white" 
+                    x-text="activeChart === 'timeline' ? 'Timeline Penjualan' : 
+                           (activeChart === 'products' ? 'Produk Terlaris (Qty)' : 
+                           (activeChart === 'revenue' ? 'Revenue Terbesar (Omzet)' : 'Profit Terbesar (Keuntungan)'))">Timeline Penjualan</h3>
+                <p class="text-sm text-gray-500" 
+                   x-text="activeChart === 'timeline' ? 'Analisis jam-jam sibuk transaksi' : 
+                          (activeChart === 'products' ? '10 produk dengan kuantitas penjualan terbanyak' : 
+                          (activeChart === 'revenue' ? '10 produk penyumbang omzet tertinggi' : '10 produk dengan margin keuntungan total tertinggi'))">Analisis jam-jam sibuk transaksi</p>
+            </div>
+            
+            <div class="flex flex-col items-end gap-3">
+                <!-- Chart Toggle Buttons -->
+                <div class="flex flex-wrap p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                    <button @click="activeChart = 'timeline'" 
+                            :class="activeChart === 'timeline' ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600' : 'text-gray-500 hover:text-gray-700'"
+                            class="px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200">
+                        Timeline
+                    </button>
+                    <button @click="activeChart = 'products'" 
+                            :class="activeChart === 'products' ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600' : 'text-gray-500 hover:text-gray-700'"
+                            class="px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200">
+                        Terlaris
+                    </button>
+                    <button @click="activeChart = 'revenue'" 
+                            :class="activeChart === 'revenue' ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600' : 'text-gray-500 hover:text-gray-700'"
+                            class="px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200">
+                        Revenue
+                    </button>
+                    <button @click="activeChart = 'profit'" 
+                            :class="activeChart === 'profit' ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600' : 'text-gray-500 hover:text-gray-700'"
+                            class="px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200">
+                        Profit
+                    </button>
+                </div>
+
+                <!-- Legend (Only for Timeline) -->
+                <div x-show="activeChart === 'timeline'" x-cloak class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-primary-500"></span>
+                        <span class="text-xs text-gray-600 dark:text-gray-400">Total Transaksi</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                        <span class="text-xs text-gray-600 dark:text-gray-400">Total Nominal</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Containers -->
+        <div x-show="activeChart === 'timeline'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+            <div id="hourlyTimelineChart" style="min-height: 350px;"></div>
+        </div>
+
+        <div x-show="activeChart === 'products'" x-cloak x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+            <div id="topProductsChart" style="min-height: 350px;"></div>
+        </div>
+
+        <div x-show="activeChart === 'revenue'" x-cloak x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+            <div id="topRevenueChart" style="min-height: 350px;"></div>
+        </div>
+
+        <div x-show="activeChart === 'profit'" x-cloak x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+            <div id="topProfitChart" style="min-height: 350px;"></div>
+        </div>
+    </div>
+
     <!-- Transactions Table -->
-    <div class="glass-card-solid overflow-hidden">
+    <div class="glass-glow-card overflow-hidden">
         <div class="table-scroll-container">
             <table class="table-modern w-full">
                 <thead class="sticky top-0 z-10">
@@ -456,4 +608,375 @@
         }
     }
 </script>
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof window.runApex === 'function') {
+            window.runApex(() => {
+                renderHourlyChart();
+                renderTopProductsChart();
+                renderTopRevenueChart();
+                renderTopProfitChart();
+                renderSparklines();
+            });
+        } else {
+            renderHourlyChart();
+            renderTopProductsChart();
+            renderTopRevenueChart();
+            renderTopProfitChart();
+            renderSparklines();
+        }
+
+        function renderSparklines() {
+            const commonOptions = {
+                chart: {
+                    type: 'area',
+                    height: 50,
+                    sparkline: { enabled: true },
+                    animations: {
+                        enabled: true,
+                        easing: 'easeinout',
+                        speed: 800,
+                        animateOnReLoad: false
+                    }
+                },
+                stroke: { curve: 'smooth', width: 2 },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.45,
+                        opacityTo: 0.05,
+                        stops: [0, 100]
+                    }
+                },
+                tooltip: { fixed: { enabled: false }, x: { show: false }, marker: { show: false } }
+            };
+
+            // Sales Sparkline
+            const salesOptions = {
+                ...commonOptions,
+                series: [{ data: @json($sparklineSales) }],
+                colors: @json($salesTrend >= 0 ? ['#10b981'] : ['#f43f5e']),
+            };
+            new ApexCharts(document.querySelector("#salesSparkline"), salesOptions).render();
+
+            // Transactions Sparkline
+            const trxOptions = {
+                ...commonOptions,
+                series: [{ data: @json($sparklineTrx) }],
+                colors: @json($trxTrend >= 0 ? ['#3b82f6'] : ['#f43f5e']),
+            };
+            new ApexCharts(document.querySelector("#trxSparkline"), trxOptions).render();
+        }
+
+        function renderHourlyChart() {
+            const options = {
+                series: [{
+                    name: 'Jumlah Transaksi',
+                    type: 'column',
+                    data: @json($hourlyCounts)
+                }, {
+                    name: 'Total Penjualan (Rp)',
+                    type: 'area',
+                    data: @json($hourlyAmounts)
+                }],
+                chart: {
+                    height: 350,
+                    type: 'line',
+                    stacked: false,
+                    toolbar: {
+                        show: false
+                    },
+                    zoom: {
+                        enabled: false
+                    },
+                    fontFamily: 'Inter, sans-serif'
+                },
+                stroke: {
+                    width: [0, 3],
+                    curve: 'smooth'
+                },
+                plotOptions: {
+                    bar: {
+                        columnWidth: '50%',
+                        borderRadius: 4
+                    }
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        inverseColors: false,
+                        shade: 'light',
+                        type: "vertical",
+                        opacityFrom: [0.85, 0.4],
+                        opacityTo: [0.85, 0.1],
+                        stops: [0, 100, 100, 100]
+                    }
+                },
+                colors: ['#10b981', '#3b82f6'],
+                labels: @json($hourlyLabels),
+                markers: {
+                    size: 0
+                },
+                xaxis: {
+                    type: 'category',
+                    title: {
+                        text: 'Jam Operasional'
+                    }
+                },
+                yaxis: [{
+                    title: {
+                        text: 'Jumlah Transaksi',
+                    },
+                }, {
+                    opposite: true,
+                    title: {
+                        text: 'Nominal Penjualan (Rp)'
+                    },
+                    labels: {
+                        formatter: function(val) {
+                            return new Intl.NumberFormat('id-ID').format(val);
+                        }
+                    }
+                }],
+                tooltip: {
+                    shared: true,
+                    intersect: false,
+                    y: {
+                        formatter: function(y) {
+                            if (typeof y !== "undefined") {
+                                return new Intl.NumberFormat('id-ID').format(y);
+                            }
+                            return y;
+                        }
+                    }
+                },
+                legend: {
+                    show: false
+                },
+                theme: {
+                    mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+                }
+            };
+
+            const chart = new ApexCharts(document.querySelector("#hourlyTimelineChart"), options);
+            chart.render();
+            
+            // Re-render on dark mode toggle
+            window.addEventListener('darkModeChanged', () => {
+                chart.updateOptions({
+                    theme: {
+                        mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+                    }
+                });
+            });
+        }
+
+        function renderTopProductsChart() {
+            const options = {
+                series: [{
+                    name: 'Kuantitas Terjual',
+                    data: @json($topProductsCounts)
+                }],
+                chart: {
+                    type: 'bar',
+                    height: 350,
+                    toolbar: {
+                        show: false
+                    },
+                    fontFamily: 'Inter, sans-serif'
+                },
+                plotOptions: {
+                    bar: {
+                        borderRadius: 6,
+                        horizontal: true,
+                        distributed: true,
+                        barHeight: '60%',
+                    }
+                },
+                colors: [
+                    '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', 
+                    '#ec4899', '#06b6d4', '#84cc16', '#6366f1', '#f97316'
+                ],
+                dataLabels: {
+                    enabled: true,
+                    textAnchor: 'start',
+                    style: {
+                        colors: ['#fff']
+                    },
+                    formatter: function (val, opt) {
+                        return opt.w.globals.labels[opt.dataPointIndex] + ": " + val
+                    },
+                    offsetX: 0,
+                },
+                xaxis: {
+                    categories: @json($topProductsLabels),
+                    title: {
+                        text: 'Kuantitas (Item)'
+                    }
+                },
+                yaxis: {
+                    labels: {
+                        show: false
+                    }
+                },
+                title: {
+                    text: '',
+                    align: 'center',
+                },
+                tooltip: {
+                    theme: 'dark',
+                    y: {
+                        title: {
+                            formatter: function () {
+                                return 'Terjual'
+                            }
+                        }
+                    }
+                },
+                legend: {
+                    show: false
+                },
+                theme: {
+                    mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+                }
+            };
+
+            const chart = new ApexCharts(document.querySelector("#topProductsChart"), options);
+            chart.render();
+
+            window.addEventListener('darkModeChanged', () => {
+                chart.updateOptions({
+                    theme: {
+                        mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+                    }
+                });
+            });
+        }
+
+        function renderTopRevenueChart() {
+            const options = {
+                series: [{
+                    name: 'Total Revenue',
+                    data: @json($topRevenueAmounts)
+                }],
+                chart: {
+                    type: 'bar',
+                    height: 350,
+                    toolbar: {
+                        show: false
+                    },
+                    fontFamily: 'Inter, sans-serif'
+                },
+                plotOptions: {
+                    bar: {
+                        borderRadius: 6,
+                        horizontal: true,
+                        distributed: true,
+                        barHeight: '60%',
+                    }
+                },
+                colors: ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#ef4444', '#f97316', '#f59e0b'],
+                dataLabels: {
+                    enabled: true,
+                    textAnchor: 'middle',
+                    formatter: function (val) {
+                        return new Intl.NumberFormat('id-ID').format(val);
+                    }
+                },
+                xaxis: {
+                    categories: @json($topRevenueLabels),
+                    labels: {
+                        formatter: function (val) {
+                            return new Intl.NumberFormat('id-ID').format(val);
+                        }
+                    }
+                },
+                tooltip: {
+                    theme: 'dark',
+                    y: {
+                        formatter: function(val) {
+                            return 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
+                        }
+                    }
+                },
+                legend: { show: false },
+                theme: { mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light' }
+            };
+
+            const chart = new ApexCharts(document.querySelector("#topRevenueChart"), options);
+            chart.render();
+            window.addEventListener('darkModeChanged', () => chart.updateOptions({ theme: { mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light' } }));
+        }
+
+        function renderTopProfitChart() {
+            const options = {
+                series: [{
+                    name: 'Total Profit',
+                    data: @json($topProfitAmounts)
+                }],
+                chart: {
+                    type: 'bar',
+                    height: 350,
+                    toolbar: {
+                        show: false
+                    },
+                    fontFamily: 'Inter, sans-serif'
+                },
+                plotOptions: {
+                    bar: {
+                        borderRadius: 6,
+                        horizontal: true,
+                        distributed: true,
+                        barHeight: '60%',
+                    }
+                },
+                colors: ['#f59e0b', '#fbbf24', '#fbcf33', '#fcd34d', '#fde68a', '#fef3c7', '#fffbeb', '#fff', '#fef3c7', '#fde68a'],
+                dataLabels: {
+                    enabled: true,
+                    textAnchor: 'middle',
+                    formatter: function (val) {
+                        return new Intl.NumberFormat('id-ID').format(val);
+                    }
+                },
+                xaxis: {
+                    categories: @json($topProfitLabels),
+                    labels: {
+                        formatter: function (val) {
+                            return new Intl.NumberFormat('id-ID').format(val);
+                        }
+                    }
+                },
+                tooltip: {
+                    theme: 'dark',
+                    y: {
+                        formatter: function(val) {
+                            return 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
+                        }
+                    }
+                },
+                legend: { show: false },
+                theme: { mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light' }
+            };
+
+            const chart = new ApexCharts(document.querySelector("#topProfitChart"), options);
+            chart.render();
+            window.addEventListener('darkModeChanged', () => chart.updateOptions({ theme: { mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light' } }));
+        }
+
+        // Mouse Tracking for Glow Effect
+        document.querySelectorAll('.glass-glow-card').forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                card.style.setProperty('--x', `${x}%`);
+                card.style.setProperty('--y', `${y}%`);
+            });
+        });
+    });
+</script>
+@endpush
 @endsection

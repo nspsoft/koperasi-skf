@@ -15,7 +15,8 @@
         </div>
     </div>
 
-    <div class="max-w-4xl">
+    <div class="max-w-4xl" 
+         x-data="invoiceManager(@json($template->name === 'Invoice Penagihan'))">
         <div class="glass-card-solid p-6">
             <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-700 pb-2">Informasi Dokumen</h3>
             
@@ -27,8 +28,64 @@
                             <label class="form-label">{{ ucwords(str_replace('_', ' ', $placeholder)) }}</label>
                             @if(in_array($placeholder, ['isi_pemberitahuan']))
                                 {{-- Rich text editor handled separately --}}
-                            @elseif(in_array($placeholder, ['isi_pernyataan', 'alasan', 'agenda', 'keperluan', 'susunan_pengurus_lainnya', 'susunan_pengawas_lainnya']))
+                            @elseif(in_array($placeholder, ['isi_pernyataan', 'alasan', 'agenda', 'keperluan', 'susunan_pengurus_lainnya', 'susunan_pengawas_lainnya', 'alamat_tujuan']))
                                 <textarea name="{{ $placeholder }}" class="form-input" rows="4" required placeholder="Masukkan {{ str_replace('_', ' ', $placeholder) }}...">{{ old($placeholder, $defaults[$placeholder] ?? '') }}</textarea>
+                            @elseif($placeholder === 'item_tagihan' && $template->name === 'Invoice Penagihan')
+                                <div class="col-span-1 md:col-span-2 space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <label class="form-label mb-0">Rincian Item Tagihan</label>
+                                        <button type="button" @click="addItem()" class="text-xs font-bold text-primary-600 hover:text-primary-700 bg-primary-50 px-2 py-1 rounded border border-primary-200">
+                                            + Tambah Item
+                                        </button>
+                                    </div>
+                                    <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                                        <table class="w-full text-sm">
+                                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                                <tr>
+                                                    <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Item / Deskripsi</th>
+                                                    <th class="px-4 py-2 text-right text-xs font-bold text-gray-500 uppercase w-48">Nominal (Rp)</th>
+                                                    <th class="px-4 py-2 text-center w-12"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                                <template x-for="(item, index) in items" :key="index">
+                                                    <tr class="bg-white dark:bg-gray-900">
+                                                        <td class="px-3 py-2">
+                                                            <input type="text" x-model="item.desc" class="form-input text-sm !py-1" placeholder="Nama item...">
+                                                        </td>
+                                                        <td class="px-3 py-2">
+                                                            <input type="number" x-model.number="item.amount" class="form-input text-sm !py-1 text-right" placeholder="0">
+                                                        </td>
+                                                        <td class="px-3 py-2 text-center">
+                                                            <button type="button" @click="removeItem(index)" class="text-red-500 hover:text-red-700">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <textarea name="item_tagihan" x-model="formattedItemTagihan" class="hidden"></textarea>
+                                </div>
+                            @elseif($placeholder === 'total_tagihan' && $template->name === 'Invoice Penagihan')
+                                <div class="relative">
+                                    <input type="text" 
+                                           name="total_tagihan" 
+                                           x-model="formattedTotal"
+                                           class="form-input font-bold bg-gray-50 dark:bg-gray-800/50" 
+                                           readonly>
+                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400 uppercase">Otomatis</span>
+                                </div>
+                            @elseif($placeholder === 'terbilang' && $template->name === 'Invoice Penagihan')
+                                <div class="relative">
+                                    <input type="text" 
+                                           name="terbilang" 
+                                           x-model="computedTerbilang"
+                                           class="form-input italic bg-gray-50 dark:bg-gray-800/50" 
+                                           readonly>
+                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400 uppercase">Otomatis</span>
+                                </div>
                             @elseif($placeholder === 'periode')
                                 <input type="month" 
                                        name="{{ $placeholder }}" 
@@ -52,7 +109,7 @@
                                          <option value="{{ $defaults[$placeholder] }}" selected>{{ $defaults[$placeholder] }} (Saat Ini)</option>
                                     @endif
                                 </select>
-                            @elseif(in_array($placeholder, ['nomor_surat', 'no_surat', 'nomor']))
+                            @elseif(in_array($placeholder, ['nomor_surat', 'no_surat', 'nomor', 'nomor_invoice']))
                                 <div class="relative">
                                     <input type="text" 
                                            name="{{ $placeholder }}" 
@@ -212,6 +269,79 @@
             });
         </script>
         @endif
+
+        <script>
+            function invoiceManager(isInvoice) {
+                return {
+                    isInvoice: isInvoice,
+                    items: [
+                        { desc: 'Tagihan Iuran Wajib', amount: 100000 },
+                        { desc: 'Tagihan Pinjaman / Kredit Mart', amount: 0 }
+                    ],
+                    
+                    addItem() {
+                        this.items.push({ desc: '', amount: 0 });
+                    },
+                    
+                    removeItem(index) {
+                        if (this.items.length > 1) {
+                            this.items.splice(index, 1);
+                        }
+                    },
+                    
+                    get total() {
+                        return this.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                    },
+                    
+                    get formattedTotal() {
+                        return new Intl.NumberFormat('id-ID').format(this.total);
+                    },
+                    
+                    get computedTerbilang() {
+                        if (this.total === 0) return 'Nol Rupiah';
+                        return this.terbilangIndo(this.total) + ' Rupiah';
+                    },
+                    
+                    get formattedItemTagihan() {
+                        return this.items.map((item, index) => {
+                            const nominal = new Intl.NumberFormat('id-ID').format(item.amount || 0);
+                            return `${index + 1}. ${item.desc}\tRp ${nominal}`;
+                        }).join('\n');
+                    },
+                    
+                    terbilangIndo(n) {
+                        n = Math.floor(n);
+                        if (n < 0) return "Minus " + this.terbilangIndo(Math.abs(n));
+                        if (n === 0) return "";
+                        
+                        let words = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+                        let result = "";
+                        
+                        if (n < 12) {
+                            result = words[n];
+                        } else if (n < 20) {
+                            result = this.terbilangIndo(n - 10) + " Belas";
+                        } else if (n < 100) {
+                            result = this.terbilangIndo(Math.floor(n / 10)) + " Puluh " + this.terbilangIndo(n % 10);
+                        } else if (n < 200) {
+                            result = "Seratus " + this.terbilangIndo(n - 100);
+                        } else if (n < 1000) {
+                            result = this.terbilangIndo(Math.floor(n / 100)) + " Ratus " + this.terbilangIndo(n % 100);
+                        } else if (n < 2000) {
+                            result = "Seribu " + this.terbilangIndo(n - 1000);
+                        } else if (n < 1000000) {
+                            result = this.terbilangIndo(Math.floor(n / 1000)) + " Ribu " + this.terbilangIndo(n % 1000);
+                        } else if (n < 1000000000) {
+                            result = this.terbilangIndo(Math.floor(n / 1000000)) + " Juta " + this.terbilangIndo(n % 1000000);
+                        } else if (n < 1000000000000) {
+                            result = this.terbilangIndo(Math.floor(n / 1000000000)) + " Milyar " + this.terbilangIndo(n % 1000000000);
+                        }
+                        
+                        return result.trim().replace(/\s+/g, ' ');
+                    }
+                }
+            }
+        </script>
         @endpush
 
         <div class="mt-6 glass-card-solid p-4 bg-primary-50 dark:bg-primary-900/10 border-primary-100 dark:border-primary-800">

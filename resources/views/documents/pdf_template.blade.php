@@ -9,7 +9,7 @@
             font-size: 10pt;
             line-height: 1.4;
             color: #333;
-            margin: 0.5cm;
+            margin: 0;
         }
         .header-table {
             width: 100%;
@@ -42,25 +42,25 @@
         }
 
         .content {
-            margin-top: 20px;
+            margin-top: 15px;
         }
         table {
             border-collapse: collapse;
         }
         @page {
-            margin: 1.5cm 2cm 3cm 2cm; /* Increased bottom margin for footer */
+            margin: 1cm 1.25cm 2.2cm 1.25cm;
         }
         .footer {
             position: fixed;
-            bottom: -2cm;
+            bottom: -1.5cm;
             left: 0cm;
             right: 0cm;
-            height: 2.5cm;
+            height: 2cm;
             text-align: center;
             font-size: 8pt;
             color: #555;
             border-top: 1px solid #eee;
-            padding-top: 10px;
+            padding-top: 8px;
         }
         .footer table {
             width: 100%;

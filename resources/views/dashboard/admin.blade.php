@@ -113,9 +113,30 @@
                     <input id="toggleExConsignmentSeries" type="checkbox" class="mr-2 rounded border-gray-300 text-amber-500 focus:ring-amber-500">
                     Tampilkan Profit ex-Settlement Konsinyasi
                 </label>
+                <div class="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+                <label class="flex items-center text-xs text-gray-500 cursor-pointer select-none group">
+                    <input id="toggleAccumulated" type="checkbox" class="mr-2 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                    <span class="group-hover:text-primary-600 transition-colors font-semibold">Tampilkan Akumulasi</span>
+                </label>
             </div>
         </div>
         <div id="revenueProfitChart"></div>
+    </div>
+
+    <!-- Row: Operational Expenses (Wide) -->
+    <div class="glass-card-solid p-6 mb-8">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Biaya Operasional Bulanan</h2>
+                <p class="text-sm text-gray-500">Total beban operasional (gaji, listrik, pemeliharaan, dll) diluar HPP</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="flex items-center text-xs text-gray-500">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 mr-1"></span> Biaya Ops
+                </span>
+            </div>
+        </div>
+        <div id="operationalExpenseChart"></div>
     </div>
 
     <div id="dailyRevenueModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
@@ -514,8 +535,75 @@
         const closeModalButton = document.getElementById('closeDailyRevenueModal');
         const modalTitle = document.getElementById('dailyRevenueTitle');
         const toggleExConsignmentSeries = document.getElementById('toggleExConsignmentSeries');
+        const toggleAccumulated = document.getElementById('toggleAccumulated');
+        
+        // Data Sources
+        const rawMonthlyRevenue = @json($monthlyRevenue);
+        const rawMonthlyProfit = @json($monthlyProfit);
+        const rawMonthlyOperationalProfit = @json($monthlyOperationalProfit);
+        const rawMonthlyOperationalExpense = @json($monthlyOperationalExpense);
+
         let dailyChart = null;
         let revenueProfitChart = null;
+        let operationalExpenseChart = null;
+
+        const calculateCumulative = (values) => {
+            let sum = 0;
+            return values.map(v => {
+                sum += (v || 0);
+                return sum;
+            });
+        };
+
+        const updateChartMode = () => {
+            if (!revenueProfitChart) return;
+            
+            const isAccumulated = toggleAccumulated && toggleAccumulated.checked;
+            
+            const revenueData = isAccumulated ? calculateCumulative(rawMonthlyRevenue) : rawMonthlyRevenue;
+            const profitData = isAccumulated ? calculateCumulative(rawMonthlyProfit) : rawMonthlyProfit;
+            const operationalProfitData = isAccumulated ? calculateCumulative(rawMonthlyOperationalProfit) : rawMonthlyOperationalProfit;
+            const expenseData = isAccumulated ? calculateCumulative(rawMonthlyOperationalExpense) : rawMonthlyOperationalExpense;
+
+            revenueProfitChart.updateSeries([
+                { name: 'Omset', data: revenueData },
+                { name: 'Profit', data: profitData },
+                { name: 'Profit ex-Settlement Konsinyasi', data: operationalProfitData }
+            ]);
+
+            if (operationalExpenseChart) {
+                operationalExpenseChart.updateSeries([
+                    { name: 'Biaya Ops', data: expenseData }
+                ]);
+            }
+
+            // Adjust Y Axis if needed
+            const maxVal = Math.max(...revenueData);
+            revenueProfitChart.updateOptions({
+                yaxis: [{
+                    title: { text: isAccumulated ? 'Total Omset' : 'Omset', style: { color: '#6366f1' } },
+                    labels: {
+                        style: { colors: '#9ca3af' },
+                        formatter: (value) => 'Rp ' + (value / 1000000).toFixed(value >= 10000000 ? 0 : 1) + 'jt'
+                    }
+                }, {
+                    opposite: true,
+                    title: { text: isAccumulated ? 'Total Profit' : 'Profit', style: { color: '#10b981' } },
+                    labels: {
+                        style: { colors: '#9ca3af' },
+                        formatter: (value) => 'Rp ' + (value / 1000000).toFixed(value >= 10000000 ? 0 : 1) + 'jt'
+                    }
+                }]
+            });
+
+            if (operationalExpenseChart) {
+                operationalExpenseChart.updateOptions({
+                    yaxis: {
+                        title: { text: isAccumulated ? 'Total Biaya' : 'Biaya Ops', style: { color: '#f59e0b' } }
+                    }
+                });
+            }
+        };
 
         const syncExConsignmentSeriesVisibility = (chartInstance) => {
             if (!chartInstance) {
@@ -602,9 +690,17 @@
                 },
                 tooltip: {
                     theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+                    shared: true,
+                    intersect: false,
                     y: {
-                        formatter: function (val) {
-                            return 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
+                        formatter: function (val, { series, seriesIndex, dataPointIndex, w }) {
+                            let base = 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
+                            if ((seriesIndex === 1 || seriesIndex === 2) && series[0][dataPointIndex] > 0) {
+                                const omset = series[0][dataPointIndex];
+                                const margin = (val / omset) * 100;
+                                return base + ' <span class="ml-1 text-xs font-bold text-emerald-500">(' + margin.toFixed(1) + '%)</span>';
+                            }
+                            return base;
                         }
                     }
                 }
@@ -632,6 +728,12 @@
             toggleExConsignmentSeries.addEventListener('change', () => {
                 syncExConsignmentSeriesVisibility(revenueProfitChart);
                 syncExConsignmentSeriesVisibility(dailyChart);
+            });
+        }
+
+        if (toggleAccumulated) {
+            toggleAccumulated.addEventListener('change', () => {
+                updateChartMode();
             });
         }
 
@@ -674,7 +776,7 @@
             },
             colors: ['#6366f1', '#10b981', '#f59e0b'],
             fill: {
-                opacity: [1, 1]
+                opacity: [1, 1, 1]
             },
             labels: monthNames,
             xaxis: {
@@ -702,11 +804,19 @@
                 borderColor: '#e5e7eb',
                 strokeDashArray: 4
             },
-             tooltip: {
+            tooltip: {
                 theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+                shared: true,
+                intersect: false,
                 y: {
-                    formatter: function (val) {
-                        return 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
+                    formatter: function (val, { series, seriesIndex, dataPointIndex, w }) {
+                        let base = 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
+                        if ((seriesIndex === 1 || seriesIndex === 2) && series[0][dataPointIndex] > 0) {
+                            const omset = series[0][dataPointIndex];
+                            const margin = (val / omset) * 100;
+                            return base + ' <span class="ml-1 text-xs font-bold text-emerald-500">(' + margin.toFixed(1) + '%)</span>';
+                        }
+                        return base;
                     }
                 }
             }
@@ -716,6 +826,59 @@
         revenueProfitChart.render().then(() => {
             syncExConsignmentSeriesVisibility(revenueProfitChart);
         });
+
+        // Operational Expense Chart (Bar Only)
+        const expenseOptions = {
+            ...commonOptions,
+            series: [{
+                name: 'Biaya Ops',
+                data: rawMonthlyOperationalExpense
+            }],
+            chart: {
+                height: 250,
+                type: 'bar',
+                toolbar: { show: false },
+                fontFamily: 'Inter, sans-serif'
+            },
+            colors: ['#f59e0b'],
+            plotOptions: {
+                bar: {
+                    borderRadius: 4,
+                    columnWidth: '50%',
+                    distributed: false
+                }
+            },
+            labels: monthNames,
+            xaxis: {
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+                labels: {
+                    style: { colors: '#9ca3af' }
+                }
+            },
+            yaxis: {
+                title: { text: 'Biaya Ops', style: { color: '#f59e0b' } },
+                labels: {
+                    style: { colors: '#9ca3af' },
+                    formatter: (value) => 'Rp ' + (value / 1000000).toFixed(1) + 'jt'
+                }
+            },
+            grid: {
+                borderColor: '#e5e7eb',
+                strokeDashArray: 4
+            },
+            tooltip: {
+                theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+                y: {
+                    formatter: function (val) {
+                        return 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
+                    }
+                }
+            }
+        };
+
+        operationalExpenseChart = new ApexCharts(document.querySelector("#operationalExpenseChart"), expenseOptions);
+        operationalExpenseChart.render();
 
         // Sales Channel Chart (Donut)
         const salesChannelOptions = {

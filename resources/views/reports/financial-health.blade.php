@@ -184,6 +184,7 @@
 
 @push('scripts')
 <script>
+    window.runApex(() => {
     var trendData = @json($trends);
     
     var options = {
@@ -248,6 +249,7 @@
 
     var chart = new ApexCharts(document.querySelector("#trendChart"), options);
     chart.render();
+    });
 </script>
 @endpush
 @endsection

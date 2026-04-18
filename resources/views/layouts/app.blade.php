@@ -182,6 +182,33 @@
             @endif
         @endauth
 
+        <script>
+            window.runApex = function (cb) {
+                if (window.ApexCharts) {
+                    cb();
+                    return;
+                }
+                if (window.__apexLoading) {
+                    window.__apexQueue.push(cb);
+                    return;
+                }
+                window.__apexLoading = true;
+                window.__apexQueue = [cb];
+                const s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/apexcharts';
+                s.onload = () => {
+                    window.__apexLoading = false;
+                    const q = window.__apexQueue || [];
+                    window.__apexQueue = [];
+                    q.forEach(fn => fn());
+                };
+                s.onerror = () => {
+                    window.__apexLoading = false;
+                };
+                document.head.appendChild(s);
+            };
+        </script>
+
         @stack('scripts')
         
         <script>

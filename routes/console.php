@@ -130,7 +130,7 @@ Artisan::command('journals:generate-sales {--dry-run} {--from=} {--to=}', functi
     $errors = 0;
 
     DB::transaction(function () use ($transactions, $dryRun, &$generated, &$errors) {
-        foreach ($transactions as $trx) {
+        foreach ($transactions as $trx) {   
             try {
                 if (! $dryRun) {
                     \App\Services\JournalService::journalSale($trx);

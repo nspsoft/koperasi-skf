@@ -263,6 +263,7 @@ class DocumentController extends Controller
                     'item_tagihan' => "1. Tagihan Iuran Wajib\tRp 100.000\n2. Tagihan Kredit Mart\tRp ...",
                     'total_tagihan' => '100.000',
                     'terbilang' => 'Seratus Ribu Rupiah',
+                    'alamat_tujuan' => "Kawasan Industri Mitra Karawang\nBlok F2, Ds. Parungmulya\nCiampel, Karawang",
                 ];
             }
 
@@ -285,6 +286,7 @@ class DocumentController extends Controller
             $defaults['nomor_surat'] = $defaults['nomor_surat'] ?? $generatedNumber;
             $defaults['no_surat'] = $defaults['no_surat'] ?? $generatedNumber;
             $defaults['nomor'] = $defaults['nomor'] ?? $generatedNumber;
+            $defaults['nomor_invoice'] = $defaults['nomor_invoice'] ?? $generatedNumber;
         }
 
         // Fetch all active members for 'nama_anggota' dropdown
@@ -343,7 +345,7 @@ class DocumentController extends Controller
         }
 
         // Handle multiline textareas (convert key newlines to <br>)
-        $multilineKeys = ['agenda', 'isi_pernyataan', 'isi_pemberitahuan', 'alasan', 'keperluan', 'susunan_pengurus_lainnya', 'susunan_pengawas_lainnya', 'item_tagihan', 'catatan_pembayaran'];
+        $multilineKeys = ['agenda', 'isi_pernyataan', 'isi_pemberitahuan', 'alasan', 'keperluan', 'susunan_pengurus_lainnya', 'susunan_pengawas_lainnya', 'item_tagihan', 'catatan_pembayaran', 'alamat_tujuan', 'tujuan_penerima'];
         foreach ($multilineKeys as $key) {
             if (isset($data[$key])) {
                 $data[$key] = nl2br($data[$key]);
@@ -352,6 +354,61 @@ class DocumentController extends Controller
 
         // Update 'today' to be formal Indonesian Date (e.g. 17 Januari 2026) instead of 17/01/2026
         $data['today'] = $now->day.' '.$months[$now->month].' '.$now->year;
+
+        // Custom Layout for Invoice Penagihan (Split Items and Nominal)
+        if ($template->name === 'Invoice Penagihan' && isset($data['item_tagihan'])) {
+            // 1. Add NOMINAL column to header (Using Regex to be flexible with whitespace)
+            $content = preg_replace(
+                '/<th[^>]*>\s*RINCIAN TAGIHAN\s*<\/th>/i',
+                '<th style="border: 1px solid #000; padding: 8px; text-align: left; background-color: #f2f2f2;">RINCIAN TAGIHAN</th>
+                 <th style="border: 1px solid #000; padding: 8px; text-align: right; background-color: #f2f2f2; width: 140px;">NOMINAL (RP)</th>',
+                $content
+            );
+
+            // 2. Parse multi-line item_tagihan
+            // String format from Alpine.js is: "${index + 1}. ${item.desc}\tRp ${nominal}"
+            $rawItems = str_replace(['<br />', '<br>', '<br/>'], '', $data['item_tagihan']);
+            $lines = explode("\n", $rawItems);
+            $tableRows = '';
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if (empty($line)) continue;
+
+                $parts = explode("\t", $line);
+                if (count($parts) >= 2) {
+                    $desc = trim($parts[0]);
+                    $amount = trim($parts[1]);
+                    $tableRows .= "<tr>
+                        <td style='border: 1px solid #000; padding: 8px 10px; line-height: 1.4; vertical-align: top;'>{$desc}</td>
+                        <td style='border: 1px solid #000; padding: 8px 10px; text-align: right; line-height: 1.4; white-space: nowrap; vertical-align: top;'>{$amount}</td>
+                    </tr>";
+                } else {
+                    $tableRows .= "<tr>
+                        <td colspan='2' style='border: 1px solid #000; padding: 8px 10px; line-height: 1.4; vertical-align: top;'>{$line}</td>
+                    </tr>";
+                }
+            }
+
+            // 3. Replace the single-row placeholder with multiple rows
+            // We use (?s) for dot-all matching and \s* to handle any whitespace around the placeholder
+            $content = preg_replace(
+                '/<tr>\s*<td[^>]*>\s*{{item_tagihan}}\s*<\/td>\s*<\/tr>/is',
+                $tableRows,
+                $content
+            );
+
+            // 4. Update Footer (Total) to spanning 2 columns
+            $content = preg_replace(
+                '/<td[^>]*>\s*<strong>\s*TOTAL AKHIR:\s*Rp {{total_tagihan}}\s*<\/strong>\s*<\/td>/i',
+                '<td colspan="2" style="border: 1px solid #000; padding: 8px 10px; text-align: right; background-color: #f9f9f9; font-size: 11pt;">
+                    <strong>TOTAL AKHIR: Rp {{total_tagihan}}</strong>
+                </td>',
+                $content
+            );
+
+            // Clean up item_tagihan from data array so it doesn't get double replaced
+            unset($data['item_tagihan']);
+        }
 
         // Fix vertical alignment for Agenda row in Surat Undangan
         if ($template->name === 'Surat Undangan') {

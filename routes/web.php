@@ -131,6 +131,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
     Route::get('members/{member}/card', [App\Http\Controllers\MemberController::class, 'printCard'])->name('members.card');
     Route::get('members/{member}/digital-card', [App\Http\Controllers\MemberController::class, 'digitalCard'])->name('members.digital-card');
     Route::get('my-credits', [MemberController::class, 'myCredits'])->name('members.credits');
+    Route::post('installments/{installment}/pay', [App\Http\Controllers\CreditInstallmentController::class, 'pay'])->name('installments.pay');
     Route::get('members/{member}/transactions/print', [MemberController::class, 'printTransactionHistory'])->name('members.transactions.print');
 
     // Savings
@@ -398,6 +399,8 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
 
             // Roles & Permissions
             Route::get('roles', [App\Http\Controllers\RoleController::class, 'index'])->name('roles.index');
+            Route::get('roles/user/create', [App\Http\Controllers\RoleController::class, 'createUser'])->name('roles.user.create');
+            Route::post('roles/user', [App\Http\Controllers\RoleController::class, 'storeUser'])->name('roles.user.store');
             Route::get('roles/create', [App\Http\Controllers\RoleController::class, 'create'])->name('roles.create');
             Route::post('roles', [App\Http\Controllers\RoleController::class, 'store'])->name('roles.store');
             Route::get('roles/{role}/edit', [App\Http\Controllers\RoleController::class, 'edit'])->name('roles.edit');

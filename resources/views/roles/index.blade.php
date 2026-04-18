@@ -8,12 +8,20 @@
             <h1 class="page-title">Kelola Role & Hak Akses</h1>
             <p class="page-subtitle">Atur role dan permission untuk setiap user</p>
         </div>
-        <a href="{{ route('roles.create') }}" class="btn-primary">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-            </svg>
-            Buat Role Baru
-        </a>
+        <div class="flex gap-2">
+            <a href="{{ route('roles.user.create') }}" class="btn-secondary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                </svg>
+                Tambah User Sistem
+            </a>
+            <a href="{{ route('roles.create') }}" class="btn-primary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Buat Role Baru
+            </a>
+        </div>
     </div>
 
     @if(session('success'))

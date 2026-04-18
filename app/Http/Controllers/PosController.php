@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use App\Models\TransactionItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Models\User;
 use Carbon\Carbon;
 
 
@@ -189,14 +190,153 @@ class PosController extends Controller
             $query->where('type', $request->type);
         }
 
+        // Filter by cashier
+        if ($request->cashier_id) {
+            $query->where('cashier_id', $request->cashier_id);
+        }
+
         $transactions = $query->paginate(20);
 
-        // Get summary
-        $summaryQuery = Transaction::whereDate('created_at', now())->whereNot('status', 'cancelled');
-        $todaySales = $summaryQuery->sum('total_amount');
-        $todayCount = $summaryQuery->count();
+        // Get list of cashiers for filter (staff with roles admin, pengurus, manager_toko)
+        $cashiers = User::whereIn('role', ['admin', 'pengurus', 'manager_toko'])
+            ->orWhereHas('roleModel', function($q) {
+                $q->whereIn('name', ['admin', 'pengurus', 'manager_toko']);
+            })
+            ->orderBy('name')
+            ->get();
 
-        return view('commerce.pos.history', compact('transactions', 'todaySales', 'todayCount'));
+        // Get summary (Today vs Yesterday)
+        $todaySales = Transaction::whereDate('created_at', now())->whereNot('status', 'cancelled')->sum('total_amount');
+        $todayCount = Transaction::whereDate('created_at', now())->whereNot('status', 'cancelled')->count();
+        
+        $yesterdaySales = Transaction::whereDate('created_at', now()->subDay())->whereNot('status', 'cancelled')->sum('total_amount');
+        $yesterdayCount = Transaction::whereDate('created_at', now()->subDay())->whereNot('status', 'cancelled')->count();
+
+        // Trends (%)
+        $salesTrend = $yesterdaySales > 0 ? (($todaySales - $yesterdaySales) / $yesterdaySales) * 100 : ($todaySales > 0 ? 100 : 0);
+        $trxTrend = $yesterdayCount > 0 ? (($todayCount - $yesterdayCount) / $yesterdayCount) * 100 : ($todayCount > 0 ? 100 : 0);
+
+        // Weekly sparkline data (Last 7 days)
+        $weeklyStats = Transaction::where('created_at', '>=', now()->subDays(6))
+            ->whereNot('status', 'cancelled')
+            ->selectRaw('DATE(created_at) as date, SUM(total_amount) as total, COUNT(*) as count')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        $sparklineSales = [];
+        $sparklineTrx = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i)->format('Y-m-d');
+            $found = $weeklyStats->firstWhere('date', $date);
+            $sparklineSales[] = $found ? (float)$found->total : 0;
+            $sparklineTrx[] = $found ? (int)$found->count : 0;
+        }
+
+        // Get hourly stats for chart (Timeline)
+        // Group by hour from filtered transactions
+        $hourlyQuery = Transaction::selectRaw('HOUR(created_at) as hour, COUNT(*) as count, SUM(total_amount) as total')
+            ->whereNot('status', 'cancelled');
+
+        // Apply same filters to chart data
+        if ($request->start_date) {
+            $hourlyQuery->whereDate('created_at', '>=', $request->start_date);
+        }
+        if ($request->end_date) {
+            $hourlyQuery->whereDate('created_at', '<=', $request->end_date);
+        }
+        if ($request->type) {
+            $hourlyQuery->where('type', $request->type);
+        }
+        if ($request->cashier_id) {
+            $hourlyQuery->where('cashier_id', $request->cashier_id);
+        }
+
+        $rawHourlyStats = $hourlyQuery->groupBy('hour')
+            ->orderBy('hour')
+            ->get();
+
+        // Initialize 24-hour array
+        $hourlyLabels = [];
+        $hourlyCounts = [];
+        $hourlyAmounts = [];
+
+        for ($i = 0; $i < 24; $i++) {
+            $hourlyLabels[] = sprintf('%02d:00', $i);
+            $found = $rawHourlyStats->firstWhere('hour', $i);
+            $hourlyCounts[] = $found ? $found->count : 0;
+            $hourlyAmounts[] = $found ? (float)$found->total : 0;
+        }
+
+        // Get Top Products for Chart
+        $topProductsQuery = \App\Models\TransactionItem::query()
+            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_items.product_id', '=', 'products.id')
+            ->whereNotIn('transactions.status', ['cancelled'])
+            ->select('products.name', \DB::raw('SUM(transaction_items.quantity) as total_qty'))
+            ->groupBy('products.id', 'products.name')
+            ->orderByDesc('total_qty')
+            ->limit(10);
+
+        // Apply same filters 
+        if ($request->start_date) $topProductsQuery->whereDate('transactions.created_at', '>=', $request->start_date);
+        if ($request->end_date) $topProductsQuery->whereDate('transactions.created_at', '<=', $request->end_date);
+        if ($request->type) $topProductsQuery->where('transactions.type', $request->type);
+        if ($request->cashier_id) $topProductsQuery->where('transactions.cashier_id', $request->cashier_id);
+
+        $topProducts = $topProductsQuery->get();
+        $topProductsLabels = $topProducts->pluck('name');
+        $topProductsCounts = $topProducts->pluck('total_qty');
+
+        // Get Top Revenue Products
+        $topRevenueQuery = \App\Models\TransactionItem::query()
+            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_items.product_id', '=', 'products.id')
+            ->whereNotIn('transactions.status', ['cancelled'])
+            ->select('products.name', \DB::raw('SUM(transaction_items.subtotal) as total_revenue'))
+            ->groupBy('products.id', 'products.name')
+            ->orderByDesc('total_revenue')
+            ->limit(10);
+
+        if ($request->start_date) $topRevenueQuery->whereDate('transactions.created_at', '>=', $request->start_date);
+        if ($request->end_date) $topRevenueQuery->whereDate('transactions.created_at', '<=', $request->end_date);
+        if ($request->type) $topRevenueQuery->where('transactions.type', $request->type);
+        if ($request->cashier_id) $topRevenueQuery->where('transactions.cashier_id', $request->cashier_id);
+
+        $topRevenue = $topRevenueQuery->get();
+        $topRevenueLabels = $topRevenue->pluck('name');
+        $topRevenueAmounts = $topRevenue->pluck('total_revenue');
+
+        // Get Top Profit Products
+        $topProfitQuery = \App\Models\TransactionItem::query()
+            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_items.product_id', '=', 'products.id')
+            ->whereNotIn('transactions.status', ['cancelled'])
+            ->select(
+                'products.name', 
+                \DB::raw('SUM(transaction_items.subtotal - ((COALESCE(products.cost, 0) / GREATEST(COALESCE(products.conversion_factor, 1), 1)) * transaction_items.quantity)) as total_profit')
+            )
+            ->groupBy('products.id', 'products.name')
+            ->orderByDesc('total_profit')
+            ->limit(10);
+
+        if ($request->start_date) $topProfitQuery->whereDate('transactions.created_at', '>=', $request->start_date);
+        if ($request->end_date) $topProfitQuery->whereDate('transactions.created_at', '<=', $request->end_date);
+        if ($request->type) $topProfitQuery->where('transactions.type', $request->type);
+        if ($request->cashier_id) $topProfitQuery->where('transactions.cashier_id', $request->cashier_id);
+
+        $topProfit = $topProfitQuery->get();
+        $topProfitLabels = $topProfit->pluck('name');
+        $topProfitAmounts = $topProfit->pluck('total_profit');
+
+        return view('commerce.pos.history', compact(
+            'transactions', 'todaySales', 'todayCount', 'cashiers', 
+            'hourlyLabels', 'hourlyCounts', 'hourlyAmounts',
+            'topProductsLabels', 'topProductsCounts',
+            'topRevenueLabels', 'topRevenueAmounts',
+            'topProfitLabels', 'topProfitAmounts',
+            'salesTrend', 'trxTrend', 'sparklineSales', 'sparklineTrx'
+        ));
     }
 
     public function generateJournal(Transaction $transaction)
@@ -245,6 +385,15 @@ class PosController extends Controller
 
         if ($request->type) {
             $query->where('type', $request->type);
+        }
+
+        if ($request->cashier_id) {
+            $query->where('cashier_id', $request->cashier_id);
+        }
+
+        // Filter by cashier
+        if ($request->cashier_id) {
+            $query->where('cashier_id', $request->cashier_id);
         }
         
         // No pagination for print, get all matching
@@ -482,6 +631,10 @@ class PosController extends Controller
 
         if ($request->type) {
             $query->where('type', $request->type);
+        }
+
+        if ($request->cashier_id) {
+            $query->where('cashier_id', $request->cashier_id);
         }
 
         $transactions = $query->get();
@@ -785,6 +938,11 @@ class PosController extends Controller
         // Filter by type
         if ($request->type) {
             $query->where('transactions.type', $request->type);
+        }
+
+        // Filter by cashier
+        if ($request->cashier_id) {
+            $query->where('transactions.cashier_id', $request->cashier_id);
         }
 
         $items = $query->get();
