@@ -260,7 +260,7 @@ class DocumentController extends Controller
                     'tanggal_invoice' => date('Y-m-d'),
                     'jatuh_tempo' => date('Y-m-d', strtotime('+7 days')),
                     'catatan_pembayaran' => "Pembayaran dapat dilakukan melalui Transfer Bank ke Rekening Koperasi:\nBank: {$bankName}\nNo. Rekening: {$bankAccount}\na/n {$bankHolder}",
-                    'item_tagihan' => "1. Tagihan Iuran Wajib\tRp 100.000\n2. Tagihan Kredit Mart\tRp ...",
+                    'item_tagihan' => "1. Tagihan Iuran Wajib\t1\tRp 100.000\tRp 100.000\n2. Tagihan Kredit Mart\t1\tRp 0\tRp 0",
                     'total_tagihan' => '100.000',
                     'terbilang' => 'Seratus Ribu Rupiah',
                     'alamat_tujuan' => "Kawasan Industri Mitra Karawang\nBlok F2, Ds. Parungmulya\nCiampel, Karawang",
@@ -355,59 +355,9 @@ class DocumentController extends Controller
         // Update 'today' to be formal Indonesian Date (e.g. 17 Januari 2026) instead of 17/01/2026
         $data['today'] = $now->day.' '.$months[$now->month].' '.$now->year;
 
-        // Custom Layout for Invoice Penagihan (Split Items and Nominal)
+        // Custom Layout for Invoice Penagihan (Split Items and Nominal with Qty & Harga)
         if ($template->name === 'Invoice Penagihan' && isset($data['item_tagihan'])) {
-            // 1. Add NOMINAL column to header (Using Regex to be flexible with whitespace)
-            $content = preg_replace(
-                '/<th[^>]*>\s*RINCIAN TAGIHAN\s*<\/th>/i',
-                '<th style="border: 1px solid #000; padding: 8px; text-align: left; background-color: #f2f2f2;">RINCIAN TAGIHAN</th>
-                 <th style="border: 1px solid #000; padding: 8px; text-align: right; background-color: #f2f2f2; width: 140px;">NOMINAL (RP)</th>',
-                $content
-            );
-
-            // 2. Parse multi-line item_tagihan
-            // String format from Alpine.js is: "${index + 1}. ${item.desc}\tRp ${nominal}"
-            $rawItems = str_replace(['<br />', '<br>', '<br/>'], '', $data['item_tagihan']);
-            $lines = explode("\n", $rawItems);
-            $tableRows = '';
-            foreach ($lines as $line) {
-                $line = trim($line);
-                if (empty($line)) continue;
-
-                $parts = explode("\t", $line);
-                if (count($parts) >= 2) {
-                    $desc = trim($parts[0]);
-                    $amount = trim($parts[1]);
-                    $tableRows .= "<tr>
-                        <td style='border: 1px solid #000; padding: 8px 10px; line-height: 1.4; vertical-align: top;'>{$desc}</td>
-                        <td style='border: 1px solid #000; padding: 8px 10px; text-align: right; line-height: 1.4; white-space: nowrap; vertical-align: top;'>{$amount}</td>
-                    </tr>";
-                } else {
-                    $tableRows .= "<tr>
-                        <td colspan='2' style='border: 1px solid #000; padding: 8px 10px; line-height: 1.4; vertical-align: top;'>{$line}</td>
-                    </tr>";
-                }
-            }
-
-            // 3. Replace the single-row placeholder with multiple rows
-            // We use (?s) for dot-all matching and \s* to handle any whitespace around the placeholder
-            $content = preg_replace(
-                '/<tr>\s*<td[^>]*>\s*{{item_tagihan}}\s*<\/td>\s*<\/tr>/is',
-                $tableRows,
-                $content
-            );
-
-            // 4. Update Footer (Total) to spanning 2 columns
-            $content = preg_replace(
-                '/<td[^>]*>\s*<strong>\s*TOTAL AKHIR:\s*Rp {{total_tagihan}}\s*<\/strong>\s*<\/td>/i',
-                '<td colspan="2" style="border: 1px solid #000; padding: 8px 10px; text-align: right; background-color: #f9f9f9; font-size: 11pt;">
-                    <strong>TOTAL AKHIR: Rp {{total_tagihan}}</strong>
-                </td>',
-                $content
-            );
-
-            // Clean up item_tagihan from data array so it doesn't get double replaced
-            unset($data['item_tagihan']);
+            $this->applyInvoicePenagihanLayout($content, $data, false); // false = don't unset
         }
 
         // Fix vertical alignment for Agenda row in Surat Undangan
@@ -766,6 +716,10 @@ class DocumentController extends Controller
     {
         $content = $template->content;
 
+        if ($template->name === 'Invoice Penagihan' && isset($data['item_tagihan'])) {
+            $this->applyInvoicePenagihanLayout($content, $data, true); // true = unset to avoid double render in loop below
+        }
+
         foreach ($data as $key => $value) {
             // If value is array (for lampiran or complex data), we don't str_replace
             if (! is_array($value)) {
@@ -818,6 +772,79 @@ class DocumentController extends Controller
         ]);
 
         return $pdf->stream($template->name.'_'.$now->format('YmdHis').'.pdf');
+    }
+
+    private function applyInvoicePenagihanLayout(&$content, &$data, $shouldUnset = false)
+    {
+        // Fix loose line-height in the address block
+        $content = str_replace('line-height: 1.4;', 'line-height: 1.1;', $content);
+
+        // 1. Add QTY, HARGA, and NOMINAL columns to header
+        $content = preg_replace(
+            '/<th[^>]*>\s*RINCIAN TAGIHAN\s*<\/th>/i',
+            '<th style="border: 1px solid #000; padding: 8px; text-align: left; background-color: #f2f2f2;">RINCIAN TAGIHAN</th>
+             <th style="border: 1px solid #000; padding: 8px; text-align: center; background-color: #f2f2f2; width: 40px;">QTY</th>
+             <th style="border: 1px solid #000; padding: 8px; text-align: right; background-color: #f2f2f2; width: 90px;">HARGA</th>
+             <th style="border: 1px solid #000; padding: 8px; text-align: right; background-color: #f2f2f2; width: 110px;">NOMINAL (RP)</th>',
+            $content
+        );
+
+        // 2. Parse multi-line item_tagihan
+        // String format from Alpine.js is: "${index + 1}. ${item.desc}\t${qty}\tRp ${price}\tRp ${nominal}"
+        $rawItems = str_replace(['<br />', '<br>', '<br/>'], '', $data['item_tagihan']);
+        $lines = explode("\n", $rawItems);
+        $tableRows = '';
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+
+            $parts = explode("\t", $line);
+            if (count($parts) >= 4) {
+                $desc = trim($parts[0]);
+                $qty = trim($parts[1]);
+                $price = trim($parts[2]);
+                $amount = trim($parts[3]);
+                $tableRows .= "<tr>
+                    <td style='border: 1px solid #000; padding: 8px 10px; line-height: 1.2; vertical-align: top;'>{$desc}</td>
+                    <td style='border: 1px solid #000; padding: 8px 10px; text-align: center; line-height: 1.2; vertical-align: top;'>{$qty}</td>
+                    <td style='border: 1px solid #000; padding: 8px 10px; text-align: right; line-height: 1.2; white-space: nowrap; vertical-align: top;'>{$price}</td>
+                    <td style='border: 1px solid #000; padding: 8px 10px; text-align: right; line-height: 1.2; white-space: nowrap; vertical-align: top;'>{$amount}</td>
+                </tr>";
+            } elseif (count($parts) >= 2) {
+                $desc = trim($parts[0]);
+                $amount = trim($parts[1]);
+                $tableRows .= "<tr>
+                    <td style='border: 1px solid #000; padding: 8px 10px; line-height: 1.2; vertical-align: top;'>{$desc}</td>
+                    <td style='border: 1px solid #000; padding: 8px 10px; text-align: center; line-height: 1.2; vertical-align: top;'>-</td>
+                    <td style='border: 1px solid #000; padding: 8px 10px; text-align: right; line-height: 1.2; vertical-align: top;'>-</td>
+                    <td style='border: 1px solid #000; padding: 8px 10px; text-align: right; line-height: 1.2; white-space: nowrap; vertical-align: top;'>{$amount}</td>
+                </tr>";
+            } else {
+                $tableRows .= "<tr>
+                    <td colspan='4' style='border: 1px solid #000; padding: 8px 10px; line-height: 1.4; vertical-align: top;'>{$line}</td>
+                </tr>";
+            }
+        }
+
+        // 3. Replace the single-row placeholder with multiple rows
+        $content = preg_replace(
+            '/<tr>\s*<td[^>]*>\s*{{item_tagihan}}\s*<\/td>\s*<\/tr>/is',
+            $tableRows,
+            $content
+        );
+
+        // 4. Update Footer (Total) to spanning 4 columns
+        $content = preg_replace(
+            '/<td[^>]*>\s*<strong>\s*TOTAL AKHIR:\s*Rp {{total_tagihan}}\s*<\/strong>\s*<\/td>/i',
+            '<td colspan="4" style="border: 1px solid #000; padding: 8px 10px; text-align: right; background-color: #f9f9f9; font-size: 11pt;">
+                <strong>TOTAL AKHIR: Rp {{total_tagihan}}</strong>
+            </td>',
+            $content
+        );
+
+        if ($shouldUnset) {
+            unset($data['item_tagihan']);
+        }
     }
 
     private function numberToRoman($number)

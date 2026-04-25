@@ -129,6 +129,77 @@ class SavingController extends Controller
     }
 
     /**
+     * Update the specified saving in storage.
+     */
+    public function update(SavingRequest $request, Saving $saving)
+    {
+        if (!auth()->user()->hasAdminAccess()) {
+            abort(403);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $oldAmount = $saving->getRawOriginal('amount');
+            $oldDate = $saving->transaction_date;
+            $oldType = $saving->type;
+
+            // Check if accounting-critical data changed
+            $needsRejournal = (
+                (float)$oldAmount !== (float)$request->amount || 
+                ($oldDate ? $oldDate->format('Y-m-d') : '') !== $request->transaction_date || 
+                $oldType !== $request->type
+            );
+
+            if ($needsRejournal) {
+                // Delete existing journals
+                $savingMorph = (new Saving())->getMorphClass();
+                \App\Models\JournalEntry::whereIn('reference_type', array_unique([Saving::class, $savingMorph, 'saving']))
+                    ->where('reference_id', $saving->id)
+                    ->each(function ($journal) {
+                        $journal->lines()->delete();
+                        $journal->delete();
+                    });
+            }
+
+            $saving->update([
+                'type' => $request->type,
+                'transaction_type' => $request->transaction_type,
+                'amount' => $request->amount,
+                'transaction_date' => $request->transaction_date,
+                'reference_number' => $request->reference_number ?? $saving->reference_number,
+                'description' => $request->description,
+            ]);
+
+            if ($needsRejournal) {
+                // Re-create journal
+                if ($saving->transaction_type == 'deposit') {
+                    \App\Services\JournalService::journalSavingDeposit($saving);
+                } else {
+                    \App\Services\JournalService::journalSavingWithdrawal($saving);
+                }
+            }
+
+            \App\Models\AuditLog::log(
+                'update', 
+                "Update transaksi simpanan {$saving->reference_number}",
+                $saving
+            );
+
+            DB::commit();
+
+            return redirect()->route('savings.index')
+                ->with('success', 'Transaksi berhasil diperbarui');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal memperbarui transaksi: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Display the specified saving.
      */
     public function show(Saving $saving)

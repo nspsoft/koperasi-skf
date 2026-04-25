@@ -7,7 +7,7 @@
         body {
             font-family: 'Times New Roman', Times, serif;
             font-size: 10pt;
-            line-height: 1.4;
+            line-height: 1.2;
             color: #333;
             margin: 0;
         }

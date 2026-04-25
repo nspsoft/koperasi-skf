@@ -28,6 +28,7 @@ class SavingRequest extends FormRequest
             'transaction_type' => ['required', 'in:deposit,withdrawal'],
             'amount' => ['required', 'numeric', 'min:1000'],
             'transaction_date' => ['required', 'date'],
+            'reference_number' => ['nullable', 'string', 'max:50'],
             'description' => ['nullable', 'string', 'max:255'],
         ];
     }

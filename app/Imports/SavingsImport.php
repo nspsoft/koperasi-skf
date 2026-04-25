@@ -83,20 +83,69 @@ class SavingsImport implements OnEachRow, WithHeadingRow, WithValidation, SkipsO
 
         $savingId = $rowData['id_transaksi'] ?? null;
         if ($savingId) {
-            $saving = Saving::find($savingId);
+            $saving = Saving::where('id', $savingId)->with('member.user')->first();
             if (! $saving) {
                 return null;
             }
+            
+            $oldAmount = $saving->getRawOriginal('amount');
+            $oldDate = $saving->transaction_date;
+            $oldType = $saving->type;
+            $oldTrxType = $saving->transaction_type;
+
+            $newAmount = isset($rowData['jumlah']) ? (float) str_replace(['.', ','], ['', '.'], $rowData['jumlah']) : $oldAmount;
+            $newDate = isset($rowData['tanggal']) ? ($this->parseDate($rowData['tanggal']) ?? $oldDate) : $oldDate;
+            $newType = isset($rowData['jenis']) ? $this->normalizeAlphaLower($rowData['jenis']) : $oldType;
+            $newTrxType = isset($rowData['transaksi']) ? $this->parseTransactionType($rowData['transaksi']) : $oldTrxType;
+            
+            // Check if accounting-critical data changed
+            $needsRejournal = (
+                (float)$oldAmount !== (float)$newAmount || 
+                ($oldDate ? $oldDate->format('Y-m-d') : '') !== ($newDate ? $newDate->format('Y-m-d') : '') || 
+                $oldType !== $newType ||
+                $oldTrxType !== $newTrxType
+            );
+
+            if ($needsRejournal) {
+                // Delete existing journals for this saving
+                $savingMorph = (new Saving())->getMorphClass();
+                \App\Models\JournalEntry::whereIn('reference_type', array_unique([Saving::class, $savingMorph, 'saving']))
+                    ->where('reference_id', $saving->id)
+                    ->each(function ($journal) {
+                        $journal->lines()->delete();
+                        $journal->delete();
+                    });
+            }
+
             $saving->update([
+                'type' => $newType,
+                'transaction_type' => $newTrxType,
+                'amount' => $newAmount,
+                'transaction_date' => $newDate,
+                'reference_number' => $rowData['no_referensi'] ?? $saving->reference_number,
                 'description' => array_key_exists('keterangan', $rowData) ? $rowData['keterangan'] : $saving->description,
             ]);
+
+            if ($needsRejournal) {
+                // Re-create journal
+                try {
+                    $saving->refresh();
+                    if ($saving->transaction_type === 'deposit') {
+                        \App\Services\JournalService::journalSavingDeposit($saving, 'bank');
+                    } else {
+                        \App\Services\JournalService::journalSavingWithdrawal($saving, 'bank');
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning("Failed to recreate journal during update for saving #{$saving->id}: " . $e->getMessage());
+                }
+            }
+
             return $saving;
         }
 
         // Find member by member_id
         $memberId = isset($rowData['id_anggota']) ? $this->normalizeString($rowData['id_anggota']) : null;
         $member = $memberId ? Member::where('member_id', $memberId)->first() : null;
-        
         if (!$member) {
             return null; // Skip if member not found
         }

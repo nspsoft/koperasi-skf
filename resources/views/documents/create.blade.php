@@ -15,8 +15,8 @@
         </div>
     </div>
 
-    <div class="max-w-4xl" 
-         x-data="invoiceManager(@json($template->name === 'Invoice Penagihan'))">
+    <div class="max-w-6xl" 
+         x-data='invoiceManager(@json($template->name === "Invoice Penagihan"), @json($defaults["item_tagihan"] ?? ""))'>
         <div class="glass-card-solid p-6">
             <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-700 pb-2">Informasi Dokumen</h3>
             
@@ -24,14 +24,14 @@
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     @foreach($placeholders as $placeholder)
-                        <div>
+                        <div class="{{ in_array($placeholder, ['item_tagihan', 'total_tagihan', 'terbilang', 'isi_pernyataan', 'alasan', 'agenda', 'keperluan', 'susunan_pengurus_lainnya', 'susunan_pengawas_lainnya', 'alamat_tujuan', 'isi_pemberitahuan', 'catatan_pembayaran']) ? 'md:col-span-2' : '' }}">
                             <label class="form-label">{{ ucwords(str_replace('_', ' ', $placeholder)) }}</label>
                             @if(in_array($placeholder, ['isi_pemberitahuan']))
                                 {{-- Rich text editor handled separately --}}
                             @elseif(in_array($placeholder, ['isi_pernyataan', 'alasan', 'agenda', 'keperluan', 'susunan_pengurus_lainnya', 'susunan_pengawas_lainnya', 'alamat_tujuan']))
                                 <textarea name="{{ $placeholder }}" class="form-input" rows="4" required placeholder="Masukkan {{ str_replace('_', ' ', $placeholder) }}...">{{ old($placeholder, $defaults[$placeholder] ?? '') }}</textarea>
                             @elseif($placeholder === 'item_tagihan' && $template->name === 'Invoice Penagihan')
-                                <div class="col-span-1 md:col-span-2 space-y-3">
+                                <div class="space-y-3">
                                     <div class="flex items-center justify-between">
                                         <label class="form-label mb-0">Rincian Item Tagihan</label>
                                         <button type="button" @click="addItem()" class="text-xs font-bold text-primary-600 hover:text-primary-700 bg-primary-50 px-2 py-1 rounded border border-primary-200">
@@ -43,6 +43,8 @@
                                             <thead class="bg-gray-50 dark:bg-gray-800">
                                                 <tr>
                                                     <th class="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Item / Deskripsi</th>
+                                                    <th class="px-4 py-2 text-center text-xs font-bold text-gray-500 uppercase w-24">Qty</th>
+                                                    <th class="px-4 py-2 text-right text-xs font-bold text-gray-500 uppercase w-48">Harga (Rp)</th>
                                                     <th class="px-4 py-2 text-right text-xs font-bold text-gray-500 uppercase w-48">Nominal (Rp)</th>
                                                     <th class="px-4 py-2 text-center w-12"></th>
                                                 </tr>
@@ -51,10 +53,16 @@
                                                 <template x-for="(item, index) in items" :key="index">
                                                     <tr class="bg-white dark:bg-gray-900">
                                                         <td class="px-3 py-2">
-                                                            <input type="text" x-model="item.desc" class="form-input text-sm !py-1" placeholder="Nama item...">
+                                                            <input type="text" x-model="item.desc" class="form-input text-sm" placeholder="Nama item...">
                                                         </td>
                                                         <td class="px-3 py-2">
-                                                            <input type="number" x-model.number="item.amount" class="form-input text-sm !py-1 text-right" placeholder="0">
+                                                            <input type="number" x-model.number="item.qty" @input="calculateItemAmount(item)" class="form-input text-sm text-center" placeholder="1" step="any">
+                                                        </td>
+                                                        <td class="px-3 py-2">
+                                                            <input type="number" x-model.number="item.price" @input="calculateItemAmount(item)" class="form-input text-sm text-right" placeholder="0">
+                                                        </td>
+                                                        <td class="px-3 py-2">
+                                                            <input type="number" x-model.number="item.amount" class="form-input text-sm text-right bg-gray-50 dark:bg-gray-800/50" readonly placeholder="0">
                                                         </td>
                                                         <td class="px-3 py-2 text-center">
                                                             <button type="button" @click="removeItem(index)" class="text-red-500 hover:text-red-700">
@@ -271,16 +279,52 @@
         @endif
 
         <script>
-            function invoiceManager(isInvoice) {
+            function invoiceManager(isInvoice, initialItems) {
                 return {
                     isInvoice: isInvoice,
-                    items: [
-                        { desc: 'Tagihan Iuran Wajib', amount: 100000 },
-                        { desc: 'Tagihan Pinjaman / Kredit Mart', amount: 0 }
-                    ],
+                    items: [],
+                    
+                    init() {
+                        if (initialItems) {
+                            // Parse initial items (Format: "1. Desc\tQty\tRp Price\tRp Amount")
+                            const lines = initialItems.split('\n');
+                            this.items = lines.map(line => {
+                                const parts = line.split('\t');
+                                if (parts.length >= 4) {
+                                    return {
+                                        desc: parts[0].replace(/^\d+\.\s*/, ''),
+                                        qty: parseInt(parts[1]) || 1,
+                                        price: parseInt(parts[2].replace(/[^\d]/g, '')) || 0,
+                                        amount: parseInt(parts[3].replace(/[^\d]/g, '')) || 0
+                                    };
+                                } else if (parts.length >= 2) {
+                                    // Backward compatibility for old 2-part format
+                                    return {
+                                        desc: parts[0].replace(/^\d+\.\s*/, ''),
+                                        qty: 1,
+                                        price: parseInt(parts[1].replace(/[^\d]/g, '')) || 0,
+                                        amount: parseInt(parts[1].replace(/[^\d]/g, '')) || 0
+                                    };
+                                }
+                                return null;
+                            }).filter(i => i !== null);
+                        }
+                        
+                        // Default if empty
+                        if (this.items.length === 0) {
+                            this.items = [
+                                { desc: 'Tagihan Iuran Wajib', qty: 1, price: 100000, amount: 100000 },
+                                { desc: 'Tagihan Pinjaman / Kredit Mart', qty: 1, price: 0, amount: 0 }
+                            ];
+                        }
+                    },
+                    
+                    calculateItemAmount(item) {
+                        item.amount = (item.qty || 0) * (item.price || 0);
+                    },
                     
                     addItem() {
-                        this.items.push({ desc: '', amount: 0 });
+                        this.items.push({ desc: '', qty: 1, price: 0, amount: 0 });
                     },
                     
                     removeItem(index) {
@@ -304,8 +348,10 @@
                     
                     get formattedItemTagihan() {
                         return this.items.map((item, index) => {
+                            const qty = item.qty || 1;
+                            const price = new Intl.NumberFormat('id-ID').format(item.price || 0);
                             const nominal = new Intl.NumberFormat('id-ID').format(item.amount || 0);
-                            return `${index + 1}. ${item.desc}\tRp ${nominal}`;
+                            return `${index + 1}. ${item.desc}\t${qty}\tRp ${price}\tRp ${nominal}`;
                         }).join('\n');
                     },
                     

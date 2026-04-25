@@ -361,14 +361,17 @@ class JournalService
      */
     public static function getTotalRevenue($startDate, $endDate): float
     {
-        return JournalEntryLine::whereHas('account', function ($q) {
+        $sums = JournalEntryLine::whereHas('account', function ($q) {
                 $q->where('type', 'revenue');
             })
             ->whereHas('journalEntry', function ($q) use ($startDate, $endDate) {
                 $q->where('status', 'posted')
                     ->whereBetween('transaction_date', [$startDate, $endDate]);
             })
-            ->sum('credit');
+            ->select(DB::raw('SUM(credit) as total_credit'), DB::raw('SUM(debit) as total_debit'))
+            ->first();
+
+        return (float) (($sums->total_credit ?? 0) - ($sums->total_debit ?? 0));
     }
 
     /**
@@ -376,14 +379,17 @@ class JournalService
      */
     public static function getTotalExpenses($startDate, $endDate): float
     {
-        return JournalEntryLine::whereHas('account', function ($q) {
+        $sums = JournalEntryLine::whereHas('account', function ($q) {
                 $q->where('type', 'expense');
             })
             ->whereHas('journalEntry', function ($q) use ($startDate, $endDate) {
                 $q->where('status', 'posted')
                     ->whereBetween('transaction_date', [$startDate, $endDate]);
             })
-            ->sum('debit');
+            ->select(DB::raw('SUM(debit) as total_debit'), DB::raw('SUM(credit) as total_credit'))
+            ->first();
+
+        return (float) (($sums->total_debit ?? 0) - ($sums->total_credit ?? 0));
     }
 
     /**

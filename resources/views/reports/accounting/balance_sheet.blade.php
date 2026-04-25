@@ -127,6 +127,16 @@
                         </tr>
                         @endforeach
                         
+                        <!-- Laba Rugi Tahun Sebelumnya (Jika belum ditutup) -->
+                        @if($previousEarnings != 0)
+                        <tr class="bg-gray-50 dark:bg-gray-800/30">
+                            <td class="py-2 pl-2">Laba Rugi Tahun Sebelumnya (Unclosed)</td>
+                            <td class="text-right pr-2 py-2 font-mono {{ $previousEarnings >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                                {{ number_format($previousEarnings, 0, ',', '.') }}
+                            </td>
+                        </tr>
+                        @endif
+                        
                         <!-- Laba Rugi Berjalan (SHU) -->
                         <tr class="bg-yellow-50 dark:bg-yellow-900/10">
                             <td class="py-2 pl-2 font-medium">Laba Rugi Tahun Berjalan (SHU)</td>

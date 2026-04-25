@@ -202,6 +202,10 @@ class StockOpnameController extends Controller
             __('messages.stock_opname.table_col_system'),
             __('messages.stock_opname.table_col_actual'),
             __('messages.stock_opname.table_col_diff'),
+            __('messages.stock_opname.table_col_cost'),
+            __('messages.stock_opname.table_col_total_cost'),
+            __('messages.stock_opname.table_col_price'),
+            __('messages.stock_opname.table_col_total_price'),
             __('messages.stock_opname.table_col_notes')
         ];
         $col = 'A';
@@ -209,20 +213,37 @@ class StockOpnameController extends Controller
             $sheet->setCellValue($col . '8', $header);
             $col++;
         }
-        $sheet->getStyle('A8:G8')->getFont()->setBold(true);
-        $sheet->getStyle('A8:G8')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('4F46E5');
-        $sheet->getStyle('A8:G8')->getFont()->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle('A8:K8')->getFont()->setBold(true);
+        $sheet->getStyle('A8:K8')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('4F46E5');
+        $sheet->getStyle('A8:K8')->getFont()->getColor()->setRGB('FFFFFF');
 
         // Data
         $row = 9;
+        $totalOverallCost = 0;
+        $totalOverallPrice = 0;
         foreach ($stockOpname->items as $index => $item) {
+            $cost = $item->product->cost ?? 0;
+            $price = $item->product->price ?? 0;
+            $totalCostValue = $cost * $item->actual_stock;
+            $totalPriceValue = $price * $item->actual_stock;
+            
+            $totalOverallCost += $totalCostValue;
+            $totalOverallPrice += $totalPriceValue;
+
             $sheet->setCellValue('A' . $row, $index + 1);
             $sheet->setCellValue('B' . $row, $item->product->code ?? '-');
             $sheet->setCellValue('C' . $row, $item->product->name ?? '-');
             $sheet->setCellValue('D' . $row, $item->system_stock);
             $sheet->setCellValue('E' . $row, $item->actual_stock);
             $sheet->setCellValue('F' . $row, $item->difference);
-            $sheet->setCellValue('G' . $row, $item->notes ?? '-');
+            $sheet->setCellValue('G' . $row, $cost);
+            $sheet->setCellValue('H' . $row, $totalCostValue);
+            $sheet->setCellValue('I' . $row, $price);
+            $sheet->setCellValue('J' . $row, $totalPriceValue);
+            $sheet->setCellValue('K' . $row, $item->notes ?? '-');
+
+            // Format currency
+            $sheet->getStyle('G' . $row . ':J' . $row)->getNumberFormat()->setFormatCode('#,##0');
 
             // Color difference
             if ($item->difference < 0) {
@@ -235,7 +256,7 @@ class StockOpnameController extends Controller
         }
 
         // Auto-size columns
-        foreach (range('A', 'G') as $col) {
+        foreach (range('A', 'K') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -251,10 +272,16 @@ class StockOpnameController extends Controller
         $sheet->setCellValue('E' . $row, $totalActualStock);
         $sheet->setCellValue('F' . $row, $totalDifference);
         $sheet->setCellValue('G' . $row, '');
+        $sheet->setCellValue('H' . $row, $totalOverallCost);
+        $sheet->setCellValue('I' . $row, '');
+        $sheet->setCellValue('J' . $row, $totalOverallPrice);
+        $sheet->setCellValue('K' . $row, '');
         
         // Style total row
-        $sheet->getStyle('C' . $row . ':G' . $row)->getFont()->setBold(true);
-        $sheet->getStyle('C' . $row . ':G' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('E5E7EB');
+        $sheet->getStyle('C' . $row . ':K' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('C' . $row . ':K' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('E5E7EB');
+        $sheet->getStyle('H' . $row)->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle('J' . $row)->getNumberFormat()->setFormatCode('#,##0');
         
         // Color total difference
         if ($totalDifference < 0) {
@@ -267,7 +294,7 @@ class StockOpnameController extends Controller
 
         // Borders (include total row)
         if ($row > 9) {
-            $sheet->getStyle('A8:G' . ($row - 1))->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+            $sheet->getStyle('A8:K' . ($row - 1))->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
         }
 
         // Download using StreamedResponse

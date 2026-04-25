@@ -308,18 +308,23 @@ class ReportController extends Controller
             $account->current_balance = $balances[$account->code] ?? 0;
         }
 
-        // Calculate Current Earnings (Laba Rugi Berjalan)
+        // Calculate Historical Earnings (Laba Rugi Tahun-tahun Sebelumnya yang belum ditutup)
         $startOfYear = $date->copy()->startOfYear();
+        $previousRevenue = JournalService::getTotalRevenue(null, $startOfYear->copy()->subDay());
+        $previousExpense = JournalService::getTotalExpenses(null, $startOfYear->copy()->subDay());
+        $previousEarnings = $previousRevenue - $previousExpense;
+
+        // Calculate Current Earnings (Laba Rugi Berjalan)
         $revenue = JournalService::getTotalRevenue($startOfYear, $date);
         $expense = JournalService::getTotalExpenses($startOfYear, $date);
         $currentEarnings = $revenue - $expense;
 
         $totalAssets = $assets->sum('current_balance');
         $totalLiabilities = $liabilities->sum('current_balance');
-        $totalEquity = $equities->sum('current_balance') + $currentEarnings; 
+        $totalEquity = $equities->sum('current_balance') + $currentEarnings + $previousEarnings; 
 
         return view('reports.accounting.balance_sheet', compact(
-            'assets', 'liabilities', 'equities', 'currentEarnings',
+            'assets', 'liabilities', 'equities', 'currentEarnings', 'previousEarnings',
             'totalAssets', 'totalLiabilities', 'totalEquity', 'date'
         ));
     }
