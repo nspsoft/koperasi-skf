@@ -13,3 +13,7 @@ deployment:
     - /bin/cp composer.lock $DEPLOYPATH
     - export PUBLICPATH=/home/kopw7369/public_html/
     - /bin/cp -R public/* $PUBLICPATH
+    # Fix paths in public_html/index.php to point to kopkarskf
+    - /bin/sed -i "s|/../storage|/../kopkarskf/storage|g" $PUBLICPATH/index.php
+    - /bin/sed -i "s|/../vendor|/../kopkarskf/vendor|g" $PUBLICPATH/index.php
+    - /bin/sed -i "s|/../bootstrap|/../kopkarskf/bootstrap|g" $PUBLICPATH/index.php
