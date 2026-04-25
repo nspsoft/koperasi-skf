@@ -85,11 +85,12 @@
                             @endif
                         </td>
                         <td>
-                            <button type="button" 
-                                    onclick="openRestockModal({{ $product->id }}, '{{ addslashes($product->name) }}', {{ $product->stock }})"
-                                    class="btn-success-sm">
-                                + {{ __('messages.low_stock.btn_restock') }}
-                            </button>
+                            <a href="{{ route('purchases.create') }}" class="btn-primary-sm flex items-center justify-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                {{ __('messages.low_stock.btn_buy') ?? 'Beli' }}
+                            </a>
                         </td>
                     </tr>
                     @empty
@@ -113,54 +114,4 @@
         @endif
     </div>
 </div>
-
-<!-- Restock Modal -->
-<div id="restockModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
-        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">{{ __('messages.low_stock.modal_title') }}</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            {{ __('messages.low_stock.modal_product') }}: <strong id="modalProductName"></strong>
-        </p>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            {{ __('messages.low_stock.modal_current_stock') }}: <strong id="modalCurrentStock"></strong>
-        </p>
-        
-        <form id="restockForm" method="POST">
-            @csrf
-            <input type="hidden" name="type" value="add">
-            
-            <div class="mb-4">
-                <label class="form-label">{{ __('messages.low_stock.modal_quantity') }}</label>
-                <input type="number" name="quantity" min="1" value="10" class="form-input" required>
-            </div>
-            
-            <div class="flex gap-3">
-                <button type="button" onclick="closeRestockModal()" class="btn-secondary flex-1">{{ __('messages.cancel') }}</button>
-                <button type="submit" class="btn-success flex-1">{{ __('messages.low_stock.modal_btn_add') }}</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-@push('scripts')
-<script>
-    function openRestockModal(productId, productName, currentStock) {
-        document.getElementById('modalProductName').textContent = productName;
-        document.getElementById('modalCurrentStock').textContent = currentStock + ' unit';
-        document.getElementById('restockForm').action = '/inventory/' + productId + '/update-stock';
-        document.getElementById('restockModal').classList.remove('hidden');
-        document.getElementById('restockModal').classList.add('flex');
-    }
-    
-    function closeRestockModal() {
-        document.getElementById('restockModal').classList.add('hidden');
-        document.getElementById('restockModal').classList.remove('flex');
-    }
-    
-    // Close on outside click
-    document.getElementById('restockModal').addEventListener('click', function(e) {
-        if (e.target === this) closeRestockModal();
-    });
-</script>
-@endpush
 @endsection
