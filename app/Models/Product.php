@@ -143,6 +143,11 @@ class Product extends Model
         return round($this->reviews()->avg('rating') ?: 0, 1);
     }
 
+    public function transactionItems()
+    {
+        return $this->hasMany(TransactionItem::class);
+    }
+
     /**
      * Get product image URL - uploaded or auto-generated placeholder
      */

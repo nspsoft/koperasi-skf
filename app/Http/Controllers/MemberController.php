@@ -314,7 +314,14 @@ class MemberController extends Controller
             ->take(5)
             ->get();
 
-        return view('members.show', compact('member', 'stats', 'recentSavings', 'activeLoans', 'recentCredits'));
+        // Performance History
+        $performanceHistories = \App\Models\PerformanceHistory::where('user_id', $member->user_id)
+            ->with('admin')
+            ->latest()
+            ->take(10)
+            ->get();
+
+        return view('members.show', compact('member', 'stats', 'recentSavings', 'activeLoans', 'recentCredits', 'performanceHistories'));
     }
 
     /**
@@ -874,5 +881,52 @@ class MemberController extends Controller
             'totalPaid',
             'totalCredit'
         ));
+    }
+    /**
+     * Update member points (Performance Points).
+     */
+    public function updatePoints(Request $request, Member $member)
+    {
+        if (! auth()->user()->hasPermission('manage_members')) {
+            abort(403);
+        }
+
+        $request->validate([
+            'points' => 'required|integer|min:1',
+            'type' => 'required|in:add,deduct',
+            'reason' => 'required|string|max:255',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $change = $request->type === 'add' ? $request->points : -$request->points;
+            
+            // Update member points
+            $member->increment('points', $change);
+
+            // Record history
+            \App\Models\PerformanceHistory::create([
+                'user_id' => $member->user_id,
+                'admin_id' => auth()->id(),
+                'points_change' => $change,
+                'type' => $request->type === 'add' ? 'reward' : 'punishment',
+                'reason' => $request->reason,
+            ]);
+
+            \App\Models\AuditLog::log(
+                'update',
+                "Menyesuaikan poin anggota {$member->user->name}: " . ($change > 0 ? '+' : '') . $change . " poin. Alasan: {$request->reason}",
+                $member
+            );
+
+            DB::commit();
+
+            return redirect()->back()->with('success', 'Poin berhasil diperbarui.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal memperbarui poin: ' . $e->getMessage());
+        }
     }
 }

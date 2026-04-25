@@ -128,9 +128,20 @@ class ProfileController extends Controller
             ->get();
 
         $member = $request->user()->member;
+        $loyaltyPoints = 0;
+        $performancePoints = 0;
         $creditLimit = $member?->credit_limit ?? 500000;
         $creditUsed = 0;
+
         if ($member) {
+            $loyaltyPoints = \App\Models\PerformanceHistory::where('user_id', $request->user()->id)
+                ->where('type', 'loyalty')
+                ->sum('points_change');
+            
+            $performancePoints = \App\Models\PerformanceHistory::where('user_id', $request->user()->id)
+                ->whereIn('type', ['reward', 'punishment'])
+                ->sum('points_change');
+
             $creditUsed = \App\Models\Transaction::where('user_id', $request->user()->id)
                 ->where('payment_method', 'kredit')
                 ->whereNotIn('status', ['completed', 'cancelled'])
@@ -141,6 +152,8 @@ class ProfileController extends Controller
         return view('profile.edit', [
             'user' => $request->user(),
             'performanceHistories' => $performanceHistories,
+            'loyaltyPoints' => $loyaltyPoints,
+            'performancePoints' => $performancePoints,
             'creditLimit' => $creditLimit,
             'creditUsed' => $creditUsed,
             'creditAvailable' => $creditAvailable,

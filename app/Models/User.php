@@ -197,4 +197,20 @@ class User extends Authenticatable
             default => '#6b7280',
         };
     }
+
+    /**
+     * Get points from associated member.
+     */
+    public function getPointsAttribute(): int
+    {
+        return $this->member->points ?? 0;
+    }
+
+    /**
+     * Get points value in Rupiah from associated member.
+     */
+    public function getPointsValueAttribute(): float
+    {
+        return $this->member->points_value ?? 0;
+    }
 }

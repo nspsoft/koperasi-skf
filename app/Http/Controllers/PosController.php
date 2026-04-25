@@ -154,6 +154,14 @@ class PosController extends Controller
                     $earnedPoints = floor($total_amount / $earnRate);
                     if ($earnedPoints > 0) {
                         $member->increment('points', $earnedPoints);
+
+                        // Log to PerformanceHistory
+                        \App\Models\PerformanceHistory::create([
+                            'user_id' => $member->user_id,
+                            'points_change' => $earnedPoints,
+                            'type' => 'loyalty',
+                            'reason' => 'Poin Belanja (Invoice: ' . $transaction->invoice_number . ')',
+                        ]);
                     }
                 }
 
@@ -193,6 +201,11 @@ class PosController extends Controller
         // Filter by cashier
         if ($request->cashier_id) {
             $query->where('cashier_id', $request->cashier_id);
+        }
+
+        // Filter by payment method
+        if ($request->payment_method) {
+            $query->where('payment_method', $request->payment_method);
         }
 
         $transactions = $query->paginate(20);
@@ -251,6 +264,9 @@ class PosController extends Controller
         if ($request->cashier_id) {
             $hourlyQuery->where('cashier_id', $request->cashier_id);
         }
+        if ($request->payment_method) {
+            $hourlyQuery->where('payment_method', $request->payment_method);
+        }
 
         $rawHourlyStats = $hourlyQuery->groupBy('hour')
             ->orderBy('hour')
@@ -283,6 +299,7 @@ class PosController extends Controller
         if ($request->end_date) $topProductsQuery->whereDate('transactions.created_at', '<=', $request->end_date);
         if ($request->type) $topProductsQuery->where('transactions.type', $request->type);
         if ($request->cashier_id) $topProductsQuery->where('transactions.cashier_id', $request->cashier_id);
+        if ($request->payment_method) $topProductsQuery->where('transactions.payment_method', $request->payment_method);
 
         $topProducts = $topProductsQuery->get();
         $topProductsLabels = $topProducts->pluck('name');
@@ -329,13 +346,59 @@ class PosController extends Controller
         $topProfitLabels = $topProfit->pluck('name');
         $topProfitAmounts = $topProfit->pluck('total_profit');
 
+        // Payment Method Stats (Donut Chart)
+        $paymentMethodQuery = Transaction::whereNot('status', 'cancelled')
+            ->select('payment_method', \DB::raw('SUM(total_amount) as total'), \DB::raw('COUNT(*) as count'))
+            ->groupBy('payment_method');
+        
+        if ($request->start_date) $paymentMethodQuery->whereDate('created_at', '>=', $request->start_date);
+        if ($request->end_date) $paymentMethodQuery->whereDate('created_at', '<=', $request->end_date);
+        if ($request->type) $paymentMethodQuery->where('type', $request->type);
+        if ($request->cashier_id) $paymentMethodQuery->where('cashier_id', $request->cashier_id);
+        
+        $paymentMethodStats = $paymentMethodQuery->get()->map(function($item) {
+            $labels = [
+                'cash' => 'Tunai',
+                'kredit' => 'Kredit',
+                'transfer' => 'Transfer',
+                'poin' => 'Poin',
+                'saldo' => 'Saldo Simpanan',
+                'cash_pickup' => 'Ambil di Toko (Tunai)',
+                'qris' => 'QRIS'
+            ];
+            
+            return [
+                'method' => $labels[$item->payment_method] ?? ucfirst($item->payment_method ?: 'Tunai'),
+                'total' => (float)$item->total,
+                'count' => (int)$item->count
+            ];
+        });
+
+        // Cashier Stats (Donut Chart)
+        $cashierStatsQuery = Transaction::whereNot('status', 'cancelled')
+            ->join('users', 'transactions.cashier_id', '=', 'users.id')
+            ->select('users.name', \DB::raw('SUM(transactions.total_amount) as total'))
+            ->groupBy('users.id', 'users.name');
+
+        if ($request->start_date) $cashierStatsQuery->whereDate('transactions.created_at', '>=', $request->start_date);
+        if ($request->end_date) $cashierStatsQuery->whereDate('transactions.created_at', '<=', $request->end_date);
+        if ($request->type) $cashierStatsQuery->where('transactions.type', $request->type);
+        if ($request->payment_method) $cashierStatsQuery->where('transactions.payment_method', $request->payment_method);
+        
+        $cashierStats = $cashierStatsQuery->get()->map(function($item) {
+            return [
+                'name' => $item->name,
+                'total' => (float)$item->total
+            ];
+        });
+
         return view('commerce.pos.history', compact(
             'transactions', 'todaySales', 'todayCount', 'cashiers', 
             'hourlyLabels', 'hourlyCounts', 'hourlyAmounts',
             'topProductsLabels', 'topProductsCounts',
             'topRevenueLabels', 'topRevenueAmounts',
             'topProfitLabels', 'topProfitAmounts',
-            'salesTrend', 'trxTrend', 'sparklineSales', 'sparklineTrx'
+            'salesTrend', 'trxTrend', 'sparklineSales', 'sparklineTrx', 'paymentMethodStats', 'cashierStats'
         ));
     }
 
@@ -391,9 +454,8 @@ class PosController extends Controller
             $query->where('cashier_id', $request->cashier_id);
         }
 
-        // Filter by cashier
-        if ($request->cashier_id) {
-            $query->where('cashier_id', $request->cashier_id);
+        if ($request->payment_method) {
+            $query->where('payment_method', $request->payment_method);
         }
         
         // No pagination for print, get all matching
@@ -637,6 +699,10 @@ class PosController extends Controller
             $query->where('cashier_id', $request->cashier_id);
         }
 
+        if ($request->payment_method) {
+            $query->where('payment_method', $request->payment_method);
+        }
+
         $transactions = $query->get();
 
         // Create Excel file
@@ -697,7 +763,17 @@ class PosController extends Controller
             $sheet->setCellValue('E' . $row, ucfirst($transaction->type));
             $sheet->setCellValue('F' . $row, $transaction->items->sum('quantity'));
             $sheet->setCellValue('G' . $row, $transaction->total_amount);
-            $sheet->setCellValue('H' . $row, strtoupper($transaction->payment_method));
+            $methodLabels = [
+                'cash' => 'Tunai',
+                'kredit' => 'Kredit',
+                'transfer' => 'Transfer',
+                'poin' => 'Poin',
+                'saldo' => 'Saldo',
+                'cash_pickup' => 'Ambil di Toko',
+                'qris' => 'QRIS'
+            ];
+            $methodLabel = $methodLabels[$transaction->payment_method] ?? strtoupper($transaction->payment_method);
+            $sheet->setCellValue('H' . $row, $methodLabel);
             $sheet->setCellValue('I' . $row, $transaction->cashier->name ?? '-');
             $row++;
         }

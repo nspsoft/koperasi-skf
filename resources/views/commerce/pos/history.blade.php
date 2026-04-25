@@ -148,6 +148,15 @@
                         </option>
                     @endforeach
                 </select>
+                <select name="payment_method" class="form-input">
+                    <option value="">Semua Metode</option>
+                    <option value="cash" {{ request('payment_method') == 'cash' ? 'selected' : '' }}>Tunai</option>
+                    <option value="kredit" {{ request('payment_method') == 'kredit' ? 'selected' : '' }}>Kredit</option>
+                    <option value="transfer" {{ request('payment_method') == 'transfer' ? 'selected' : '' }}>Transfer</option>
+                    <option value="saldo" {{ request('payment_method') == 'saldo' ? 'selected' : '' }}>Saldo Simpanan</option>
+                    <option value="poin" {{ request('payment_method') == 'poin' ? 'selected' : '' }}>Poin</option>
+                    <option value="cash_pickup" {{ request('payment_method') == 'cash_pickup' ? 'selected' : '' }}>Ambil di Toko</option>
+                </select>
                 <div class="flex gap-1">
                     <button type="submit" class="btn-secondary">{{ __('messages.search') }}</button>
                 </div>
@@ -162,11 +171,15 @@
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white" 
                     x-text="activeChart === 'timeline' ? 'Timeline Penjualan' : 
                            (activeChart === 'products' ? 'Produk Terlaris (Qty)' : 
-                           (activeChart === 'revenue' ? 'Revenue Terbesar (Omzet)' : 'Profit Terbesar (Keuntungan)'))">Timeline Penjualan</h3>
+                           (activeChart === 'revenue' ? 'Revenue Terbesar (Omzet)' : 
+                           (activeChart === 'profit' ? 'Profit Terbesar (Keuntungan)' : 
+                           (activeChart === 'payment_method' ? 'Metode Pembayaran' : 'Performa Kasir'))))">Timeline Penjualan</h3>
                 <p class="text-sm text-gray-500" 
                    x-text="activeChart === 'timeline' ? 'Analisis jam-jam sibuk transaksi' : 
                           (activeChart === 'products' ? '10 produk dengan kuantitas penjualan terbanyak' : 
-                          (activeChart === 'revenue' ? '10 produk penyumbang omzet tertinggi' : '10 produk dengan margin keuntungan total tertinggi'))">Analisis jam-jam sibuk transaksi</p>
+                          (activeChart === 'revenue' ? '10 produk penyumbang omzet tertinggi' : 
+                          (activeChart === 'profit' ? '10 produk dengan margin keuntungan total tertinggi' : 
+                          (activeChart === 'payment_method' ? 'Komposisi metode pembayaran yang digunakan' : 'Perbandingan total penjualan per kasir'))))">Analisis jam-jam sibuk transaksi</p>
             </div>
             
             <div class="flex flex-col items-end gap-3">
@@ -191,6 +204,16 @@
                             :class="activeChart === 'profit' ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600' : 'text-gray-500 hover:text-gray-700'"
                             class="px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200">
                         Profit
+                    </button>
+                    <button @click="activeChart = 'payment_method'" 
+                            :class="activeChart === 'payment_method' ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600' : 'text-gray-500 hover:text-gray-700'"
+                            class="px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200">
+                        Metode Bayar
+                    </button>
+                    <button @click="activeChart = 'cashiers'" 
+                            :class="activeChart === 'cashiers' ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600' : 'text-gray-500 hover:text-gray-700'"
+                            class="px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-200">
+                        Kasir
                     </button>
                 </div>
 
@@ -223,6 +246,14 @@
 
         <div x-show="activeChart === 'profit'" x-cloak x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
             <div id="topProfitChart" style="min-height: 350px;"></div>
+        </div>
+
+        <div x-show="activeChart === 'payment_method'" x-cloak x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+            <div id="paymentMethodChart" style="min-height: 350px;"></div>
+        </div>
+
+        <div x-show="activeChart === 'cashiers'" x-cloak x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+            <div id="cashierPerformanceChart" style="min-height: 350px;"></div>
         </div>
     </div>
 
@@ -266,7 +297,22 @@
                                 {{ $trx->items->count() }} item
                             </button>
                         </td>
-                        <td class="px-6 py-4 capitalize text-gray-700 dark:text-gray-300">{{ str_replace('_', ' ', $trx->payment_method) }}</td>
+                        <td class="px-6 py-4">
+                            @php
+                                $methodLabels = [
+                                    'cash' => 'Tunai',
+                                    'kredit' => 'Kredit',
+                                    'transfer' => 'Transfer',
+                                    'poin' => 'Poin',
+                                    'saldo' => 'Saldo',
+                                    'cash_pickup' => 'Ambil di Toko',
+                                    'qris' => 'QRIS'
+                                ];
+                                $method = $trx->payment_method;
+                                $label = $methodLabels[$method] ?? ucfirst(str_replace('_', ' ', $method));
+                            @endphp
+                            <span class="text-gray-700 dark:text-gray-300">{{ $label }}</span>
+                        </td>
                         <td class="px-6 py-4 font-bold text-gray-900 dark:text-white">Rp {{ number_format($trx->total_amount, 0, ',', '.') }}</td>
                         <td class="px-6 py-4">
                             @if($trx->status == 'completed' || $trx->status == 'paid' || $trx->status == 'delivered')
@@ -618,6 +664,8 @@
                 renderTopProductsChart();
                 renderTopRevenueChart();
                 renderTopProfitChart();
+                renderPaymentMethodChart();
+                renderCashierChart();
                 renderSparklines();
             });
         } else {
@@ -625,6 +673,8 @@
             renderTopProductsChart();
             renderTopRevenueChart();
             renderTopProfitChart();
+            renderPaymentMethodChart();
+            renderCashierChart();
             renderSparklines();
         }
 
@@ -962,6 +1012,90 @@
             };
 
             const chart = new ApexCharts(document.querySelector("#topProfitChart"), options);
+            chart.render();
+            window.addEventListener('darkModeChanged', () => chart.updateOptions({ theme: { mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light' } }));
+        }
+
+        function renderPaymentMethodChart() {
+            const stats = @json($paymentMethodStats);
+            const options = {
+                series: stats.map(s => s.total),
+                labels: stats.map(s => s.method),
+                chart: {
+                    type: 'donut',
+                    height: 350,
+                    fontFamily: 'Inter, sans-serif'
+                },
+                colors: ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444'],
+                stroke: { show: false },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '70%',
+                            labels: {
+                                show: true,
+                                total: {
+                                    show: true,
+                                    label: 'Total Omzet',
+                                    formatter: function (w) {
+                                        return 'Rp ' + new Intl.NumberFormat('id-ID').format(w.globals.seriesTotals.reduce((a, b) => a + b, 0));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                legend: { position: 'bottom' },
+                tooltip: {
+                    y: {
+                        formatter: function(val, { seriesIndex, w }) {
+                            const count = stats[seriesIndex].count;
+                            return 'Rp ' + new Intl.NumberFormat('id-ID').format(val) + ' (' + count + ' Trx)';
+                        }
+                    }
+                },
+                theme: { mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light' }
+            };
+
+            const chart = new ApexCharts(document.querySelector("#paymentMethodChart"), options);
+            chart.render();
+            window.addEventListener('darkModeChanged', () => chart.updateOptions({ theme: { mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light' } }));
+        }
+
+        function renderCashierChart() {
+            const stats = @json($cashierStats);
+            const options = {
+                series: stats.map(s => s.total),
+                labels: stats.map(s => s.name),
+                chart: {
+                    type: 'donut',
+                    height: 350,
+                    fontFamily: 'Inter, sans-serif'
+                },
+                colors: ['#6366f1', '#8b5cf6', '#d946ef', '#f43f5e', '#f59e0b', '#10b981'],
+                stroke: { show: false },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '70%',
+                            labels: {
+                                show: true,
+                                total: {
+                                    show: true,
+                                    label: 'Total Omzet',
+                                    formatter: function (w) {
+                                        return 'Rp ' + new Intl.NumberFormat('id-ID').format(w.globals.seriesTotals.reduce((a, b) => a + b, 0));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                legend: { position: 'bottom' },
+                theme: { mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light' }
+            };
+
+            const chart = new ApexCharts(document.querySelector("#cashierPerformanceChart"), options);
             chart.render();
             window.addEventListener('darkModeChanged', () => chart.updateOptions({ theme: { mode: document.documentElement.classList.contains('dark') ? 'dark' : 'light' } }));
         }

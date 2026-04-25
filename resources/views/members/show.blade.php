@@ -155,10 +155,10 @@
         <!-- Financial Overview -->
         <div class="lg:col-span-2 space-y-6">
             <!-- Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
                 <div class="glass-card p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-200/20">
                     <p class="text-sm text-gray-600 dark:text-gray-300">Total Simpanan</p>
-                    <p class="text-2xl font-bold text-green-600 dark:text-green-400">Rp {{ number_format($stats['total_savings'], 0, ',', '.') }}</p>
+                    <p class="text-2xl font-bold text-green-600 dark:text-green-400 text-sm xl:text-lg">Rp {{ number_format($stats['total_savings'], 0, ',', '.') }}</p>
                 </div>
                 <div class="glass-card p-4 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border-blue-200/20">
                     <p class="text-sm text-gray-600 dark:text-gray-300">Pinjaman Aktif</p>
@@ -166,11 +166,18 @@
                 </div>
                 <div class="glass-card p-4 bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-200/20">
                     <p class="text-sm text-gray-600 dark:text-gray-300">Sisa Pinjaman</p>
-                    <p class="text-2xl font-bold text-amber-600 dark:text-amber-400">Rp {{ number_format($stats['total_loan_amount'], 0, ',', '.') }}</p>
+                    <p class="text-2xl font-bold text-amber-600 dark:text-amber-400 text-sm xl:text-lg">Rp {{ number_format($stats['total_loan_amount'], 0, ',', '.') }}</p>
                 </div>
                 <div class="glass-card p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-200/20">
                     <p class="text-sm text-gray-600 dark:text-gray-300">Kredit Belanja</p>
-                    <p class="text-2xl font-bold text-purple-600 dark:text-purple-400">Rp {{ number_format($stats['unpaid_credit'], 0, ',', '.') }}</p>
+                    <p class="text-2xl font-bold text-purple-600 dark:text-purple-400 text-sm xl:text-lg">Rp {{ number_format($stats['unpaid_credit'], 0, ',', '.') }}</p>
+                </div>
+                <div class="glass-card p-4 bg-gradient-to-br from-orange-500/10 to-yellow-500/10 border-orange-200/20">
+                    <p class="text-sm text-gray-600 dark:text-gray-300">Total Poin</p>
+                    <div class="flex flex-col">
+                        <p class="text-2xl font-bold text-orange-600 dark:text-orange-400">{{ number_format($member->points, 0, ',', '.') }}</p>
+                        <p class="text-[10px] text-gray-500">≈ Rp {{ number_format($member->points_value, 0, ',', '.') }}</p>
+                    </div>
                 </div>
             </div>
 
@@ -337,6 +344,105 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            <!-- Performance Points History -->
+            <div class="glass-card-solid p-6" x-data="{ showPointsModal: false }">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                        </svg>
+                        Riwayat Poin Performa
+                    </h3>
+                    @if(auth()->user()->isAdmin())
+                    <button @click="showPointsModal = true" class="btn-primary !py-1.5 !px-3 text-xs flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Sesuaikan Poin
+                    </button>
+                    @endif
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-gray-50 dark:bg-gray-800 text-gray-500 text-xs">
+                            <tr>
+                                <th class="px-4 py-3 rounded-l-lg">Tanggal</th>
+                                <th class="px-4 py-3">Poin</th>
+                                <th class="px-4 py-3">Tipe</th>
+                                <th class="px-4 py-3">Alasan</th>
+                                <th class="px-4 py-3 rounded-r-lg">Admin</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                            @forelse($performanceHistories as $history)
+                            <tr>
+                                <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $history->created_at->format('d/m/Y') }}</td>
+                                <td class="px-4 py-3 font-bold {{ $history->points_change > 0 ? 'text-green-600' : 'text-red-600' }}">
+                                    {{ $history->points_change > 0 ? '+' : '' }}{{ $history->points_change }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase {{ $history->type === 'reward' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                                        {{ $history->type === 'reward' ? 'Reward' : 'Punishment' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{{ $history->reason }}</td>
+                                <td class="px-4 py-3 text-[10px] text-gray-500">{{ $history->admin->name ?? 'System' }}</td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                                    Belum ada riwayat poin performa
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                @if(auth()->user()->isAdmin())
+                <!-- Manual Points Adjustment Modal -->
+                <div x-show="showPointsModal" 
+                     class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm"
+                     x-cloak
+                     style="display: none;"
+                     @keydown.escape.window="showPointsModal = false">
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden" @click.away="showPointsModal = false">
+                        <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Sesuaikan Poin Performa</h3>
+                            <button @click="showPointsModal = false" class="text-gray-400 hover:text-gray-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                        <form action="{{ route('members.update-points', $member) }}" method="POST" class="p-6 space-y-4">
+                            @csrf
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="form-label text-xs">Tipe Perubahan</label>
+                                    <select name="type" class="form-input text-sm" required>
+                                        <option value="add">Tambah (Reward)</option>
+                                        <option value="deduct">Kurangi (Punishment)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label text-xs">Jumlah Poin</label>
+                                    <input type="number" name="points" min="1" class="form-input text-sm" placeholder="0" required>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label text-xs">Alasan / Keterangan</label>
+                                <textarea name="reason" rows="3" class="form-input text-sm" placeholder="Contoh: Kedisiplinan, Prestasi, dll" required></textarea>
+                            </div>
+                            <div class="flex justify-end gap-3 pt-4">
+                                <button type="button" @click="showPointsModal = false" class="btn-secondary !text-xs">Batal</button>
+                                <button type="submit" class="btn-primary bg-orange-600 hover:bg-orange-700 !text-xs">Simpan Perubahan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
     </div>

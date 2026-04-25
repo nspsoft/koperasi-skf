@@ -83,6 +83,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
     Route::get('members/export', [App\Http\Controllers\MemberController::class, 'export'])->name('members.export');
     Route::resource('members', App\Http\Controllers\MemberController::class);
     Route::post('members/{member}/toggle-status', [App\Http\Controllers\MemberController::class, 'toggleStatus'])->name('members.toggle-status');
+    Route::post('members/{member}/points', [App\Http\Controllers\MemberController::class, 'updatePoints'])->name('members.update-points');
 
     // Admin Only Core Routes
     Route::middleware('can:admin')->group(function() {
@@ -108,7 +109,8 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
         Route::put('organization/profiles/{profile}', [App\Http\Controllers\OrganizationController::class, 'updateProfile'])->name('organization.profiles.update');
         Route::delete('organization/profiles/{profile}', [App\Http\Controllers\OrganizationController::class, 'destroyProfile'])->name('organization.profiles.destroy');
 
-        // Inventory Alerts
+        // Inventory Dashboard & Alerts
+        Route::get('inventory/dashboard', [App\Http\Controllers\InventoryController::class, 'dashboard'])->name('inventory.dashboard');
         Route::get('inventory/low-stock', [App\Http\Controllers\InventoryController::class, 'lowStock'])->name('inventory.low-stock');
 
         // Stock Opname
