@@ -186,10 +186,10 @@ class ProductController extends Controller
         ]);
 
         $data = $request->all();
-        $data['is_consignment'] = $request->has('is_consignment'); // Handle boolean checkbox
-        $data['is_preorder'] = $request->has('is_preorder'); 
-        $data['is_active'] = $request->has('is_active'); 
-        $data['is_credit_eligible'] = $request->has('is_credit_eligible');
+        $data['is_consignment'] = $request->boolean('is_consignment');
+        $data['is_preorder'] = $request->boolean('is_preorder'); 
+        $data['is_active'] = $request->boolean('is_active'); 
+        $data['is_credit_eligible'] = $request->boolean('is_credit_eligible');
         $data['credit_tenors'] = $data['is_credit_eligible'] ? $request->input('credit_tenors', []) : null;
 
         if ($request->hasFile('image')) {
