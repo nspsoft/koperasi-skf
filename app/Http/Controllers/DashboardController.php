@@ -20,8 +20,8 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
         
-        // Admin/Pengurus Dashboard
-        if ($user->hasAdminAccess()) {
+        // Admin/Staff Dashboard
+        if ($user->hasAdminAccess() || $user->isManagerToko() || $user->isKasir()) {
             return $this->adminDashboard();
         }
         

@@ -520,6 +520,7 @@ return [
         'status_critical' => 'Kritis',
         'status_low' => 'Rendah',
         'btn_restock' => 'Restock',
+        'btn_buy' => 'Beli',
         'empty_title' => 'Semua stok dalam kondisi baik!',
         'empty_desc' => 'Tidak ada produk dengan stok rendah saat ini.',
         'modal_title' => 'Tambah Stok',

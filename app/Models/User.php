@@ -147,6 +147,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is cashier.
+     */
+    public function isKasir(): bool
+    {
+        return $this->role === 'kasir';
+    }
+
+    /**
+     * Check if user is staff (any role except member).
+     */
+    public function isStaff(): bool
+    {
+        return in_array($this->role, ['admin', 'pengurus', 'manager_toko', 'kasir']);
+    }
+
+    /**
      * Check if user has store management access (admin, pengurus, or manager_toko).
      */
     public function hasStoreAccess(): bool

@@ -580,7 +580,11 @@ class MemberController extends Controller
 
         if ($newStatus === 'active' && $member->user && $member->user->email) {
             $member->refresh();
-            $member->user->notify(new MemberActivatedNotification($member));
+            try {
+                $member->user->notify(new MemberActivatedNotification($member));
+            } catch (\Exception $e) {
+                \Log::error('Gagal mengirim email aktivasi: ' . $e->getMessage());
+            }
         }
 
         return redirect()->back()
