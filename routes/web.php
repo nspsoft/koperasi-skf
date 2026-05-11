@@ -18,6 +18,7 @@ use App\Http\Controllers\SavingController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\MemberAspirationController;
+use App\Http\Controllers\AttendanceController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingController::class, 'index'])->name('landing');
@@ -465,6 +466,11 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
         Route::get('pos/credits', [PosController::class, 'credits'])->name('pos.credits');
         Route::post('pos/credits/remind-all', [PosController::class, 'remindAll'])->name('pos.credits.remind-all');
         Route::post('pos/credits/{transaction}/pay', [PosController::class, 'payCredit'])->name('pos.credits.pay');
+        
+        // Attendance
+        Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+        Route::post('attendance/clock-in', [AttendanceController::class, 'clockIn'])->name('attendance.clock-in');
+        Route::post('attendance/clock-out', [AttendanceController::class, 'clockOut'])->name('attendance.clock-out');
     });
 
     // Member voting (show must stay below create to avoid conflict)

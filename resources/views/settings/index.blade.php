@@ -164,6 +164,35 @@
                 </div>
             </div>
 
+            <!-- Attendance Configuration -->
+            <div class="glass-card-solid p-6">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    Lokasi Toko (Absensi)
+                </h3>
+
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-group">
+                            <label class="form-label">Latitude Toko</label>
+                            <input type="text" name="store_latitude" value="{{ $settings['store_latitude'] ?? '-6.200000' }}" class="form-input" placeholder="-6.200000">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Longitude Toko</label>
+                            <input type="text" name="store_longitude" value="{{ $settings['store_longitude'] ?? '106.816666' }}" class="form-input" placeholder="106.816666">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Radius Absen (Meter)</label>
+                        <input type="number" name="store_radius" value="{{ $settings['store_radius'] ?? '100' }}" class="form-input" placeholder="100">
+                        <p class="text-xs text-gray-400 mt-1">Jarak maksimal kasir diperbolehkan absen dari titik toko.</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Savings Configuration -->
             <div class="glass-card-solid p-6">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
