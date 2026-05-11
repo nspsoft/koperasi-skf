@@ -23,14 +23,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 
-// Temporary route to run migrations on production
-Route::get('/run-migration', function () {
-    if (request('key') !== 'skf123') {
-        return 'Unauthorized';
-    }
-    \Artisan::call('migrate', ['--force' => true]);
-    return \Artisan::output();
-});
+
 
 // WhatsApp Webhooks
 Route::post('/webhook/whatsapp', [App\Http\Controllers\WhatsappWebhookController::class, 'handle'])->name('webhook.whatsapp');
