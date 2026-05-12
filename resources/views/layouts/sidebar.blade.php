@@ -186,7 +186,9 @@
                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('inventory.dashboard') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
                     Dashboard
                 </a>
-                <a href="{{ route('products.index') }}"
+                <a href="{{ route('products.index') }}" class="{{ request()->routeIs('products.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
+                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('products.*') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
+                    {{ __('messages.sidebar.products') }}
                 </a>
                 @php $lowStockCount = \App\Models\Product::lowStock()->count(); @endphp
                 <a href="{{ route('inventory.low-stock') }}" class="{{ request()->routeIs('inventory.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center justify-between gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
