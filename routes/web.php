@@ -23,6 +23,15 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 
+// Temporary route to clear cache on production
+Route::get('/clear-cache', function () {
+    if (request('key') !== 'skf123') {
+        return 'Unauthorized';
+    }
+    \Artisan::call('optimize:clear');
+    return \Artisan::output();
+});
+
 
 
 // WhatsApp Webhooks
