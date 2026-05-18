@@ -334,7 +334,8 @@
                         $sold = $product->transactionItems->where('created_at', '>=', now()->subDays(30))->sum('quantity');
                         $percentage = $product->stock > 0 ? max(0, min(100, (($product->stock - $sold) / $product->stock) * 100)) : 100;
                     @endphp
-                    <div class="p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-100/80 dark:border-gray-700/50">
+                    <div @click="$dispatch('open-product-breakdown', { id: {{ $product->id }} })" 
+                         class="p-3 bg-gray-50 dark:bg-gray-700/30 hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer rounded-xl border border-gray-100/80 dark:border-gray-700/50 transition-all hover:scale-[1.01] hover:shadow-sm">
                         <div class="flex justify-between items-start mb-2">
                             <div class="min-w-0 flex-1 pr-2">
                                 <div class="flex items-center gap-1.5 mb-0.5">
@@ -371,6 +372,199 @@
                 </div>
                 @endif
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Product Breakdown Analysis Modal -->
+<div x-data="{ showModal: false, loading: false, data: null, tab: 'in' }"
+     @open-product-breakdown.window="
+        showModal = true;
+        loading = true;
+        tab = 'in';
+        fetch('/inventory/product-breakdown/' + $event.detail.id)
+            .then(res => res.json())
+            .then(resData => {
+                data = resData;
+                loading = false;
+            })
+            .catch(err => {
+                console.error(err);
+                loading = false;
+                window.dispatchEvent(new CustomEvent('notify', { 
+                    detail: { message: 'Gagal memuat data analisis produk.', type: 'error' }
+                }));
+            });
+     "
+     x-show="showModal"
+     x-cloak
+     class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm"
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-200"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0">
+
+    <!-- Modal Content -->
+    <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_30px_70px_rgba(0,0,0,0.5)] border border-gray-100 dark:border-gray-700 w-full max-w-3xl overflow-hidden transform transition-all duration-300"
+         @click.away="showModal = false"
+         x-show="showModal"
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="scale-95 translate-y-8 opacity-0"
+         x-transition:enter-end="scale-100 translate-y-0 opacity-100"
+         x-transition:leave="transition ease-in duration-200 transform"
+         x-transition:leave-start="scale-100 translate-y-0 opacity-100"
+         x-transition:leave-end="scale-95 translate-y-8 opacity-0">
+
+        <!-- Header -->
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-md sticky top-0 z-10">
+            <div>
+                <span class="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 text-[10px] font-extrabold rounded-lg uppercase tracking-wider mb-1 block w-max">Analisis Mutasi Stok</span>
+                <h3 class="text-xl font-extrabold text-gray-900 dark:text-white" x-text="loading ? 'Memuat data...' : (data ? data.product.name : '')"></h3>
+            </div>
+            <button @click="showModal = false" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6 overflow-y-auto max-h-[70vh]">
+            <!-- Loading Indicator -->
+            <div x-show="loading" class="flex flex-col items-center justify-center py-16 space-y-4">
+                <div class="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 animate-pulse">Mengambil data pergerakan barang...</p>
+            </div>
+
+            <!-- Content when Data exists -->
+            <div x-show="!loading && data" class="space-y-6">
+                <!-- Product Metadata Grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100/80 dark:border-gray-800/40">
+                    <div>
+                        <span class="text-[10px] text-gray-400 block uppercase font-bold tracking-wider">Kode SKU</span>
+                        <strong class="text-sm text-gray-800 dark:text-gray-200 font-bold" x-text="data?.product.code || '-'"></strong>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-gray-400 block uppercase font-bold tracking-wider">Kategori</span>
+                        <strong class="text-sm text-gray-800 dark:text-gray-200 font-bold" x-text="data?.product.category"></strong>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-gray-400 block uppercase font-bold tracking-wider">Harga Beli / Cost</span>
+                        <strong class="text-sm text-gray-800 dark:text-gray-200 font-bold" x-text="'Rp ' + Number(data?.product.cost).toLocaleString('id-ID')"></strong>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-gray-400 block uppercase font-bold tracking-wider">Harga Jual</span>
+                        <strong class="text-sm text-indigo-600 dark:text-indigo-400 font-extrabold" x-text="'Rp ' + Number(data?.product.price).toLocaleString('id-ID')"></strong>
+                    </div>
+                </div>
+
+                <!-- Stock Summary Pills -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="p-3 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100/50 dark:border-amber-900/20 rounded-2xl text-center">
+                        <span class="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold uppercase">Stok Saat Ini</span>
+                        <p class="text-xl font-black text-amber-700 dark:text-amber-400 mt-1" x-text="(data?.product.stock || 0) + ' ' + (data?.product.unit || 'pcs')"></p>
+                    </div>
+                    <div class="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/20 rounded-2xl text-center">
+                        <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase">Total Masuk (In)</span>
+                        <p class="text-xl font-black text-emerald-700 dark:text-emerald-400 mt-1" x-text="(data?.total_in || 0) + ' ' + (data?.product.unit || 'pcs')"></p>
+                    </div>
+                    <div class="p-3 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100/50 dark:border-rose-900/20 rounded-2xl text-center">
+                        <span class="text-[10px] text-rose-600 dark:text-rose-400 font-extrabold uppercase">Total Keluar (Out)</span>
+                        <p class="text-xl font-black text-rose-700 dark:text-rose-400 mt-1" x-text="(data?.total_out || 0) + ' ' + (data?.product.unit || 'pcs')"></p>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                        <button @click="tab = 'in'"
+                                :class="tab === 'in' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'"
+                                class="w-1/2 pb-4 px-1 text-center border-b-2 font-bold text-sm transition-all flex items-center justify-center gap-2">
+                            <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
+                            Riwayat Barang Masuk (Stock In)
+                        </button>
+                        <button @click="tab = 'out'"
+                                :class="tab === 'out' ? 'border-rose-500 text-rose-600 dark:text-rose-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'"
+                                class="w-1/2 pb-4 px-1 text-center border-b-2 font-bold text-sm transition-all flex items-center justify-center gap-2">
+                            <span class="w-2.5 h-2.5 bg-rose-500 rounded-full"></span>
+                            Riwayat Barang Keluar (Stock Out)
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Tab Content: STOCK IN -->
+                <div x-show="tab === 'in'" class="space-y-3">
+                    <template x-if="data?.in.length === 0">
+                        <p class="text-xs text-gray-500 text-center py-8 bg-gray-50 dark:bg-gray-900/20 rounded-2xl italic">Belum ada riwayat stok masuk (pembelian/konsinyasi).</p>
+                    </template>
+                    <div x-show="data?.in && data?.in.length > 0" class="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-700">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-900/60">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tanggal</th>
+                                    <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">Sumber / Ref</th>
+                                    <th class="px-4 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-wider">Qty</th>
+                                    <th class="px-4 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-wider">Harga Beli</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
+                                <template x-for="item in data?.in" :key="item.ref + item.date">
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                        <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400" x-text="item.date"></td>
+                                        <td class="px-4 py-3 text-xs">
+                                            <span :class="item.type === 'Purchase' ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400'"
+                                                  class="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase block w-max mb-1" x-text="item.type"></span>
+                                            <div class="font-bold text-gray-800 dark:text-white" x-text="item.source"></div>
+                                            <div class="text-[10px] text-gray-400" x-text="item.ref"></div>
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-right text-xs font-bold text-emerald-600 dark:text-emerald-400" x-text="'+' + item.qty"></td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-right text-xs font-medium text-gray-600 dark:text-gray-300" x-text="'Rp ' + Number(item.price).toLocaleString('id-ID')"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab Content: STOCK OUT -->
+                <div x-show="tab === 'out'" class="space-y-3">
+                    <template x-if="data?.out.length === 0">
+                        <p class="text-xs text-gray-500 text-center py-8 bg-gray-50 dark:bg-gray-900/20 rounded-2xl italic">Belum ada riwayat transaksi barang terjual.</p>
+                    </template>
+                    <div x-show="data?.out && data?.out.length > 0" class="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-700">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-900/60">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tanggal & Waktu</th>
+                                    <th class="px-4 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">Ref / Pelanggan</th>
+                                    <th class="px-4 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-wider">Qty</th>
+                                    <th class="px-4 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-wider">Harga Jual</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
+                                <template x-for="item in data?.out" :key="item.ref + item.date">
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                        <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400" x-text="item.date"></td>
+                                        <td class="px-4 py-3 text-xs">
+                                            <div class="font-bold text-gray-800 dark:text-white" x-text="item.customer"></div>
+                                            <div class="text-[10px] text-gray-400 font-mono" x-text="item.ref"></div>
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-right text-xs font-bold text-rose-500" x-text="'-' + item.qty"></td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-right text-xs font-medium text-gray-600 dark:text-gray-300" x-text="'Rp ' + Number(item.price).toLocaleString('id-ID')"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="p-4 bg-gray-50 dark:bg-gray-900/60 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+            <button @click="showModal = false" class="px-5 py-2 bg-gray-100 hover:bg-gray-250 dark:bg-gray-700 dark:hover:bg-gray-600 text-xs font-extrabold text-gray-700 dark:text-white rounded-xl transition">
+                Tutup Analisis
+            </button>
         </div>
     </div>
 </div>

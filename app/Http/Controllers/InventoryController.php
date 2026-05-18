@@ -289,4 +289,92 @@ class InventoryController extends Controller
             'count' => \App\Models\Product::lowStock()->count()
         ]);
     }
+
+    /**
+     * Get dynamic in-out movement breakdown for a specific product
+     */
+    public function productMovementBreakdown(\App\Models\Product $product)
+    {
+        if (!auth()->user()->hasAdminAccess()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Fetch completed purchases for this product
+        $purchases = \App\Models\PurchaseItem::with(['purchase.supplier'])
+            ->where('product_id', $product->id)
+            ->whereHas('purchase', function($q) {
+                $q->where('status', 'completed');
+            })
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'type' => 'Purchase',
+                    'ref' => $item->purchase->reference_number,
+                    'date' => $item->purchase->purchase_date ? $item->purchase->purchase_date->format('d M Y') : $item->created_at->format('d M Y'),
+                    'source' => $item->purchase->supplier->name ?? 'Supplier Umum',
+                    'qty' => $item->quantity,
+                    'price' => (float)$item->cost,
+                ];
+            });
+
+        // Fetch consignment inbounds for this product
+        $consignments = \App\Models\ConsignmentInboundItem::with(['inbound.consignor'])
+            ->where('product_id', $product->id)
+            ->whereHas('inbound', function($q) {
+                $q->where('status', 'completed');
+            })
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'type' => 'Consignment',
+                    'ref' => $item->inbound->transaction_number,
+                    'date' => $item->inbound->inbound_date ? $item->inbound->inbound_date->format('d M Y') : $item->created_at->format('d M Y'),
+                    'source' => $item->inbound->consignor->name ?? 'Consignor',
+                    'qty' => $item->quantity,
+                    'price' => (float)$item->unit_cost,
+                ];
+            });
+
+        // Merge Stock In (Purchases & Consignments)
+        $stockInDetails = $purchases->concat($consignments)->sortByDesc('date')->values();
+
+        // Fetch completed sales for this product
+        $stockOutDetails = \App\Models\TransactionItem::with(['transaction.user'])
+            ->where('product_id', $product->id)
+            ->whereHas('transaction', function($q) {
+                $q->whereNotIn('status', ['cancelled']);
+            })
+            ->orderBy('created_at', 'desc')
+            ->take(15)
+            ->get()
+            ->map(function($item) {
+                return [
+                    'ref' => $item->transaction->invoice_number ?? 'INV-' . $item->transaction_id,
+                    'date' => $item->created_at->format('d M Y H:i'),
+                    'customer' => $item->transaction->user->name ?? 'Kasir / POS',
+                    'qty' => $item->quantity,
+                    'price' => (float)$item->price,
+                ];
+            });
+
+        return response()->json([
+            'product' => [
+                'name' => $product->name,
+                'code' => $product->code,
+                'category' => $product->category->name ?? 'Uncategorized',
+                'stock' => $product->stock,
+                'unit' => $product->unit,
+                'cost' => $product->cost,
+                'price' => $product->price,
+            ],
+            'in' => $stockInDetails,
+            'out' => $stockOutDetails,
+            'total_in' => $stockInDetails->sum('qty'),
+            'total_out' => $stockOutDetails->sum('qty'),
+        ]);
+    }
 }

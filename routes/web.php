@@ -124,6 +124,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
         // Inventory Dashboard & Alerts
         Route::get('inventory/dashboard', [App\Http\Controllers\InventoryController::class, 'dashboard'])->name('inventory.dashboard');
         Route::get('inventory/low-stock', [App\Http\Controllers\InventoryController::class, 'lowStock'])->name('inventory.low-stock');
+        Route::get('inventory/product-breakdown/{product}', [App\Http\Controllers\InventoryController::class, 'productMovementBreakdown'])->name('inventory.product-breakdown');
 
         // Stock Opname
         Route::get('stock-opname', [App\Http\Controllers\StockOpnameController::class, 'index'])->name('stock-opname.index');
