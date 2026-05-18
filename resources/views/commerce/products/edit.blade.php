@@ -80,6 +80,9 @@
                                     <label for="conversion_factor" class="form-label text-xs">{{ __('messages.product_form.conversion') }}</label>
                                     <input type="number" name="conversion_factor" id="conversion_factor" class="form-input text-sm @error('conversion_factor') border-red-500 @enderror" value="{{ old('conversion_factor', $product->conversion_factor ?? 1) }}" min="1" oninput="calculatePrice()">
                                     <p class="text-[10px] text-gray-400 mt-0.5">{{ __('messages.product_form.conversion_help') }}</p>
+                                    <p class="text-[9px] text-rose-600 dark:text-rose-400 font-semibold mt-1 leading-tight">
+                                        ⚠️ Perhatian: Mengubah nilai konversi setelah produk memiliki riwayat transaksi akan merusak kalkulasi mutasi stok masa lalu.
+                                    </p>
                                 </div>
                             </div>
 
@@ -185,6 +188,9 @@
                                 @endforeach
                             </select>
                             @error('unit')<p class="form-error">{{ $message }}</p>@enderror
+                            <p class="text-[9px] text-rose-600 dark:text-rose-400 font-semibold mt-1 leading-tight">
+                                ⚠️ Perhatian: Mengubah satuan jual setelah ada riwayat transaksi akan mengubah arti dari angka stok saat ini dan mencederai integritas laporan penjualan kasir masa lalu.
+                            </p>
                         </div>
 
                         <!-- Pre-Order Settings -->
