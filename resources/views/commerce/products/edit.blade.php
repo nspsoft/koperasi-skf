@@ -298,18 +298,23 @@
 
     <!-- Detailed Mutasi & History (Right Column) -->
     <div class="space-y-6">
-        <div class="glass-card-solid p-6" x-data="{ tab: 'in', loading: false, data: { in: [], out: [], total_in: 0, total_out: 0, product: { unit: 'pcs' } } }" x-init="
-            loading = true;
-            fetch('/inventory/product-breakdown/{{ $product->id }}')
-                .then(res => res.json())
-                .then(resData => {
-                    data = resData;
-                    loading = false;
-                })
-                .catch(err => {
-                    console.error(err);
-                    loading = false;
-                });
+        <div class="glass-card-solid p-6" x-data="{
+            tab: 'in',
+            loading: false,
+            data: { in: [], out: [], total_in: 0, total_out: 0, product: { unit: 'pcs' } },
+            init() {
+                this.loading = true;
+                fetch('/inventory/product-breakdown/{{ $product->id }}')
+                    .then(res => res.json())
+                    .then(resData => {
+                        this.data = resData;
+                        this.loading = false;
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        this.loading = false;
+                    });
+            }
         }">
             <div class="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-gray-700 pb-3">
                 <div>
