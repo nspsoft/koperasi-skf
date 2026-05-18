@@ -165,9 +165,13 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="stock" class="form-label">{{ __('messages.product_form.stock') }}</label>
-                            <input type="number" name="stock" id="stock" class="form-input @error('stock') border-red-500 @enderror" value="{{ old('stock', $product->stock) }}" required min="0">
+                            <label for="stock" class="form-label">Stok Saat Ini (Stok Akhir)</label>
+                            <input type="number" name="stock" id="stock" class="form-input bg-gray-50 dark:bg-gray-800 cursor-not-allowed font-semibold @error('stock') border-red-500 @enderror" value="{{ old('stock', $product->stock) }}" readonly>
                             @error('stock')<p class="form-error">{{ $message }}</p>@enderror
+                            <p class="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5 flex items-start gap-1">
+                                <svg class="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                <span>Stok dikunci untuk menjaga kecocokan laporan keuangan. Gunakan menu <strong>Pembelian</strong> atau <strong>Stock Opname</strong> untuk mengubah stok barang.</span>
+                            </p>
                         </div>
 
                         <div class="form-group">
