@@ -11,9 +11,11 @@
         <h1 class="page-title">{{ __('messages.product_form.title_edit') }}</h1>
     </div>
 
-    <div class="max-w-2xl">
-        <div class="glass-card-solid p-6">
-            <form action="{{ route('products.update', $product) }}" method="POST" enctype="multipart/form-data">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Edit Form Section (Left Column) -->
+        <div class="lg:col-span-2">
+            <div class="glass-card-solid p-6">
+                <form action="{{ route('products.update', $product) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 
@@ -291,6 +293,112 @@
                 // Initialize on page load
                 document.addEventListener('DOMContentLoaded', calculatePrice);
             </script>
+        </div>
+    </div>
+
+    <!-- Detailed Mutasi & History (Right Column) -->
+    <div class="space-y-6">
+        <div class="glass-card-solid p-6" x-data="{ tab: 'in', loading: false, data: null }" x-init="
+            loading = true;
+            fetch('/inventory/product-breakdown/{{ $product->id }}')
+                .then(res => res.json())
+                .then(resData => {
+                    data = resData;
+                    loading = false;
+                })
+                .catch(err => {
+                    console.error(err);
+                    loading = false;
+                });
+        }">
+            <div class="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-gray-700 pb-3">
+                <div>
+                    <span class="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 text-[10px] font-extrabold rounded-lg uppercase tracking-wider mb-1 block w-max">Real-Time Ledger</span>
+                    <h3 class="font-extrabold text-gray-900 dark:text-white text-base">Riwayat & Mutasi Stok</h3>
+                </div>
+                <span class="px-2 py-0.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 text-[9px] font-bold rounded-lg uppercase tracking-wider shrink-0">Live</span>
+            </div>
+
+            <!-- Loading State -->
+            <div x-show="loading" class="flex flex-col items-center justify-center py-12 space-y-3">
+                <div class="w-8 h-8 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                <p class="text-xs text-gray-400 animate-pulse">Mengambil mutasi barang...</p>
+            </div>
+
+            <!-- Content when Loaded -->
+            <div x-show="!loading && data" class="space-y-4" x-cloak>
+                <!-- Quick Stats -->
+                <div class="grid grid-cols-2 gap-3 p-3 bg-gray-50 dark:bg-gray-900/30 rounded-2xl border border-gray-100/50 dark:border-gray-800/40 text-center">
+                    <div>
+                        <span class="text-[9px] text-gray-400 block uppercase font-bold tracking-wider">Total Masuk</span>
+                        <strong class="text-base text-emerald-600 dark:text-emerald-400 font-extrabold" x-text="(data?.total_in || 0) + ' ' + (data?.product.unit || 'pcs')"></strong>
+                    </div>
+                    <div class="border-l border-gray-200 dark:border-gray-700">
+                        <span class="text-[9px] text-gray-400 block uppercase font-bold tracking-wider">Total Keluar</span>
+                        <strong class="text-base text-rose-500 font-extrabold" x-text="(data?.total_out || 0) + ' ' + (data?.product.unit || 'pcs')"></strong>
+                    </div>
+                </div>
+
+                <!-- Mini Tabs -->
+                <div class="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl">
+                    <button @click="tab = 'in'"
+                            :class="tab === 'in' ? 'bg-white dark:bg-gray-600 shadow-sm text-emerald-600 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'"
+                            class="w-1/2 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5">
+                        <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
+                        Masuk (In)
+                    </button>
+                    <button @click="tab = 'out'"
+                            :class="tab === 'out' ? 'bg-white dark:bg-gray-600 shadow-sm text-rose-500 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'"
+                            class="w-1/2 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5">
+                        <span class="w-2.5 h-2.5 bg-rose-500 rounded-full"></span>
+                        Keluar (Out)
+                    </button>
+                </div>
+
+                <!-- Tab In -->
+                <div x-show="tab === 'in'" class="space-y-3 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin">
+                    <template x-if="data?.in.length === 0">
+                        <p class="text-xs text-gray-400 text-center py-6 italic bg-gray-50/50 dark:bg-gray-900/10 rounded-xl">Belum ada stok masuk.</p>
+                    </template>
+                    <template x-for="item in data?.in" :key="item.ref + item.date">
+                        <div class="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:border-gray-250 dark:hover:border-gray-600 transition-all flex items-center justify-between gap-2">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-1.5 mb-1">
+                                    <span :class="item.type === 'Purchase' ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400'"
+                                          class="px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase leading-none shrink-0" x-text="item.type"></span>
+                                    <span class="text-[10px] text-gray-400 truncate" x-text="item.date"></span>
+                                </div>
+                                <div class="text-xs font-bold text-gray-900 dark:text-white truncate" x-text="item.source"></div>
+                                <div class="text-[10px] text-gray-400 font-mono truncate" x-text="item.ref"></div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400" x-text="'+' + item.qty"></div>
+                                <div class="text-[10px] text-gray-400 font-medium" x-text="'@Rp ' + Number(item.price).toLocaleString('id-ID')"></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Tab Out -->
+                <div x-show="tab === 'out'" class="space-y-3 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin">
+                    <template x-if="data?.out.length === 0">
+                        <p class="text-xs text-gray-400 text-center py-6 italic bg-gray-50/50 dark:bg-gray-900/10 rounded-xl">Belum ada transaksi keluar.</p>
+                    </template>
+                    <template x-for="item in data?.out" :key="item.ref + item.date">
+                        <div class="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:border-gray-250 dark:hover:border-gray-600 transition-all flex items-center justify-between gap-2">
+                            <div class="min-w-0 flex-1">
+                                <div class="text-[10px] text-gray-400 mb-1" x-text="item.date"></div>
+                                <div class="text-xs font-bold text-gray-900 dark:text-white truncate" x-text="item.customer"></div>
+                                <div class="text-[10px] text-gray-400 font-mono truncate" x-text="item.ref"></div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="text-xs font-bold text-rose-500" x-text="'-' + item.qty"></div>
+                                <div class="text-[10px] text-gray-400 font-medium" x-text="'@Rp ' + Number(item.price).toLocaleString('id-ID')"></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
         </div>
     </div>
 
