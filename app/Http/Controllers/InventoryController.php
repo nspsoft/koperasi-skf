@@ -18,7 +18,10 @@ class InventoryController extends Controller
     {
         if (!auth()->user()->hasAdminAccess()) abort(403);
 
-        $query = \App\Models\Product::with('category')
+        $thirtyDaysAgo = Carbon::now()->subDays(30);
+        $query = \App\Models\Product::with(['category', 'transactionItems' => function($q) use ($thirtyDaysAgo) {
+                $q->where('created_at', '>=', $thirtyDaysAgo);
+            }])
             ->lowStock()
             ->orderBy('stock', 'asc');
 
@@ -361,6 +364,16 @@ class InventoryController extends Controller
                 ];
             });
 
+        // Calculate weekly sales average (from last 30 days)
+        $thirtyDaysAgo = \Carbon\Carbon::now()->subDays(30);
+        $sales30Days = \App\Models\TransactionItem::where('product_id', $product->id)
+            ->whereHas('transaction', function($q) {
+                $q->whereNotIn('status', ['cancelled']);
+            })
+            ->where('created_at', '>=', $thirtyDaysAgo)
+            ->sum('quantity');
+        $weeklyAvg = round(($sales30Days / 30) * 7, 1);
+
         return response()->json([
             'product' => [
                 'name' => $product->name,
@@ -370,6 +383,7 @@ class InventoryController extends Controller
                 'unit' => $product->unit,
                 'cost' => $product->cost,
                 'price' => $product->price,
+                'weekly_avg' => $weeklyAvg,
             ],
             'in' => $stockInDetails,
             'out' => $stockOutDetails,

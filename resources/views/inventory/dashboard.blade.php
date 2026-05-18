@@ -439,7 +439,7 @@
             <!-- Content when Data exists -->
             <div x-show="!loading && data" class="space-y-6">
                 <!-- Product Metadata Grid -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100/80 dark:border-gray-800/40">
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100/80 dark:border-gray-800/40">
                     <div>
                         <span class="text-[10px] text-gray-400 block uppercase font-bold tracking-wider">Kode SKU</span>
                         <strong class="text-sm text-gray-800 dark:text-gray-200 font-bold" x-text="data?.product.code || '-'"></strong>
@@ -447,6 +447,10 @@
                     <div>
                         <span class="text-[10px] text-gray-400 block uppercase font-bold tracking-wider">Kategori</span>
                         <strong class="text-sm text-gray-800 dark:text-gray-200 font-bold" x-text="data?.product.category"></strong>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-amber-600 dark:text-amber-400 block uppercase font-extrabold tracking-wider">Rata-rata Jual</span>
+                        <strong class="text-sm text-amber-600 dark:text-amber-400 font-extrabold" x-text="Number(data?.product.weekly_avg).toFixed(1) + ' ' + (data?.product.unit || 'pcs') + ' / mg'"></strong>
                     </div>
                     <div>
                         <span class="text-[10px] text-gray-400 block uppercase font-bold tracking-wider">Harga Beli / Cost</span>

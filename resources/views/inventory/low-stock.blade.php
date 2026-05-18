@@ -52,6 +52,7 @@
                         <th>{{ __('messages.low_stock.header_category') }}</th>
                         <th class="text-center">{{ __('messages.low_stock.header_stock') }}</th>
                         <th class="text-center">{{ __('messages.low_stock.header_min_stock') }}</th>
+                        <th class="text-center">Rata-rata Mingguan</th>
                         <th class="text-center">{{ __('messages.low_stock.header_status') }}</th>
                         <th>{{ __('messages.low_stock.header_action') }}</th>
                     </tr>
@@ -75,6 +76,16 @@
                             </span>
                         </td>
                         <td class="text-center text-gray-500">{{ $product->min_stock }}</td>
+                        <td class="text-center">
+                            @php
+                                $sales30Days = $product->transactionItems->sum('quantity');
+                                $weeklyAvg = ($sales30Days / 30) * 7;
+                            @endphp
+                            <span class="text-sm font-bold text-gray-800 dark:text-gray-200">
+                                {{ number_format($weeklyAvg, 1) }}
+                            </span>
+                            <span class="text-[10px] text-gray-400 block">{{ $product->unit }} / minggu</span>
+                        </td>
                         <td class="text-center">
                             @if($product->stock <= 0)
                             <span class="badge badge-danger">{{ __('messages.low_stock.status_empty') }}</span>
