@@ -167,7 +167,7 @@ class User extends Authenticatable
      */
     public function hasStoreAccess(): bool
     {
-        return in_array($this->role, ['admin', 'pengurus', 'manager_toko']);
+        return in_array($this->role, ['admin', 'pengurus', 'manager_toko', 'kasir']);
     }
 
     /**
