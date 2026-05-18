@@ -298,7 +298,7 @@
 
     <!-- Detailed Mutasi & History (Right Column) -->
     <div class="space-y-6">
-        <div class="glass-card-solid p-6" x-data="{ tab: 'in', loading: false, data: null }" x-init="
+        <div class="glass-card-solid p-6" x-data="{ tab: 'in', loading: false, data: { in: [], out: [], total_in: 0, total_out: 0, product: { unit: 'pcs' } } }" x-init="
             loading = true;
             fetch('/inventory/product-breakdown/{{ $product->id }}')
                 .then(res => res.json())
@@ -326,16 +326,16 @@
             </div>
 
             <!-- Content when Loaded -->
-            <div x-show="!loading && data" class="space-y-4" x-cloak>
+            <div x-show="!loading && data && data.product" class="space-y-4" x-cloak>
                 <!-- Quick Stats -->
                 <div class="grid grid-cols-2 gap-3 p-3 bg-gray-50 dark:bg-gray-900/30 rounded-2xl border border-gray-100/50 dark:border-gray-800/40 text-center">
                     <div>
                         <span class="text-[9px] text-gray-400 block uppercase font-bold tracking-wider">Total Masuk</span>
-                        <strong class="text-base text-emerald-600 dark:text-emerald-400 font-extrabold" x-text="(data?.total_in || 0) + ' ' + (data?.product.unit || 'pcs')"></strong>
+                        <strong class="text-base text-emerald-600 dark:text-emerald-400 font-extrabold" x-text="data.total_in + ' ' + data.product.unit"></strong>
                     </div>
                     <div class="border-l border-gray-200 dark:border-gray-700">
                         <span class="text-[9px] text-gray-400 block uppercase font-bold tracking-wider">Total Keluar</span>
-                        <strong class="text-base text-rose-500 font-extrabold" x-text="(data?.total_out || 0) + ' ' + (data?.product.unit || 'pcs')"></strong>
+                        <strong class="text-base text-rose-500 font-extrabold" x-text="data.total_out + ' ' + data.product.unit"></strong>
                     </div>
                 </div>
 
@@ -357,10 +357,10 @@
 
                 <!-- Tab In -->
                 <div x-show="tab === 'in'" class="space-y-3 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin">
-                    <template x-if="data?.in.length === 0">
+                    <template x-if="!data.in || data.in.length === 0">
                         <p class="text-xs text-gray-400 text-center py-6 italic bg-gray-50/50 dark:bg-gray-900/10 rounded-xl">Belum ada stok masuk.</p>
                     </template>
-                    <template x-for="item in data?.in" :key="item.ref + item.date">
+                    <template x-for="item in data.in">
                         <div class="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:border-gray-250 dark:hover:border-gray-600 transition-all flex items-center justify-between gap-2">
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-1.5 mb-1">
@@ -381,10 +381,10 @@
 
                 <!-- Tab Out -->
                 <div x-show="tab === 'out'" class="space-y-3 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin">
-                    <template x-if="data?.out.length === 0">
+                    <template x-if="!data.out || data.out.length === 0">
                         <p class="text-xs text-gray-400 text-center py-6 italic bg-gray-50/50 dark:bg-gray-900/10 rounded-xl">Belum ada transaksi keluar.</p>
                     </template>
-                    <template x-for="item in data?.out" :key="item.ref + item.date">
+                    <template x-for="item in data.out">
                         <div class="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:border-gray-250 dark:hover:border-gray-600 transition-all flex items-center justify-between gap-2">
                             <div class="min-w-0 flex-1">
                                 <div class="text-[10px] text-gray-400 mb-1" x-text="item.date"></div>
