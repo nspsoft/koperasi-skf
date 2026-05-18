@@ -139,11 +139,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user has admin access (admin or pengurus).
+     * Check if user has admin access (admin, pengurus, or manager_toko, or relevant admin permissions).
      */
     public function hasAdminAccess(): bool
     {
-        return in_array($this->role, ['admin', 'pengurus']);
+        return in_array($this->role, ['admin', 'pengurus', 'manager_toko'])
+            || $this->hasAnyPermission(['menu_inventory', 'menu_finance', 'menu_operations', 'menu_organization', 'menu_admin']);
     }
 
     /**
