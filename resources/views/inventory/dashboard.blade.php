@@ -300,21 +300,33 @@
                 <p class="text-xs text-gray-500 mb-4 italic">Produk dengan stok tinggi namun penjualan rendah.</p>
                 <div class="space-y-4">
                     @forelse($slowMoving as $product)
-                    <div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[150px]">{{ $product->name }}</span>
-                        @if(($product->abc ?? 'C') == 'A')
-                            <span class="px-1 py-0.5 bg-indigo-100 text-indigo-700 text-[8px] font-bold rounded">A</span>
-                        @endif
-                    </div>
-                    <span class="text-xs font-bold text-gray-500">{{ number_format($product->stock) }} {{ $product->unit }}</span>
-                </div>
-                        <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                            <div class="bg-amber-500 h-1.5 rounded-full" style="width: 100%"></div>
+                    @php
+                        $sold = $product->transactionItems->where('created_at', '>=', now()->subDays(30))->sum('quantity');
+                        $percentage = $product->stock > 0 ? max(0, min(100, (($product->stock - $sold) / $product->stock) * 100)) : 100;
+                    @endphp
+                    <div class="p-3 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-100/80 dark:border-gray-700/50">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="min-w-0 flex-1 pr-2">
+                                <div class="flex items-center gap-1.5 mb-0.5">
+                                    <span class="text-sm font-bold text-gray-900 dark:text-white truncate block" title="{{ $product->name }}">{{ $product->name }}</span>
+                                    @if(($product->abc ?? 'C') == 'A')
+                                        <span class="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-400 text-[8px] font-extrabold rounded leading-none shrink-0">A</span>
+                                    @endif
+                                </div>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">Stok: <strong class="text-gray-800 dark:text-gray-200">{{ number_format($product->stock) }} {{ $product->unit }}</strong></span>
+                            </div>
+                            <span class="px-2 py-0.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 text-[9px] font-bold rounded-lg uppercase tracking-wider shrink-0">Slow Moving</span>
                         </div>
-                        <div class="flex justify-between mt-1">
-                            <span class="text-[10px] text-gray-400">Terjual: {{ number_format($product->transactionItems->where('created_at', '>=', now()->subDays(30))->sum('quantity')) }}</span>
-                            <span class="text-[10px] text-amber-600 font-bold">Stok Mengendap</span>
+                        
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-amber-500 h-1.5 rounded-full" style="width: {{ $percentage }}%"></div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
+                                Terjual: <strong class="text-gray-800 dark:text-gray-200">{{ number_format($sold) }}</strong>
+                            </span>
+                            <span class="text-[10px] text-amber-600 dark:text-amber-400 font-bold">Stok Mengendap ({{ number_format($percentage, 0) }}%)</span>
                         </div>
                     </div>
                     @empty
