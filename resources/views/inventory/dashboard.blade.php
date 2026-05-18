@@ -96,7 +96,37 @@
                 <p class="text-[10px] text-gray-400 mt-2 text-center italic">*Data berdasarkan transaksi 30 hari terakhir. Garis (Line) menunjukkan kontribusi profit relatif.</p>
             </div>
 
-            <!-- Tren Penjualan -->
+            <!-- Analisis Pergerakan Stok (In / Out) -->
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800 dark:text-white">Tren Pergerakan Stok (In & Out)</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Analisis perbandingan barang masuk vs barang keluar (7 hari terakhir).</p>
+                    </div>
+                    <span class="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 text-xs font-bold rounded-lg uppercase tracking-wider">7 Hari Terakhir</span>
+                </div>
+                <div id="stockMovementChart" class="min-h-[300px]"></div>
+                <div class="mt-4 grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-gray-700 pt-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 13l-7 7-7-7m14-6l-7 7-7-7"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400">Total Stok Masuk</p>
+                            <p class="text-lg font-bold text-gray-850 dark:text-white">{{ number_format($stockMovementTrend->sum('in')) }} Unit</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 11l7-7 7 7M5 19l7-7 7 7"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400">Total Stok Keluar</p>
+                            <p class="text-lg font-bold text-gray-850 dark:text-white">{{ number_format($stockMovementTrend->sum('out')) }} Unit</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Stock Value by Category -->
             <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
@@ -448,40 +478,61 @@
         // Initialize Top Chart
         window.updateTopChart('revenue');
 
-        // 2. Sales Trend Chart
-        const trendData = @json($salesTrend);
-        renderChart("#salesTrendChart", {
+        // 2. Stock Movement (In & Out) Chart
+        const movementData = @json($stockMovementTrend);
+        renderChart("#stockMovementChart", {
             series: [{
-                name: 'Total Barang Terjual',
-                data: trendData.map(d => d.qty)
+                name: 'Barang Masuk (Stock In)',
+                type: 'column',
+                data: movementData.map(d => d.in)
+            }, {
+                name: 'Barang Keluar (Stock Out)',
+                type: 'area',
+                data: movementData.map(d => d.out)
             }],
             chart: {
-                type: 'area',
-                height: 300,
+                height: 320,
+                type: 'line',
+                stacked: false,
                 fontFamily: 'Inter, sans-serif',
                 toolbar: { show: false },
                 zoom: { enabled: false }
             },
-            colors: ['#10b981'],
-            fill: {
-                type: 'gradient',
-                gradient: {
-                    shadeIntensity: 1,
-                    opacityFrom: 0.45,
-                    opacityTo: 0.05,
-                    stops: [20, 100, 100, 100]
+            colors: ['#10b981', '#ef4444'], // green for in, red for out
+            stroke: {
+                width: [0, 3],
+                curve: 'smooth'
+            },
+            plotOptions: {
+                bar: {
+                    columnWidth: '45%',
+                    borderRadius: 4
                 }
             },
-            dataLabels: { enabled: false },
-            stroke: { curve: 'smooth', width: 3 },
+            fill: {
+                type: ['solid', 'gradient'],
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.3,
+                    opacityTo: 0.05,
+                    stops: [0, 90, 100]
+                }
+            },
+            dataLabels: {
+                enabled: true,
+                enabledOnSeries: [0, 1],
+                style: { fontSize: '10px' }
+            },
             xaxis: {
-                categories: trendData.map(d => d.date),
+                categories: movementData.map(d => d.date),
                 labels: { style: { colors: '#6b7280' } }
             },
             yaxis: {
+                title: { text: 'Jumlah Unit' },
                 labels: { style: { colors: '#6b7280' } }
             },
             grid: { borderColor: '#f1f1f1', strokeDashArray: 4 },
+            legend: { position: 'top', horizontalAlign: 'right' },
             theme: { mode: themeMode }
         });
 

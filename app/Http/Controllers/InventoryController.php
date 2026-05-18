@@ -131,21 +131,34 @@ class InventoryController extends Controller
                 return $product;
             });
 
-        // Sales Trend (Last 7 Days)
-        $salesTrend = TransactionItem::select(
-                DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(quantity) as total_qty')
-            )
-            ->where('created_at', '>=', Carbon::now()->subDays(7))
-            ->groupBy('date')
-            ->orderBy('date', 'asc')
-            ->get()
-            ->map(function($item) {
-                return [
-                    'date' => Carbon::parse($item->date)->format('d M'),
-                    'qty' => (int)$item->total_qty
-                ];
-            });
+        // Stock In & Out Movement Trend (Last 7 Days)
+        $stockMovementTrend = collect();
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i)->format('Y-m-d');
+            $dateLabel = Carbon::now()->subDays($i)->format('d M');
+            
+            // Stock In: completed Purchases items quantity + Consignment Inbounds items quantity
+            $purchasesIn = \App\Models\PurchaseItem::whereHas('purchase', function($q) {
+                $q->where('status', 'completed');
+            })->whereDate('created_at', $date)->sum('quantity');
+            
+            $consignmentIn = \App\Models\ConsignmentInboundItem::whereHas('inbound', function($q) {
+                $q->where('status', 'completed');
+            })->whereDate('created_at', $date)->sum('quantity');
+            
+            $stockIn = $purchasesIn + $consignmentIn;
+            
+            // Stock Out: TransactionItem quantity from non-cancelled transactions
+            $stockOut = \App\Models\TransactionItem::whereHas('transaction', function($q) {
+                $q->whereNotIn('status', ['cancelled']);
+            })->whereDate('created_at', $date)->sum('quantity');
+            
+            $stockMovementTrend->push([
+                'date' => $dateLabel,
+                'in' => (int)$stockIn,
+                'out' => (int)$stockOut,
+            ]);
+        }
 
         // Recent Stock Movements
         $recentSales = TransactionItem::with('product')
@@ -261,7 +274,7 @@ class InventoryController extends Controller
 
         return view('inventory.dashboard', compact(
             'totalSku', 'totalStockValue', 'lowStockCount', 'outOfStockCount',
-            'stockValueByCategory', 'recommendations', 'recentSales', 'salesTrend',
+            'stockValueByCategory', 'recommendations', 'recentSales', 'stockMovementTrend',
             'slowMoving', 'overstock', 'topProductsData', 'categories', 'categoryId',
             'abcAnalysis'
         ));
