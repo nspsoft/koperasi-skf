@@ -32,6 +32,7 @@ class PosController extends Controller
             'items.*.qty' => 'required|integer|min:1',
             'payment_method' => 'required|string',
             'paid_amount' => 'required|numeric|min:0',
+            'discount' => 'nullable|numeric|min:0',
         ]);
 
         try {
@@ -57,6 +58,9 @@ class PosController extends Controller
                         'subtotal' => $subtotal
                     ];
                 }
+
+                $discount = floatval($request->discount ?? 0);
+                $total_amount = max(0, $total_amount - $discount);
 
                 $paid_amount = $request->paid_amount;
                 $change_amount = $paid_amount - $total_amount;
@@ -113,6 +117,7 @@ class PosController extends Controller
                     'total_amount' => $total_amount,
                     'paid_amount' => $paid_amount,
                     'change_amount' => $change_amount,
+                    'notes' => $discount > 0 ? "[DISKON MANUAL: Rp " . number_format($discount, 0, ',', '.') . "]" : null,
                 ]);
 
                 // Create Items & Deduct Stock

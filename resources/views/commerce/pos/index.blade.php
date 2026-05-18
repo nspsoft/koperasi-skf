@@ -257,9 +257,32 @@
                 <span class="text-gray-600 dark:text-gray-400">{{ __('messages.pos.total_items') }}</span>
                 <span class="font-medium text-gray-900 dark:text-white" x-text="cartTotalQty + ' pcs'"></span>
             </div>
+            <!-- Manual Discount Input -->
+            <div class="flex items-center justify-between gap-4 py-1.5 border-t border-b border-gray-200/50 dark:border-gray-700/50">
+                <span class="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                    🏷️ Diskon Manual (Rp)
+                </span>
+                <input type="number" x-model.number="discountAmount" @input="paidAmount = 0" 
+                       class="w-36 form-input !py-1 text-right text-xs font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border-gray-200" 
+                       placeholder="0" min="0">
+            </div>
+
+            <template x-if="discountAmount > 0">
+                <div class="space-y-1 my-1.5">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-600 dark:text-gray-400">Subtotal:</span>
+                        <span class="font-medium text-gray-900 dark:text-white" x-text="formatRupiah(cartTotalAmount)"></span>
+                    </div>
+                    <div class="flex justify-between text-xs text-rose-600 dark:text-rose-400 font-semibold">
+                        <span>Diskon:</span>
+                        <span x-text="'- ' + formatRupiah(discountAmount)"></span>
+                    </div>
+                </div>
+            </template>
+
             <div class="flex justify-between text-xl font-bold">
                 <span class="text-gray-900 dark:text-white">{{ __('messages.pos.total') }}</span>
-                <span class="text-primary-600" x-text="formatRupiah(cartTotalAmount)"></span>
+                <span class="text-primary-600" x-text="formatRupiah(Math.max(0, cartTotalAmount - (discountAmount || 0)))"></span>
             </div>
 
             <!-- Payment Method -->
@@ -300,7 +323,7 @@
             <div x-show="paymentMethod === 'kredit'" x-transition class="p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
                 <p class="text-sm text-orange-700 dark:text-orange-300 font-medium">📝 {{ __('messages.pos.credit_payment') }}</p>
                 <p class="text-xs text-orange-600 dark:text-orange-400 mt-1">{{ __('messages.pos.credit_note') }}</p>
-                <div x-show="memberData && cartTotalAmount > (memberData?.credit_available || 0)" class="mt-2 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-600 dark:text-red-400">
+                <div x-show="memberData && Math.max(0, cartTotalAmount - (discountAmount || 0)) > (memberData?.credit_available || 0)" class="mt-2 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-600 dark:text-red-400">
                     {{ __('messages.pos.insufficient_credit') }} {{ __('messages.pos.available') }}: <span x-text="formatRupiah(memberData?.credit_available || 0)"></span>
                 </div>
             </div>
@@ -308,10 +331,10 @@
             <!-- Saldo Warning -->
             <div x-show="paymentMethod === 'saldo'" x-transition class="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
                 <p class="text-sm text-purple-700 dark:text-purple-300 font-medium">💳 {{ __('messages.pos.balance_payment') }}</p>
-                <div x-show="memberData && cartTotalAmount > (memberData?.balance || 0)" class="mt-2 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-600 dark:text-red-400">
+                <div x-show="memberData && Math.max(0, cartTotalAmount - (discountAmount || 0)) > (memberData?.balance || 0)" class="mt-2 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-600 dark:text-red-400">
                     {{ __('messages.pos.insufficient_balance') }} {{ __('messages.pos.available') }}: <span x-text="formatRupiah(memberData?.balance || 0)"></span>
                 </div>
-                <div x-show="memberData && cartTotalAmount <= (memberData?.balance || 0)" class="mt-2 text-xs text-purple-600 dark:text-purple-400">
+                <div x-show="memberData && Math.max(0, cartTotalAmount - (discountAmount || 0)) <= (memberData?.balance || 0)" class="mt-2 text-xs text-purple-600 dark:text-purple-400">
                     {{ __('messages.pos.balance_note') }}
                 </div>
             </div>
@@ -321,8 +344,8 @@
                     :disabled="cart.length === 0 || processing || 
                                (paymentMethod === 'cash' && paidAmount < cartTotalAmount) || 
                                ((paymentMethod === 'saldo' || paymentMethod === 'kredit') && !memberData) || 
-                               (paymentMethod === 'kredit' && cartTotalAmount > (memberData?.credit_available || 0)) ||
-                               (paymentMethod === 'saldo' && cartTotalAmount > (memberData?.balance || 0))" 
+                               (paymentMethod === 'kredit' && Math.max(0, cartTotalAmount - (discountAmount || 0)) > (memberData?.credit_available || 0)) ||
+                               (paymentMethod === 'saldo' && Math.max(0, cartTotalAmount - (discountAmount || 0)) > (memberData?.balance || 0))" 
                     class="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all">
                 <span x-show="!processing" x-text="paymentMethod === 'kredit' ? '📝 {{ __('messages.pos.process_credit') }}' : '💰 {{ __('messages.pos.pay_now') }}'"></span>
                 <span x-show="processing" class="flex items-center justify-center gap-2">
@@ -399,12 +422,22 @@
                     </template>
                 </div>
                 <div class="space-y-2">
-                    <div class="flex justify-between text-lg font-bold">
-                        <span class="text-gray-900 dark:text-white">{{ __('messages.pos.total_receipt') }}</span>
-                        <span class="text-primary-600" x-text="'Rp ' + $store.receipt.data.total.toLocaleString('id-ID')"></span>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600 dark:text-gray-400">Subtotal:</span>
+                        <span class="text-gray-900 dark:text-white" x-text="'Rp ' + ($store.receipt.data.subtotal || 0).toLocaleString('id-ID')"></span>
                     </div>
-                    <div class="flex justify-between"><span class="text-gray-600 dark:text-gray-400">{{ __('messages.pos.paid_receipt') }}</span><span class="text-gray-900 dark:text-white" x-text="'Rp ' + $store.receipt.data.paid.toLocaleString('id-ID')"></span></div>
-                    <div class="flex justify-between font-bold text-green-600"><span>{{ __('messages.pos.change_receipt') }}</span><span x-text="'Rp ' + $store.receipt.data.change.toLocaleString('id-ID')"></span></div>
+                    <template x-if="$store.receipt.data.discount > 0">
+                        <div class="flex justify-between text-sm text-rose-600">
+                            <span>Diskon:</span>
+                            <span x-text="'-Rp ' + ($store.receipt.data.discount || 0).toLocaleString('id-ID')"></span>
+                        </div>
+                    </template>
+                    <div class="flex justify-between text-lg font-bold border-t border-gray-200 dark:border-gray-700 pt-2">
+                        <span class="text-gray-900 dark:text-white">{{ __('messages.pos.total_receipt') }}</span>
+                        <span class="text-primary-600" x-text="'Rp ' + ($store.receipt.data.total || 0).toLocaleString('id-ID')"></span>
+                    </div>
+                    <div class="flex justify-between"><span class="text-gray-600 dark:text-gray-400">{{ __('messages.pos.paid_receipt') }}</span><span class="text-gray-900 dark:text-white" x-text="'Rp ' + ($store.receipt.data.paid || 0).toLocaleString('id-ID')"></span></div>
+                    <div class="flex justify-between font-bold text-green-600"><span>{{ __('messages.pos.change_receipt') }}</span><span x-text="'Rp ' + ($store.receipt.data.change || 0).toLocaleString('id-ID')"></span></div>
                 </div>
                 <div class="text-center mt-6 pt-4 border-t-2 border-dashed border-gray-300 dark:border-gray-600">
                     <p class="text-sm text-gray-700 dark:text-gray-300">{{ __('messages.pos.thank_you') }}</p>
@@ -449,7 +482,7 @@
             <div class="text-left bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-6 border border-blue-100 dark:border-blue-800">
                 <div class="flex justify-between text-sm mb-1">
                     <span class="text-gray-600 dark:text-gray-400">{{ __('messages.pos.total_payment') }}</span>
-                    <span class="font-bold text-blue-700 dark:text-blue-400" x-text="new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format($data.cartTotalAmount)"></span>
+                    <span class="font-bold text-blue-700 dark:text-blue-400" x-text="formatRupiah(Math.max(0, cartTotalAmount - (discountAmount || 0)))"></span>
                 </div>
                 <p class="text-xs text-blue-600 dark:text-blue-300 mt-2">
                     {{ __('messages.pos.qris_note') }}
@@ -503,7 +536,7 @@
 document.addEventListener('alpine:init', () => {
     Alpine.store('receipt', {
         show: false,
-        data: { invoice: '', date: '', cashier: '', buyer: '', method: '', items: [], total: 0, paid: 0, change: 0 }
+        data: { invoice: '', date: '', cashier: '', buyer: '', method: '', items: [], subtotal: 0, discount: 0, total: 0, paid: 0, change: 0 }
     });
     Alpine.store('qris', {
         show: false
@@ -523,6 +556,7 @@ document.addEventListener('alpine:init', () => {
         searchingMember: false,
         paymentMethod: 'cash',
         paidAmount: 0,
+        discountAmount: 0,
         processing: false,
         processedImageId: null,
 
@@ -766,7 +800,7 @@ document.addEventListener('alpine:init', () => {
 
         get cartTotalQty() { return this.cart.reduce((s, i) => s + i.qty, 0); },
         get cartTotalAmount() { return this.cart.reduce((s, i) => s + (i.price * i.qty), 0); },
-        get changeAmount() { return Math.max(0, this.paidAmount - this.cartTotalAmount); },
+        get changeAmount() { return Math.max(0, this.paidAmount - Math.max(0, this.cartTotalAmount - (this.discountAmount || 0))); },
 
         formatRupiah(n) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n); },
 
@@ -888,6 +922,9 @@ document.addEventListener('alpine:init', () => {
         processPayment(isQrisConfirmed = false) {
             if (this.cart.length === 0) return;
             
+            const discount = parseFloat(this.discountAmount || 0);
+            const total = Math.max(0, this.cartTotalAmount - discount);
+
             // If method is QRIS and not yet confirmed, show the modal first
             if (this.paymentMethod === 'qris' && !isQrisConfirmed) {
                 this.showQris();
@@ -897,7 +934,7 @@ document.addEventListener('alpine:init', () => {
             this.processing = true;
 
             const cartCopy = [...this.cart];
-            const total = this.cartTotalAmount;
+            const originalTotal = this.cartTotalAmount;
             const paid = this.paymentMethod === 'cash' ? parseFloat(this.paidAmount) : total;
             const change = paid - total;
 
@@ -909,6 +946,7 @@ document.addEventListener('alpine:init', () => {
                     items: this.cart,
                     payment_method: this.paymentMethod,
                     paid_amount: paid,
+                    discount: discount,
                     buyer_type: this.buyerType,
                     member_id: this.buyerType === 'member' ? this.memberData?.id : null
                 })
@@ -925,6 +963,8 @@ document.addEventListener('alpine:init', () => {
                         buyer: this.buyerType === 'member' ? this.memberData?.name : '{{ __('messages.pos.general') }}',
                         method: this.paymentMethod,
                         items: cartCopy,
+                        subtotal: originalTotal,
+                        discount: discount,
                         total: total,
                         paid: paid,
                         change: change
@@ -932,6 +972,7 @@ document.addEventListener('alpine:init', () => {
                     Alpine.store('receipt').show = true;
                     this.cart = [];
                     this.paidAmount = 0;
+                    this.discountAmount = 0;
                     this.memberId = '';
                     this.memberData = null;
                     this.memberMatches = [];

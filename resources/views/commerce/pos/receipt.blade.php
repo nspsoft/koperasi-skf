@@ -152,10 +152,20 @@
         </div>
 
         <div class="totals">
+            @php
+                $original_total = $transaction->items->sum('subtotal');
+                $discount = $original_total - $transaction->total_amount;
+            @endphp
             <p>
                 <span>Subtotal ({{ $transaction->items->sum('quantity') }} item):</span>
-                <span>Rp {{ number_format($transaction->total_amount, 0, ',', '.') }}</span>
+                <span>Rp {{ number_format($original_total, 0, ',', '.') }}</span>
             </p>
+            @if($discount > 0.01)
+            <p>
+                <span>Diskon:</span>
+                <span>-Rp {{ number_format($discount, 0, ',', '.') }}</span>
+            </p>
+            @endif
             <p class="grand-total">
                 <span>TOTAL:</span>
                 <span>Rp {{ number_format($transaction->total_amount, 0, ',', '.') }}</span>
