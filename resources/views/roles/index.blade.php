@@ -172,7 +172,7 @@
                             </span>
                         </td>
                         <td>
-                            <div class="flex items-center justify-center gap-2">
+                            <div class="flex items-center justify-center gap-2" x-data="{}">
                                 <form action="{{ route('roles.update-user', $user) }}" method="POST" class="inline">
                                     @csrf
                                     @method('PUT')
@@ -182,6 +182,15 @@
                                         @endforeach
                                     </select>
                                 </form>
+                                <button @click="$dispatch('open-reset-password', { id: {{ $user->id }}, name: '{{ addslashes($user->name) }}' })"
+                                        type="button"
+                                        class="btn-secondary py-1 px-2.5 text-xs flex items-center gap-1 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200"
+                                        title="Reset Password">
+                                    <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m-5 4a5 5 0 01-5-5 5 5 0 015-5 5 5 0 015 5 5 5 0 01-5 5zm0 0v1a2 2 0 01-2 2H9a2 2 0 00-2 2v3m2-3h.01"></path>
+                                    </svg>
+                                    <span>Reset</span>
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -196,5 +205,109 @@
             {{ $users->links() }}
         </div>
         @endif
+    </div>
+
+    {{-- Reset Password Modal --}}
+    <div x-data="{ 
+            showModal: false, 
+            userId: null, 
+            userName: '', 
+            password: '', 
+            password_confirmation: '',
+            errors: []
+         }"
+         @open-reset-password.window="
+            showModal = true;
+            userId = $event.detail.id;
+            userName = $event.detail.name;
+            password = '';
+            password_confirmation = '';
+            errors = [];
+         "
+         x-show="showModal"
+         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4"
+         style="display: none;">
+        
+        {{-- Backdrop --}}
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" @click="showModal = false"></div>
+        
+        {{-- Modal Content --}}
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 max-w-md w-full overflow-hidden transform transition-all relative z-10">
+            <div class="p-6">
+                {{-- Header --}}
+                <div class="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-gray-700 pb-3">
+                    <div class="flex items-center gap-2 text-amber-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m-5 4a5 5 0 01-5-5 5 5 0 015-5 5 5 0 015 5 5 5 0 01-5 5zm0 0v1a2 2 0 01-2 2H9a2 2 0 00-2 2v3m2-3h.01"></path>
+                        </svg>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Reset Password</h3>
+                    </div>
+                    <button @click="showModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Mereset password untuk user: <strong class="text-gray-900 dark:text-white" x-text="userName"></strong>
+                </p>
+                
+                {{-- Form --}}
+                <form :action="'/roles/user/' + userId + '/reset-password'" method="POST" @submit="
+                    errors = [];
+                    if (password.length < 8) {
+                        errors.push('Password harus minimal 8 karakter!');
+                    }
+                    if (password !== password_confirmation) {
+                        errors.push('Konfirmasi password tidak cocok!');
+                    }
+                    if (errors.length > 0) {
+                        $event.preventDefault();
+                    }
+                ">
+                    @csrf
+                    @method('PUT')
+                    
+                    {{-- Local validation error --}}
+                    <template x-if="errors.length > 0">
+                        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-xs space-y-1 mb-4">
+                            <template x-for="err in errors">
+                                <div class="flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span x-text="err"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="form-label font-semibold text-xs mb-1 block">Password Baru</label>
+                            <input type="password" name="password" x-model="password" required minlength="8"
+                                   placeholder="Minimal 8 karakter"
+                                   class="form-input w-full">
+                        </div>
+                        <div>
+                            <label class="form-label font-semibold text-xs mb-1 block">Konfirmasi Password Baru</label>
+                            <input type="password" name="password_confirmation" x-model="password_confirmation" required
+                                   placeholder="Ulangi password baru"
+                                   class="form-input w-full">
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end gap-3 mt-6 border-t border-gray-100 dark:border-gray-700 pt-4">
+                        <button type="button" @click="showModal = false" class="btn-secondary">
+                            Batal
+                        </button>
+                        <button type="submit" class="btn-primary bg-amber-500 hover:bg-amber-600 border-amber-500 hover:border-amber-600 text-white">
+                            Simpan Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 @endsection

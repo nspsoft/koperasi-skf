@@ -170,6 +170,28 @@ class RoleController extends Controller
     }
 
     /**
+     * Reset user password by system admin
+     */
+    public function resetPassword(Request $request, User $user)
+    {
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        $roleLabel = $user->roleModel->label ?? $user->role;
+        \App\Models\AuditLog::log(
+            'update', 
+            "Mereset password user: {$user->name} ({$roleLabel})"
+        );
+
+        return redirect()->back()->with('success', "Password untuk user '{$user->name}' berhasil direset!");
+    }
+
+    /**
      * Get role permissions (for AJAX)
      */
     public function getPermissions(Role $role)

@@ -422,6 +422,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
             Route::put('roles/{role}', [App\Http\Controllers\RoleController::class, 'update'])->name('roles.update');
             Route::delete('roles/{role}', [App\Http\Controllers\RoleController::class, 'destroy'])->name('roles.destroy');
             Route::put('roles/user/{user}', [App\Http\Controllers\RoleController::class, 'updateRole'])->name('roles.update-user');
+            Route::put('roles/user/{user}/reset-password', [App\Http\Controllers\RoleController::class, 'resetPassword'])->name('roles.user.reset-password');
             Route::get('roles/{role}/permissions', [App\Http\Controllers\RoleController::class, 'getPermissions'])->name('roles.permissions');
 
             // System Settings
