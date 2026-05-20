@@ -144,7 +144,7 @@ class User extends Authenticatable
     public function hasAdminAccess(): bool
     {
         return in_array($this->role, ['admin', 'pengurus', 'manager_toko'])
-            || $this->hasAnyPermission(['menu_inventory', 'menu_finance', 'menu_operations', 'menu_organization', 'menu_admin']);
+            || $this->hasAnyPermission(['menu_inventory', 'menu_operations', 'menu_organization', 'menu_admin']);
     }
 
     /**
