@@ -215,10 +215,10 @@ class PosController extends Controller
 
         $transactions = $query->paginate(20);
 
-        // Get list of cashiers for filter (staff with roles admin, pengurus, manager_toko)
-        $cashiers = User::whereIn('role', ['admin', 'pengurus', 'manager_toko'])
+        // Get list of cashiers for filter (staff with roles admin, pengurus, manager_toko, kasir)
+        $cashiers = User::whereIn('role', ['admin', 'pengurus', 'manager_toko', 'kasir'])
             ->orWhereHas('roleModel', function($q) {
-                $q->whereIn('name', ['admin', 'pengurus', 'manager_toko']);
+                $q->whereIn('name', ['admin', 'pengurus', 'manager_toko', 'kasir']);
             })
             ->orderBy('name')
             ->get();
