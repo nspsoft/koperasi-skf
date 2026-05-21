@@ -213,6 +213,8 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
         // Consignment
         Route::resource('consignment/inbounds', App\Http\Controllers\ConsignmentInboundController::class, ['as' => 'consignment']);
         Route::resource('consignment/settlements', App\Http\Controllers\ConsignmentSettlementController::class, ['as' => 'consignment']);
+        Route::get('consignment/returns/{return}/print', [App\Http\Controllers\ConsignmentReturnController::class, 'print'])->name('consignment.returns.print');
+        Route::resource('consignment/returns', App\Http\Controllers\ConsignmentReturnController::class, ['as' => 'consignment']);
 
         // Document Generator
         Route::get('documents', [App\Http\Controllers\DocumentController::class, 'index'])->name('documents.index');
