@@ -67,7 +67,7 @@
                 <template x-for="(item, index) in items" :key="item.id">
                     <div class="flex flex-col md:flex-row items-start md:items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
                         
-                        <div class="w-full" style="flex: 3;">
+                        <div style="flex: 1 1 50%; min-width: 0;">
                             <label class="block text-xs font-medium text-gray-500 mb-1 md:hidden">Produk</label>
                             <select :name="'items['+index+'][product_id]'" x-model="item.product_id" @change="checkStock(index)" required class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
                                 <option value="">-- Pilih Produk --</option>
@@ -77,19 +77,19 @@
                             </select>
                         </div>
 
-                        <div class="w-full md:w-24">
+                        <div style="flex: 0 0 80px;">
                             <label class="block text-xs font-medium text-gray-500 mb-1 md:hidden">Qty Retur</label>
                             <input type="number" :name="'items['+index+'][quantity]'" x-model.number="item.quantity" @input="checkStock(index)" required min="1" placeholder="Qty"
                                 class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-center">
                         </div>
                         
-                        <div class="w-full md:w-40">
+                        <div style="flex: 0 0 150px;">
                             <label class="block text-xs font-medium text-gray-500 mb-1 md:hidden">Keterangan</label>
-                            <input type="text" :name="'items['+index+'][notes]'" x-model="item.notes" placeholder="Kondisi barang..."
+                            <input type="text" :name="'items['+index+'][notes]'" x-model="item.notes" placeholder="Kondisi barang.."
                                 class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
                         </div>
 
-                        <div class="w-full md:w-auto flex justify-end">
+                        <div style="flex: 0 0 40px;">
                             <button type="button" @click="removeItem(index)" class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg" title="Hapus">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>
