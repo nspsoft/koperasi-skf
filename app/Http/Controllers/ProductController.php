@@ -186,6 +186,11 @@ class ProductController extends Controller
         ]);
 
         $data = $request->all();
+        
+        // Hanya admin yang bisa update stok secara manual
+        if (!auth()->user()->isAdmin()) {
+            unset($data['stock']);
+        }
         $data['is_consignment'] = $request->boolean('is_consignment');
         $data['is_preorder'] = $request->boolean('is_preorder'); 
         $data['is_active'] = $request->boolean('is_active'); 
