@@ -251,6 +251,10 @@
                     {{ __('messages.sidebar.consignment') }}
                 </div>
                 
+                <a href="{{ route('consignment.dashboard') }}" class="{{ request()->routeIs('consignment.dashboard') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
+                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('consignment.dashboard') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
+                    Dashboard Konsinyasi
+                </a>
                 <a href="{{ route('consignment.inbounds.index') }}" class="{{ request()->routeIs('consignment.inbounds.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('consignment.inbounds.*') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
                     {{ __('messages.sidebar.consignment_inbound') }}

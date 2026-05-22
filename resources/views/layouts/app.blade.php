@@ -37,6 +37,36 @@
 
         <!-- ApexCharts -->
         <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+        <!-- Flatpickr (Datepicker) -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
+        <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+        <script src="https://npmcdn.com/flatpickr/dist/l10n/id.js"></script>
+        
+        <style>
+            /* Fix for flatpickr dark mode support if needed */
+            .dark .flatpickr-calendar {
+                background: #1f2937;
+                box-shadow: 1px 0 0 #374151, -1px 0 0 #374151, 0 1px 0 #374151, 0 -1px 0 #374151, 0 3px 13px rgba(0,0,0,0.4);
+            }
+            .dark .flatpickr-calendar.arrowTop:before, .dark .flatpickr-calendar.arrowTop:after { border-bottom-color: #1f2937; }
+            .dark .flatpickr-calendar.arrowBottom:before, .dark .flatpickr-calendar.arrowBottom:after { border-top-color: #1f2937; }
+            .dark .flatpickr-day { color: #d1d5db; }
+            .dark .flatpickr-day.inRange, .dark .flatpickr-day.prevMonthDay.inRange, .dark .flatpickr-day.nextMonthDay.inRange, .dark .flatpickr-day.today.inRange, .dark .flatpickr-day.prevMonthDay.today.inRange, .dark .flatpickr-day.nextMonthDay.today.inRange, .dark .flatpickr-day:hover, .dark .flatpickr-day.prevMonthDay:hover, .dark .flatpickr-day.nextMonthDay:hover, .dark .flatpickr-day:focus, .dark .flatpickr-day.prevMonthDay:focus, .dark .flatpickr-day.nextMonthDay:focus {
+                background: #374151;
+                border-color: #374151;
+            }
+            .dark .flatpickr-day.today { border-color: #10b981; }
+            .dark .flatpickr-day.selected, .dark .flatpickr-day.startRange, .dark .flatpickr-day.endRange, .dark .flatpickr-day.selected.inRange, .dark .flatpickr-day.startRange.inRange, .dark .flatpickr-day.endRange.inRange, .dark .flatpickr-day.selected:focus, .dark .flatpickr-day.startRange:focus, .dark .flatpickr-day.endRange:focus, .dark .flatpickr-day.selected:hover, .dark .flatpickr-day.startRange:hover, .dark .flatpickr-day.endRange:hover, .dark .flatpickr-day.selected.prevMonthDay, .dark .flatpickr-day.startRange.prevMonthDay, .dark .flatpickr-day.endRange.prevMonthDay, .dark .flatpickr-day.selected.nextMonthDay, .dark .flatpickr-day.startRange.nextMonthDay, .dark .flatpickr-day.endRange.nextMonthDay {
+                background: #10b981;
+                border-color: #10b981;
+                color: #fff;
+            }
+            .dark .flatpickr-month { color: #f3f4f6; fill: #f3f4f6; }
+            .dark .flatpickr-weekday { color: #9ca3af; }
+            .dark .flatpickr-current-month .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month { background-color: #1f2937; }
+        </style>
         
         <script>
             if ('serviceWorker' in navigator) {
@@ -224,6 +254,26 @@
                 window.dispatchEvent(new CustomEvent('notify', { 
                     detail: { message: "Koneksi terputus atau server gagal merespon.", type: 'error' }
                 }));
+            });
+
+            // Global Flatpickr Initialization
+            document.addEventListener('DOMContentLoaded', function() {
+                // Initialize all date inputs
+                flatpickr("input[type='date']", {
+                    locale: "id", // Indonesian
+                    dateFormat: "Y-m-d", // Value sent to server
+                    altInput: true, // Create a visually appealing hidden input
+                    altFormat: "d-m-Y", // Display format DD-MM-YYYY
+                    allowInput: true, // Allow manual typing
+                    onReady: function(selectedDates, dateStr, instance) {
+                        // Apply styling to the new altInput to match existing form styles if needed
+                        // Flatpickr usually copies classes automatically.
+                        if (instance.altInput) {
+                            // Ensure the datepicker text is visible and styled properly
+                            instance.altInput.classList.add('flatpickr-alt-input');
+                        }
+                    }
+                });
             });
         </script>
         

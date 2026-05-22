@@ -215,6 +215,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
         Route::resource('expenses', App\Http\Controllers\ExpenseController::class);
 
         // Consignment
+        Route::get('consignment/dashboard', [App\Http\Controllers\ConsignmentDashboardController::class, 'index'])->name('consignment.dashboard');
         Route::resource('consignment/inbounds', App\Http\Controllers\ConsignmentInboundController::class, ['as' => 'consignment']);
         Route::resource('consignment/settlements', App\Http\Controllers\ConsignmentSettlementController::class, ['as' => 'consignment']);
         Route::get('consignment/returns/{return}/print', [App\Http\Controllers\ConsignmentReturnController::class, 'print'])->name('consignment.returns.print');
