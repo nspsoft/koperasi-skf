@@ -101,7 +101,10 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
     Route::middleware('can:admin')->group(function() {
         // Admin Email
         Route::get('admin/email', [App\Http\Controllers\Admin\AdminEmailController::class, 'index'])->name('admin.email.index');
+        Route::get('admin/email/compose', [App\Http\Controllers\Admin\AdminEmailController::class, 'compose'])->name('admin.email.compose');
+        Route::post('admin/email/send', [App\Http\Controllers\Admin\AdminEmailController::class, 'send'])->name('admin.email.send');
         Route::get('admin/email/{uid}', [App\Http\Controllers\Admin\AdminEmailController::class, 'show'])->name('admin.email.show');
+        Route::get('admin/email/{uid}/reply', [App\Http\Controllers\Admin\AdminEmailController::class, 'reply'])->name('admin.email.reply');
 
         // Exports
         Route::get('savings/export', [App\Http\Controllers\SavingController::class, 'export'])->name('savings.export');
