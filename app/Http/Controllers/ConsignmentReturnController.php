@@ -29,7 +29,7 @@ class ConsignmentReturnController extends Controller
      */
     public function create()
     {
-        $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
+        $suppliers = Supplier::orderBy('name')->get();
         $members = Member::where('status', 'aktif')->orderBy('name')->get();
         
         $consignmentProducts = Product::where('is_consignment', true)
