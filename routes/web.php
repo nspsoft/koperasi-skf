@@ -99,6 +99,10 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
 
     // Admin Only Core Routes
     Route::middleware('can:admin')->group(function() {
+        // Admin Email
+        Route::get('admin/email', [App\Http\Controllers\Admin\AdminEmailController::class, 'index'])->name('admin.email.index');
+        Route::get('admin/email/{uid}', [App\Http\Controllers\Admin\AdminEmailController::class, 'show'])->name('admin.email.show');
+
         // Exports
         Route::get('savings/export', [App\Http\Controllers\SavingController::class, 'export'])->name('savings.export');
         Route::get('loans/export', [App\Http\Controllers\LoanController::class, 'export'])->name('loans.export');
