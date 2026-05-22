@@ -67,7 +67,7 @@
                 <template x-for="(item, index) in items" :key="item.id">
                     <div class="flex flex-col md:flex-row items-start md:items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
                         
-                        <div class="flex-[3] w-full">
+                        <div class="w-full" style="flex: 3;">
                             <label class="block text-xs font-medium text-gray-500 mb-1 md:hidden">Produk</label>
                             <select :name="'items['+index+'][product_id]'" x-model="item.product_id" @change="checkStock(index)" required class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700">
                                 <option value="">-- Pilih Produk --</option>
