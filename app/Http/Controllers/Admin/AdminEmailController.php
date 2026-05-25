@@ -207,7 +207,7 @@ class AdminEmailController extends Controller
     }
 
     /**
-     * Send email via SMTP.
+     * Send email via SMTP (with file attachments support).
      */
     public function send(Request $request)
     {
@@ -217,11 +217,13 @@ class AdminEmailController extends Controller
             'to' => 'required|email',
             'subject' => 'required|string|max:255',
             'body' => 'required|string',
+            'attachments.*' => 'nullable|file|max:10240', // max 10MB per file
         ], [
             'to.required' => 'Alamat email tujuan harus diisi.',
             'to.email' => 'Format alamat email tidak valid.',
             'subject.required' => 'Subjek harus diisi.',
             'body.required' => 'Isi pesan harus diisi.',
+            'attachments.*.max' => 'Ukuran file maksimal 10MB.',
         ]);
 
         try {
@@ -229,8 +231,9 @@ class AdminEmailController extends Controller
             $cc = $request->input('cc');
             $subject = $request->input('subject');
             $body = $request->input('body');
+            $files = $request->file('attachments');
 
-            Mail::raw($body, function ($message) use ($to, $cc, $subject) {
+            Mail::raw($body, function ($message) use ($to, $cc, $subject, $files) {
                 $message->to($to);
                 if ($cc) {
                     $ccList = array_map('trim', explode(',', $cc));
@@ -241,12 +244,66 @@ class AdminEmailController extends Controller
                     }
                 }
                 $message->subject($subject);
+
+                // Attach uploaded files
+                if ($files) {
+                    foreach ($files as $file) {
+                        if ($file && $file->isValid()) {
+                            $message->attach($file->getRealPath(), [
+                                'as' => $file->getClientOriginalName(),
+                                'mime' => $file->getMimeType(),
+                            ]);
+                        }
+                    }
+                }
             });
 
             return redirect()->route('admin.email.index')->with('success', 'Email berhasil dikirim ke ' . $to);
 
         } catch (\Exception $e) {
             return redirect()->back()->withInput()->with('error', 'Gagal mengirim email: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download an attachment from a message.
+     */
+    public function downloadAttachment(Request $request, $uid, $attachmentIndex)
+    {
+        $this->authorizeEmail();
+
+        try {
+            $client = Client::account('default');
+            $client->connect();
+
+            $folder = $request->get('folder', 'inbox');
+            $imapFolder = $this->resolveFolder($client, $folder);
+            $message = $imapFolder->query()->getMessageByUid($uid);
+
+            if (!$message) {
+                return redirect()->back()->with('error', 'Email tidak ditemukan.');
+            }
+
+            $attachments = $message->getAttachments();
+            $index = (int) $attachmentIndex;
+
+            if ($index < 0 || $index >= $attachments->count()) {
+                return redirect()->back()->with('error', 'Lampiran tidak ditemukan.');
+            }
+
+            $attachment = $attachments->get($index);
+            $content = $attachment->content;
+            $filename = $attachment->name ?: 'attachment_' . $index;
+            $mimeType = $attachment->content_type ?: 'application/octet-stream';
+
+            return response($content, 200, [
+                'Content-Type' => $mimeType,
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Content-Length' => strlen($content),
+            ]);
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal mengunduh lampiran: ' . $e->getMessage());
         }
     }
 }

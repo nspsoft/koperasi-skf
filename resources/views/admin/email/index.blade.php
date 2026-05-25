@@ -157,9 +157,32 @@
     .reading-attachment-item {
         display: inline-flex; align-items: center; padding: 10px 14px;
         background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
-        margin-right: 8px; margin-bottom: 8px; cursor: pointer; transition: border 0.15s;
+        margin-right: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
+        text-decoration: none;
     }
-    .reading-attachment-item:hover { border-color: {{ $cf['color'] }}; }
+    .reading-attachment-item:hover { border-color: {{ $cf['color'] }}; background: {{ $cf['bg'] }}; }
+    .reading-attachment-item .dl-icon { opacity: 0; transition: opacity 0.15s; margin-left: 8px; }
+    .reading-attachment-item:hover .dl-icon { opacity: 1; }
+
+    /* File Upload */
+    .file-upload-area { padding: 0 24px 10px; flex-shrink: 0; }
+    .file-upload-label {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 12px; border: 2px dashed #d1d5db; border-radius: 10px;
+        color: #6b7280; font-size: 13px; cursor: pointer; transition: all 0.2s;
+    }
+    .file-upload-label:hover { border-color: {{ $cf['color'] }}; color: {{ $cf['color'] }}; background: {{ $cf['bg'] }}; }
+    .file-upload-label svg { width: 18px; height: 18px; }
+    .file-upload-list { padding: 4px 24px 0; }
+    .file-upload-item {
+        display: flex; align-items: center; gap: 8px;
+        padding: 6px 10px; background: {{ $cf['bg'] }}; border-radius: 6px;
+        font-size: 12px; color: #374151; margin-bottom: 4px;
+    }
+    .file-upload-item .remove-file { color: #dc2626; cursor: pointer; margin-left: auto; font-weight: 700; }
+    .dark .file-upload-label { border-color: #374151; color: #9ca3af; }
+    .dark .file-upload-label:hover { border-color: {{ $cf['color'] }}; background: {{ $cf['color'] }}10; }
+    .dark .file-upload-item { background: #1f2937; color: #d1d5db; }
     .reading-body { padding: 0 32px 48px; font-size: 15px; color: #374151; line-height: 1.7; }
     .reading-body img { max-width: 100% !important; height: auto !important; }
     .reading-body table { max-width: 100% !important; }
@@ -378,7 +401,7 @@
                     Kembali
                 </a>
 
-                <form action="{{ route('admin.email.send') }}" method="POST" class="compose-form">
+                <form action="{{ route('admin.email.send') }}" method="POST" class="compose-form" enctype="multipart/form-data">
                     @csrf
                     <div class="compose-header">
                         <h2>{{ $composeMode === 'reply' ? '↩ Balas Email' : '✏️ Tulis Email Baru' }}</h2>
@@ -408,11 +431,22 @@
                         @endforeach
                     </div>
                     @endif
+                    <div class="file-upload-area">
+                        <label class="file-upload-label" for="compose-files">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                            Lampirkan File (maks. 10MB per file)
+                        </label>
+                        <input type="file" name="attachments[]" id="compose-files" multiple style="display:none;" onchange="showSelectedFiles(this)">
+                        <div id="file-list" class="file-upload-list"></div>
+                    </div>
                     <div class="compose-footer">
-                        <button type="submit" class="btn-send">
-                            <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                            Kirim
-                        </button>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <button type="submit" class="btn-send">
+                                <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                Kirim
+                            </button>
+                            <span id="file-count" style="font-size:12px;color:#6b7280;"></span>
+                        </div>
                         <a href="{{ route('admin.email.index') }}" class="btn-discard">Batal</a>
                     </div>
                 </form>
@@ -458,14 +492,15 @@
                     @if($selectedMessage->getAttachments()->count() > 0)
                     <div class="reading-attachments">
                         <h4>📎 Lampiran ({{ $selectedMessage->getAttachments()->count() }})</h4>
-                        @foreach($selectedMessage->getAttachments() as $attachment)
-                        <span class="reading-attachment-item">
+                        @foreach($selectedMessage->getAttachments() as $index => $attachment)
+                        <a href="{{ route('admin.email.attachment', ['uid' => $selectedMessage->getUid(), 'index' => $index, 'folder' => $activeFolder]) }}" class="reading-attachment-item" title="Unduh {{ $attachment->name }}">
                             <svg style="width:18px;height:18px;color:#ef4444;margin-right:10px;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                             <span>
                                 <span style="font-size:13px;font-weight:500;color:#374151;">{{ $attachment->name }}</span>
                                 <span style="font-size:11px;color:#9ca3af;margin-left:6px;">({{ number_format($attachment->size / 1024, 2) }} KB)</span>
                             </span>
-                        </span>
+                            <svg class="dl-icon" style="width:16px;height:16px;color:{{ $cf['color'] }};" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        </a>
                         @endforeach
                     </div>
                     @endif
@@ -500,3 +535,31 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function showSelectedFiles(input) {
+    var fileList = document.getElementById('file-list');
+    var fileCount = document.getElementById('file-count');
+    fileList.innerHTML = '';
+    
+    if (input.files.length > 0) {
+        for (var i = 0; i < input.files.length; i++) {
+            var file = input.files[i];
+            var size = (file.size / 1024).toFixed(1);
+            var unit = 'KB';
+            if (size > 1024) { size = (size / 1024).toFixed(1); unit = 'MB'; }
+            
+            var item = document.createElement('div');
+            item.className = 'file-upload-item';
+            item.innerHTML = '<svg style="width:14px;height:14px;color:#6b7280;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>' +
+                '<span>' + file.name + ' (' + size + ' ' + unit + ')</span>';
+            fileList.appendChild(item);
+        }
+        fileCount.textContent = '📎 ' + input.files.length + ' file terlampir';
+    } else {
+        fileCount.textContent = '';
+    }
+}
+</script>
+@endpush
