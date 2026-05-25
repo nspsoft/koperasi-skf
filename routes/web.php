@@ -32,6 +32,18 @@ Route::get('/clear-cache', function () {
     return \Artisan::output();
 });
 
+// Temporary route to run migrations on production
+Route::get('/run-migrate', function () {
+    if (request('key') !== 'skf123') {
+        return 'Unauthorized';
+    }
+    \Artisan::call('migrate', ['--force' => true]);
+    $output = \Artisan::output();
+    // Also clear cache after migration
+    \Artisan::call('optimize:clear');
+    return '<pre>' . $output . "\n\n✅ Migration selesai & cache dibersihkan!</pre>";
+});
+
 
 
 // WhatsApp Webhooks
