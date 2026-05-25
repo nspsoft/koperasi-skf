@@ -10,6 +10,17 @@ use Webklex\IMAP\Facades\Client;
 class AdminEmailController extends Controller
 {
     /**
+     * Folder mapping: URL slug => IMAP folder name
+     */
+    private const FOLDER_MAP = [
+        'inbox'   => 'INBOX',
+        'sent'    => 'INBOX.Sent',
+        'drafts'  => 'INBOX.Drafts',
+        'trash'   => 'INBOX.Trash',
+        'spam'    => 'INBOX.Spam',
+    ];
+
+    /**
      * Check if user has email access permission.
      */
     private function authorizeEmail()
@@ -21,29 +32,66 @@ class AdminEmailController extends Controller
     }
 
     /**
-     * Display a listing of emails.
+     * Resolve the IMAP folder from slug, with fallback attempts.
      */
-    public function index(Request $request)
+    private function resolveFolder($client, string $slug)
+    {
+        $imapName = self::FOLDER_MAP[$slug] ?? 'INBOX';
+
+        // Try the primary folder name
+        try {
+            $folder = $client->getFolder($imapName);
+            if ($folder) return $folder;
+        } catch (\Exception $e) {}
+
+        // Fallback: try common cPanel alternatives
+        $alternatives = [
+            'INBOX.Sent'   => ['Sent', 'Sent Messages', 'INBOX.Sent Messages'],
+            'INBOX.Drafts' => ['Drafts', 'INBOX.Draft'],
+            'INBOX.Trash'  => ['Trash', 'Deleted Messages', 'INBOX.Deleted Messages'],
+            'INBOX.Spam'   => ['Spam', 'Junk', 'INBOX.Junk', 'Junk E-mail'],
+        ];
+
+        if (isset($alternatives[$imapName])) {
+            foreach ($alternatives[$imapName] as $alt) {
+                try {
+                    $folder = $client->getFolder($alt);
+                    if ($folder) return $folder;
+                } catch (\Exception $e) {}
+            }
+        }
+
+        // Final fallback to INBOX
+        return $client->getFolder('INBOX');
+    }
+
+    /**
+     * Display a listing of emails (with folder support).
+     */
+    public function index(Request $request, $folder = 'inbox')
     {
         $this->authorizeEmail();
+
+        $activeFolder = $folder;
 
         try {
             /** @var \Webklex\PHPIMAP\Client $client */
             $client = Client::account('default');
             $client->connect();
             
-            $folder = $client->getFolder('INBOX');
+            $imapFolder = $this->resolveFolder($client, $folder);
             
             $page = $request->get('page', 1);
             $perPage = 15;
             
-            $messages = $folder->query()->all()->setFetchOrder("desc")->paginate($perPage, $page, 'page');
+            $messages = $imapFolder->query()->all()->setFetchOrder("desc")->paginate($perPage, $page, 'page');
             
-            return view('admin.email.index', compact('messages'));
+            return view('admin.email.index', compact('messages', 'activeFolder'));
             
         } catch (\Exception $e) {
             return view('admin.email.index', [
                 'messages' => null,
+                'activeFolder' => $activeFolder,
                 'imapError' => 'Gagal terhubung ke server email: ' . $e->getMessage()
             ]);
         }
@@ -52,35 +100,37 @@ class AdminEmailController extends Controller
     /**
      * Display the specified email in split-pane view.
      */
-    public function show(Request $request, $uid)
+    public function show(Request $request, $folder, $uid)
     {
         $this->authorizeEmail();
+
+        $activeFolder = $folder;
 
         try {
             /** @var \Webklex\PHPIMAP\Client $client */
             $client = Client::account('default');
             $client->connect();
             
-            $folder = $client->getFolder('INBOX');
+            $imapFolder = $this->resolveFolder($client, $folder);
             
             $page = $request->get('page', 1);
             $perPage = 15;
-            $messages = $folder->query()->all()->setFetchOrder("desc")->paginate($perPage, $page, 'page');
+            $messages = $imapFolder->query()->all()->setFetchOrder("desc")->paginate($perPage, $page, 'page');
 
-            $selectedMessage = $folder->query()->getMessageByUid($uid);
+            $selectedMessage = $imapFolder->query()->getMessageByUid($uid);
             
             if (!$selectedMessage) {
-                return redirect()->route('admin.email.index')->with('error', 'Email tidak ditemukan.');
+                return redirect()->route('admin.email.folder', $folder)->with('error', 'Email tidak ditemukan.');
             }
             
             if(!$selectedMessage->hasFlag('seen')) {
                 $selectedMessage->setFlag('seen');
             }
             
-            return view('admin.email.index', compact('messages', 'selectedMessage'));
+            return view('admin.email.index', compact('messages', 'selectedMessage', 'activeFolder'));
             
         } catch (\Exception $e) {
-            return redirect()->route('admin.email.index')->with('error', 'Gagal memuat email: ' . $e->getMessage());
+            return redirect()->route('admin.email.folder', $folder)->with('error', 'Gagal memuat email: ' . $e->getMessage());
         }
     }
 
@@ -95,19 +145,20 @@ class AdminEmailController extends Controller
         $composeTo = $request->get('to', '');
         $composeSubject = $request->get('subject', '');
         $composeBody = '';
+        $activeFolder = 'inbox';
 
         try {
             $client = Client::account('default');
             $client->connect();
-            $folder = $client->getFolder('INBOX');
+            $imapFolder = $client->getFolder('INBOX');
             $page = $request->get('page', 1);
             $perPage = 15;
-            $messages = $folder->query()->all()->setFetchOrder("desc")->paginate($perPage, $page, 'page');
+            $messages = $imapFolder->query()->all()->setFetchOrder("desc")->paginate($perPage, $page, 'page');
         } catch (\Exception $e) {
             $messages = null;
         }
 
-        return view('admin.email.index', compact('messages', 'composeMode', 'composeTo', 'composeSubject', 'composeBody'));
+        return view('admin.email.index', compact('messages', 'composeMode', 'composeTo', 'composeSubject', 'composeBody', 'activeFolder'));
     }
 
     /**
@@ -117,16 +168,18 @@ class AdminEmailController extends Controller
     {
         $this->authorizeEmail();
 
+        $activeFolder = 'inbox';
+
         try {
             $client = Client::account('default');
             $client->connect();
-            $folder = $client->getFolder('INBOX');
+            $imapFolder = $client->getFolder('INBOX');
 
             $page = $request->get('page', 1);
             $perPage = 15;
-            $messages = $folder->query()->all()->setFetchOrder("desc")->paginate($perPage, $page, 'page');
+            $messages = $imapFolder->query()->all()->setFetchOrder("desc")->paginate($perPage, $page, 'page');
 
-            $selectedMessage = $folder->query()->getMessageByUid($uid);
+            $selectedMessage = $imapFolder->query()->getMessageByUid($uid);
             
             if (!$selectedMessage) {
                 return redirect()->route('admin.email.index')->with('error', 'Email tidak ditemukan.');
@@ -136,7 +189,6 @@ class AdminEmailController extends Controller
             $composeTo = $selectedMessage->getFrom()[0]->mail ?? '';
             $composeSubject = 'Re: ' . ($selectedMessage->getSubject() ?? '');
             
-            // Build quoted reply body
             $originalDate = $selectedMessage->getDate()[0] ?? null;
             $originalSender = $selectedMessage->getFrom()[0]->personal ?? $selectedMessage->getFrom()[0]->mail ?? 'Unknown';
             $originalBody = $selectedMessage->getTextBody() ?? strip_tags($selectedMessage->getHTMLBody() ?? '');
@@ -147,7 +199,7 @@ class AdminEmailController extends Controller
 
             $composeBody = "\n\n---\nPada " . ($originalDate ? $originalDate->format('d M Y, H:i') : '') . ", {$originalSender} menulis:\n{$quotedLines}";
 
-            return view('admin.email.index', compact('messages', 'selectedMessage', 'composeMode', 'composeTo', 'composeSubject', 'composeBody'));
+            return view('admin.email.index', compact('messages', 'selectedMessage', 'composeMode', 'composeTo', 'composeSubject', 'composeBody', 'activeFolder'));
 
         } catch (\Exception $e) {
             return redirect()->route('admin.email.index')->with('error', 'Gagal memuat email: ' . $e->getMessage());
