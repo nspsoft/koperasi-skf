@@ -379,7 +379,7 @@
                             
                             if (preg_match('/\b(urgent|darurat|segera|penting)\b/i', $subject)) {
                                 $badge = ['label' => 'Urgent', 'class' => 'badge-urgent'];
-                            } elseif (preg_match('/\b(invoice|inv |tagihan|faktur|billing|pembayaran)\b/i', $subject)) {
+                            } elseif (preg_match('/\b(invoice|inv\b|tagihan|faktur|billing|pembayaran)/i', $subject) || preg_match('/\bnv\s+vm\b/i', $subject)) {
                                 $badge = ['label' => 'Invoice', 'class' => 'badge-invoice'];
                             } elseif (preg_match('/\b(otp|verif|verification|kode|code|token|sandi)\b/i', $subject)) {
                                 $badge = ['label' => 'OTP', 'class' => 'badge-otp'];
