@@ -148,6 +148,35 @@
     .dark .filter-chip.active { background: {{ $cf['color'] }}; color: #fff; }
     .dark .search-result-bar { background: {{ $cf['color'] }}10; border-color: #374151; }
 
+    /* AI Reply */
+    .ai-reply-bar {
+        padding: 8px 24px; display: flex; align-items: center; gap: 8px;
+        border-bottom: 1px solid #f3f4f6; flex-shrink: 0;
+        background: linear-gradient(135deg, #faf5ff, #eef2ff);
+    }
+    .ai-reply-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+        border: none; cursor: pointer; transition: all 0.2s;
+        background: linear-gradient(135deg, #8b5cf6, #6366f1);
+        color: #fff; box-shadow: 0 1px 4px rgba(139,92,246,0.3);
+    }
+    .ai-reply-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(139,92,246,0.4); }
+    .ai-reply-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .ai-reply-btn svg { width: 14px; height: 14px; }
+    .ai-tone-select {
+        padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px;
+        font-size: 12px; color: #374151; background: #fff; outline: none;
+    }
+    .ai-tone-select:focus { border-color: #8b5cf6; }
+    .ai-status { font-size: 11px; color: #6b7280; margin-left: 4px; }
+    .ai-status.loading { color: #8b5cf6; }
+    .ai-status.error { color: #dc2626; }
+    @keyframes aiPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .ai-loading { animation: aiPulse 1.5s infinite; }
+    .dark .ai-reply-bar { background: linear-gradient(135deg, #1e1b4b, #172554); }
+    .dark .ai-tone-select { background: #1f2937; border-color: #374151; color: #d1d5db; }
+
     /* ===== RIGHT: READING PANE ===== */
     .email-reading-pane {
         flex: 1; display: flex; flex-direction: column;
@@ -538,6 +567,23 @@
                             <input type="text" name="subject" id="compose-subject" value="{{ old('subject', $composeSubject ?? '') }}" placeholder="Subjek email" required>
                         </div>
                     </div>
+
+                    @if($composeMode === 'reply')
+                    <!-- AI Reply Bar -->
+                    <div class="ai-reply-bar">
+                        <button type="button" class="ai-reply-btn" id="ai-reply-btn" onclick="generateAiReply()">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            <span id="ai-btn-text">✨ Balas dengan AI</span>
+                        </button>
+                        <select class="ai-tone-select" id="ai-tone">
+                            <option value="formal">🎩 Formal</option>
+                            <option value="friendly">😊 Ramah</option>
+                            <option value="brief">⚡ Singkat</option>
+                        </select>
+                        <span class="ai-status" id="ai-status"></span>
+                    </div>
+                    @endif
+
                     <div class="compose-body-area">
                         <textarea name="body" id="compose-body" placeholder="Tulis pesan Anda di sini...">{{ old('body', $composeBody ?? '') }}</textarea>
                     </div>
@@ -723,6 +769,76 @@ function filterByCategory(category, el) {
         msg.innerHTML = 'Tidak ada email dengan kategori ini.';
         document.querySelector('.email-list-scroll').appendChild(msg);
     }
+}
+
+function generateAiReply() {
+    var btn = document.getElementById('ai-reply-btn');
+    var btnText = document.getElementById('ai-btn-text');
+    var status = document.getElementById('ai-status');
+    var textarea = document.getElementById('compose-body');
+    var tone = document.getElementById('ai-tone').value;
+    var subject = document.getElementById('compose-subject').value;
+    var sender = document.getElementById('compose-to').value;
+    
+    // Extract original email body from quoted text
+    var bodyContent = textarea.value;
+    var originalBody = bodyContent;
+    var dashIndex = bodyContent.indexOf('---');
+    if (dashIndex > -1) {
+        originalBody = bodyContent.substring(dashIndex);
+    }
+
+    btn.disabled = true;
+    btnText.textContent = '⏳ Generating...';
+    btn.classList.add('ai-loading');
+    status.textContent = 'AI sedang menulis balasan...';
+    status.className = 'ai-status loading';
+
+    fetch('{{ route("admin.email.ai-reply") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            subject: subject,
+            sender: sender,
+            body: originalBody,
+            tone: tone
+        })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        btn.disabled = false;
+        btnText.textContent = '✨ Balas dengan AI';
+        btn.classList.remove('ai-loading');
+        
+        if (data.success && data.reply) {
+            // Put AI reply before the quoted text
+            if (dashIndex > -1) {
+                textarea.value = data.reply + '\n\n' + bodyContent.substring(dashIndex);
+            } else {
+                textarea.value = data.reply;
+            }
+            status.textContent = '✅ Balasan AI berhasil digenerate!';
+            status.className = 'ai-status';
+            status.style.color = '#059669';
+            textarea.focus();
+        } else {
+            status.textContent = '❌ ' + (data.error || 'Gagal generate');
+            status.className = 'ai-status error';
+        }
+        
+        setTimeout(function() { status.textContent = ''; status.style.color = ''; }, 5000);
+    })
+    .catch(function(err) {
+        btn.disabled = false;
+        btnText.textContent = '✨ Balas dengan AI';
+        btn.classList.remove('ai-loading');
+        status.textContent = '❌ Error: ' + err.message;
+        status.className = 'ai-status error';
+    });
 }
 </script>
 @endpush

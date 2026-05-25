@@ -223,6 +223,126 @@ class AdminEmailController extends Controller
     }
 
     /**
+     * Generate AI reply suggestion for an email.
+     */
+    public function generateAiReply(Request $request)
+    {
+        $this->authorizeEmail();
+
+        $request->validate([
+            'subject' => 'required|string',
+            'sender' => 'required|string',
+            'body' => 'required|string',
+            'tone' => 'nullable|string|in:formal,friendly,brief',
+        ]);
+
+        $config = \App\Models\AiSetting::getConfig();
+
+        if (!$config['enabled']) {
+            return response()->json(['success' => false, 'error' => 'AI belum diaktifkan. Silakan atur di menu Pengaturan > AI.'], 403);
+        }
+
+        $subject = $request->input('subject');
+        $sender = $request->input('sender');
+        $body = $request->input('body');
+        $tone = $request->input('tone', 'formal');
+
+        $toneDesc = match($tone) {
+            'friendly' => 'ramah dan bersahabat',
+            'brief' => 'singkat dan to the point',
+            default => 'formal dan profesional',
+        };
+
+        $emailPrompt = "Kamu adalah asisten email untuk Koperasi Karyawan SKF. Buatkan balasan email yang {$toneDesc} dalam Bahasa Indonesia.\n\n"
+            . "ATURAN:\n"
+            . "- Tulis HANYA isi balasan email saja, tanpa 'Subject:', 'Kepada:', header atau metadata\n"
+            . "- Mulai langsung dengan salam (misalnya 'Selamat Pagi/Siang/Sore')\n"
+            . "- Akhiri dengan salam penutup dan tanda tangan 'Admin Koperasi SKF'\n"
+            . "- Gunakan nada {$toneDesc}\n"
+            . "- Jangan gunakan format markdown\n\n"
+            . "EMAIL YANG PERLU DIBALAS:\n"
+            . "Dari: {$sender}\n"
+            . "Subjek: {$subject}\n"
+            . "Isi:\n{$body}\n\n"
+            . "BALASAN:";
+
+        $provider = $config['provider'];
+        $model = $config['model'];
+        $apiKey = $config['apiKey'];
+        $url = $config['url'];
+
+        try {
+            if ($provider === 'gemini') {
+                $response = \Illuminate\Support\Facades\Http::timeout(60)
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", [
+                        'contents' => [
+                            ['parts' => [['text' => $emailPrompt]]]
+                        ],
+                        'generationConfig' => [
+                            'temperature' => 0.7,
+                            'maxOutputTokens' => 1024,
+                        ]
+                    ]);
+
+                if (!$response->successful()) {
+                    throw new \Exception($response->json('error.message', 'Gemini error'));
+                }
+
+                $reply = $response->json('candidates.0.content.parts.0.text', '');
+
+            } elseif ($provider === 'openai') {
+                $response = \Illuminate\Support\Facades\Http::timeout(60)
+                    ->withHeaders(['Authorization' => "Bearer {$apiKey}"])
+                    ->post('https://api.openai.com/v1/chat/completions', [
+                        'model' => $model,
+                        'messages' => [
+                            ['role' => 'system', 'content' => 'Kamu adalah asisten email profesional Koperasi Karyawan SKF.'],
+                            ['role' => 'user', 'content' => $emailPrompt]
+                        ]
+                    ]);
+
+                if (!$response->successful()) {
+                    throw new \Exception($response->json('error.message', 'OpenAI error'));
+                }
+
+                $reply = $response->json('choices.0.message.content', '');
+
+            } elseif ($provider === 'ollama') {
+                $response = \Illuminate\Support\Facades\Http::timeout(120)
+                    ->post("{$url}/api/generate", [
+                        'model' => $model,
+                        'prompt' => $emailPrompt,
+                        'stream' => false
+                    ]);
+
+                if (!$response->successful()) {
+                    throw new \Exception('Ollama error: ' . $response->status());
+                }
+
+                $reply = $response->json('response', '');
+
+            } else {
+                $response = \Illuminate\Support\Facades\Http::timeout(60)
+                    ->post("{$url}/generate", ['prompt' => $emailPrompt]);
+
+                $data = $response->json();
+                $reply = $data['response'] ?? $data['text'] ?? $data['output'] ?? '';
+            }
+
+            return response()->json([
+                'success' => true,
+                'reply' => trim($reply),
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Gagal generate AI reply: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Send email via SMTP (with file attachments support).
      */
     public function send(Request $request)

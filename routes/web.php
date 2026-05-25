@@ -117,6 +117,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
     Route::get('admin/email/{folder}', [App\Http\Controllers\Admin\AdminEmailController::class, 'index'])->name('admin.email.folder')->where('folder', 'inbox|sent|drafts|trash|spam');
     Route::get('admin/email/{folder}/{uid}', [App\Http\Controllers\Admin\AdminEmailController::class, 'show'])->name('admin.email.show')->where('folder', 'inbox|sent|drafts|trash|spam');
     Route::get('admin/email/attachment/{uid}/{index}', [App\Http\Controllers\Admin\AdminEmailController::class, 'downloadAttachment'])->name('admin.email.attachment');
+    Route::post('admin/email/ai-reply', [App\Http\Controllers\Admin\AdminEmailController::class, 'generateAiReply'])->name('admin.email.ai-reply');
 
     // Admin Only Core Routes
     Route::middleware('can:admin')->group(function() {
