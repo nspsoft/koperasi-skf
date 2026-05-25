@@ -125,6 +125,29 @@
     .dark .badge-meeting { background: #431407; color: #fdba74; }
     .dark .badge-urgent { background: #450a0a; color: #fca5a5; }
 
+    /* Filter Chips */
+    .email-filters { padding: 0 12px 8px; display: flex; gap: 4px; flex-wrap: wrap; flex-shrink: 0; }
+    .filter-chip {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500;
+        border: 1px solid #e5e7eb; color: #6b7280; cursor: pointer;
+        transition: all 0.15s; background: #fff; text-decoration: none;
+    }
+    .filter-chip:hover { border-color: {{ $cf['color'] }}; color: {{ $cf['color'] }}; }
+    .filter-chip.active { background: {{ $cf['color'] }}; color: #fff; border-color: {{ $cf['color'] }}; }
+    .filter-chip svg { width: 12px; height: 12px; }
+    .search-result-bar {
+        padding: 8px 12px; background: {{ $cf['bg'] }}; border-bottom: 1px solid #e5e7eb;
+        font-size: 12px; color: {{ $cf['color'] }}; display: flex; align-items: center;
+        justify-content: space-between; flex-shrink: 0;
+    }
+    .search-result-bar a { font-size: 12px; color: #dc2626; text-decoration: none; font-weight: 500; }
+    .search-result-bar a:hover { text-decoration: underline; }
+    .dark .filter-chip { background: #1f2937; border-color: #374151; color: #9ca3af; }
+    .dark .filter-chip:hover { border-color: {{ $cf['color'] }}; color: {{ $cf['color'] }}; }
+    .dark .filter-chip.active { background: {{ $cf['color'] }}; color: #fff; }
+    .dark .search-result-bar { background: {{ $cf['color'] }}10; border-color: #374151; }
+
     /* ===== RIGHT: READING PANE ===== */
     .email-reading-pane {
         flex: 1; display: flex; flex-direction: column;
@@ -335,11 +358,52 @@
             
             <!-- Search -->
             <div class="email-search-bar">
-                <div style="position:relative;">
+                <form action="{{ route('admin.email.folder', $activeFolder) }}" method="GET" style="position:relative;">
                     <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:#9ca3af;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    <input type="text" placeholder="Cari di {{ $cf['label'] }}..." class="email-search-input">
-                </div>
+                    <input type="text" name="q" value="{{ $searchQuery ?? '' }}" placeholder="Cari di {{ $cf['label'] }}..." class="email-search-input" autocomplete="off">
+                    @if(!empty($searchQuery))
+                    <a href="{{ route('admin.email.folder', $activeFolder) }}" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#9ca3af;" title="Hapus pencarian">
+                        <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </a>
+                    @endif
+                </form>
             </div>
+
+            <!-- Category Filters -->
+            <div class="email-filters">
+                <span class="filter-chip active" data-filter="all" onclick="filterByCategory('all', this)">
+                    Semua
+                </span>
+                <span class="filter-chip" data-filter="badge-invoice" onclick="filterByCategory('badge-invoice', this)">
+                    <span style="width:6px;height:6px;border-radius:50%;background:#1d4ed8;display:inline-block;"></span> Invoice
+                </span>
+                <span class="filter-chip" data-filter="badge-otp" onclick="filterByCategory('badge-otp', this)">
+                    <span style="width:6px;height:6px;border-radius:50%;background:#b45309;display:inline-block;"></span> OTP
+                </span>
+                <span class="filter-chip" data-filter="badge-system" onclick="filterByCategory('badge-system', this)">
+                    <span style="width:6px;height:6px;border-radius:50%;background:#4b5563;display:inline-block;"></span> Sistem
+                </span>
+                <span class="filter-chip" data-filter="badge-meeting" onclick="filterByCategory('badge-meeting', this)">
+                    <span style="width:6px;height:6px;border-radius:50%;background:#c2410c;display:inline-block;"></span> Rapat
+                </span>
+                <span class="filter-chip" data-filter="badge-finance" onclick="filterByCategory('badge-finance', this)">
+                    <span style="width:6px;height:6px;border-radius:50%;background:#065f46;display:inline-block;"></span> Keuangan
+                </span>
+                <span class="filter-chip" data-filter="badge-urgent" onclick="filterByCategory('badge-urgent', this)">
+                    <span style="width:6px;height:6px;border-radius:50%;background:#dc2626;display:inline-block;"></span> Urgent
+                </span>
+                <span class="filter-chip" data-filter="no-badge" onclick="filterByCategory('no-badge', this)">
+                    Tanpa Kategori
+                </span>
+            </div>
+
+            <!-- Search Result Indicator -->
+            @if(!empty($searchQuery))
+            <div class="search-result-bar">
+                <span>🔍 Hasil pencarian: "<strong>{{ $searchQuery }}</strong>"</span>
+                <a href="{{ route('admin.email.folder', $activeFolder) }}">✕ Reset</a>
+            </div>
+            @endif
 
             <!-- Flash Messages -->
             @if(session('success'))
@@ -396,7 +460,7 @@
                             }
                         @endphp
                         
-                        <a href="{{ $url }}" class="email-list-item {{ $isActive ? 'active' : '' }} {{ $isUnread && !$isActive ? 'unread' : '' }}">
+                        <a href="{{ $url }}" class="email-list-item {{ $isActive ? 'active' : '' }} {{ $isUnread && !$isActive ? 'unread' : '' }}" data-category="{{ $badge ? $badge['class'] : 'no-badge' }}">
                             <div style="display:flex;justify-content:space-between;align-items:baseline;">
                                 <span class="email-sender {{ $isUnread ? 'bold' : '' }}">{{ Str::limit($sender, 28) }}</span>
                                 <span class="email-date {{ $isUnread ? 'bold' : '' }}">
@@ -612,6 +676,52 @@ function showSelectedFiles(input) {
         fileCount.textContent = '📎 ' + input.files.length + ' file terlampir';
     } else {
         fileCount.textContent = '';
+    }
+}
+
+function filterByCategory(category, el) {
+    // Update active chip
+    document.querySelectorAll('.filter-chip').forEach(function(chip) {
+        chip.classList.remove('active');
+    });
+    el.classList.add('active');
+
+    // Filter email items
+    var items = document.querySelectorAll('.email-list-item');
+    var visibleCount = 0;
+
+    items.forEach(function(item) {
+        var itemCat = item.getAttribute('data-category');
+        if (category === 'all') {
+            item.style.display = '';
+            visibleCount++;
+        } else if (category === 'no-badge') {
+            if (itemCat === 'no-badge') {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        } else {
+            if (itemCat === category) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        }
+    });
+
+    // Show/hide empty state for filter
+    var existingMsg = document.getElementById('filter-empty-msg');
+    if (existingMsg) existingMsg.remove();
+    
+    if (visibleCount === 0 && category !== 'all') {
+        var msg = document.createElement('div');
+        msg.id = 'filter-empty-msg';
+        msg.style.cssText = 'padding:32px 16px;text-align:center;color:#9ca3af;font-size:13px;';
+        msg.innerHTML = 'Tidak ada email dengan kategori ini.';
+        document.querySelector('.email-list-scroll').appendChild(msg);
     }
 }
 </script>

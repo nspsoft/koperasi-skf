@@ -73,6 +73,7 @@ class AdminEmailController extends Controller
         $this->authorizeEmail();
 
         $activeFolder = $folder;
+        $searchQuery = $request->get('q', '');
 
         try {
             /** @var \Webklex\PHPIMAP\Client $client */
@@ -83,15 +84,30 @@ class AdminEmailController extends Controller
             
             $page = $request->get('page', 1);
             $perPage = 15;
+
+            $query = $imapFolder->query();
             
-            $messages = $imapFolder->query()->all()->setFetchOrder("desc")->paginate($perPage, $page, 'page');
+            if (!empty($searchQuery)) {
+                // IMAP search: OR search across subject, from, and body
+                $query = $query->where([
+                    ['OR'],
+                    ['SUBJECT', $searchQuery],
+                    ['FROM', $searchQuery],
+                    ['BODY', $searchQuery],
+                ]);
+            } else {
+                $query = $query->all();
+            }
             
-            return view('admin.email.index', compact('messages', 'activeFolder'));
+            $messages = $query->setFetchOrder("desc")->paginate($perPage, $page, 'page');
+            
+            return view('admin.email.index', compact('messages', 'activeFolder', 'searchQuery'));
             
         } catch (\Exception $e) {
             return view('admin.email.index', [
                 'messages' => null,
                 'activeFolder' => $activeFolder,
+                'searchQuery' => $searchQuery,
                 'imapError' => 'Gagal terhubung ke server email: ' . $e->getMessage()
             ]);
         }
