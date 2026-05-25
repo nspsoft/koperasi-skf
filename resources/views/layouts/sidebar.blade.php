@@ -50,7 +50,7 @@
         (request()->routeIs('expenses.*') || request()->routeIs('vouchers.*') || request()->routeIs('consignment.*') ? 'operations' : 
         (request()->routeIs('shop.*') ? 'shop' : 
         (request()->routeIs('reports.*') || request()->routeIs('announcements.*') || request()->routeIs('ad-art') || request()->routeIs('documentation') || request()->routeIs('uat') || request()->routeIs('polls.*') || request()->routeIs('aspirations.*') ? 'reports' : 
-        (request()->routeIs('organization.*') || request()->routeIs('documents.*') || request()->routeIs('journals.*') || request()->routeIs('members.*') || request()->routeIs('reconciliation.*') || request()->routeIs('establishment') || request()->routeIs('governance') ? 'organization' : 
+        (request()->routeIs('organization.*') || request()->routeIs('documents.*') || request()->routeIs('journals.*') || request()->routeIs('members.*') || request()->routeIs('reconciliation.*') || request()->routeIs('establishment') || request()->routeIs('governance') || request()->routeIs('admin.email.*') ? 'organization' : 
         (request()->routeIs('import.*') || request()->routeIs('admin.email.*') || request()->routeIs('members.*') || request()->routeIs('master-data.*') || request()->routeIs('roles.*') || request()->routeIs('settings.*') ? 'admin' : ''))))))) 
     }}' }">
         
@@ -436,6 +436,13 @@
                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('reconciliation.*') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
                     Rekonsiliasi Bank
                 </a>
+                @if(auth()->user()->hasPermission('manage_email'))
+                <div class="my-2 border-t border-gray-100 dark:border-gray-700"></div>
+                <a href="{{ route('admin.email.index') }}" class="{{ request()->routeIs('admin.email.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
+                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('admin.email.*') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
+                    Email Organisasi
+                </a>
+                @endif
             </div>
         </div>
         @endif
@@ -459,12 +466,7 @@
             </button>
             
             <div x-show="openGroup === 'admin' && sidebarOpen" x-collapse class="pl-4 mt-1 space-y-1">
-                @if(auth()->user()->hasPermission('manage_email'))
-                <a href="{{ route('admin.email.index') }}" class="{{ request()->routeIs('admin.email.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
-                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('admin.email.*') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
-                    Email Admin
-                </a>
-                @endif
+
                 <a href="{{ route('master-data.index') }}" class="{{ request()->routeIs('master-data.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('master-data.*') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
                     {{ __('messages.sidebar.master_data') }}
