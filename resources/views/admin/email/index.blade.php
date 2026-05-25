@@ -100,6 +100,31 @@
         overflow: hidden; line-height: 1.5;
     }
 
+    /* Category Badges */
+    .email-badge {
+        display: inline-flex; align-items: center; gap: 3px;
+        padding: 2px 8px; border-radius: 20px;
+        font-size: 10px; font-weight: 600; letter-spacing: 0.02em;
+        white-space: nowrap; vertical-align: middle;
+        line-height: 16px;
+    }
+    .badge-invoice { background: #dbeafe; color: #1d4ed8; }
+    .badge-otp { background: #fef3c7; color: #b45309; }
+    .badge-notification { background: #ede9fe; color: #7c3aed; }
+    .badge-system { background: #f3f4f6; color: #4b5563; }
+    .badge-finance { background: #d1fae5; color: #065f46; }
+    .badge-promo { background: #fce7f3; color: #be185d; }
+    .badge-meeting { background: #ffedd5; color: #c2410c; }
+    .badge-urgent { background: #fee2e2; color: #dc2626; }
+    .dark .badge-invoice { background: #1e3a5f; color: #93c5fd; }
+    .dark .badge-otp { background: #451a03; color: #fcd34d; }
+    .dark .badge-notification { background: #2e1065; color: #c4b5fd; }
+    .dark .badge-system { background: #1f2937; color: #9ca3af; }
+    .dark .badge-finance { background: #064e3b; color: #6ee7b7; }
+    .dark .badge-promo { background: #500724; color: #f9a8d4; }
+    .dark .badge-meeting { background: #431407; color: #fdba74; }
+    .dark .badge-urgent { background: #450a0a; color: #fca5a5; }
+
     /* ===== RIGHT: READING PANE ===== */
     .email-reading-pane {
         flex: 1; display: flex; flex-direction: column;
@@ -346,6 +371,29 @@
                             } catch(\Exception $e) {}
                             
                             $url = route('admin.email.show', ['folder' => $activeFolder, 'uid' => $message->getUid()] + request()->query());
+
+                            // Auto-detect category badge
+                            $subjectLower = strtolower($subject);
+                            $senderLower = strtolower($sender . ' ' . ($message->getFrom()[0]->mail ?? ''));
+                            $badge = null;
+                            
+                            if (preg_match('/\b(urgent|darurat|segera|penting)\b/i', $subject)) {
+                                $badge = ['label' => 'Urgent', 'class' => 'badge-urgent'];
+                            } elseif (preg_match('/\b(invoice|inv |tagihan|faktur|billing|pembayaran)\b/i', $subject)) {
+                                $badge = ['label' => 'Invoice', 'class' => 'badge-invoice'];
+                            } elseif (preg_match('/\b(otp|verif|verification|kode|code|token|sandi)\b/i', $subject)) {
+                                $badge = ['label' => 'OTP', 'class' => 'badge-otp'];
+                            } elseif (preg_match('/\b(rapat|meeting|undangan|rat |agenda)\b/i', $subject)) {
+                                $badge = ['label' => 'Rapat', 'class' => 'badge-meeting'];
+                            } elseif (preg_match('/\b(transfer|mutasi|rekening|bank|saldo|keuangan)\b/i', $subject)) {
+                                $badge = ['label' => 'Keuangan', 'class' => 'badge-finance'];
+                            } elseif (preg_match('/\b(promo|diskon|penawaran|offer|sale|marketing)\b/i', $subject)) {
+                                $badge = ['label' => 'Promo', 'class' => 'badge-promo'];
+                            } elseif (preg_match('/\b(notif|alert|peringatan|reminder|pengingat)\b/i', $subject)) {
+                                $badge = ['label' => 'Notifikasi', 'class' => 'badge-notification'];
+                            } elseif (preg_match('/(cpanel|server|system|cron|backup|config)/i', $senderLower)) {
+                                $badge = ['label' => 'Sistem', 'class' => 'badge-system'];
+                            }
                         @endphp
                         
                         <a href="{{ $url }}" class="email-list-item {{ $isActive ? 'active' : '' }} {{ $isUnread && !$isActive ? 'unread' : '' }}">
@@ -362,10 +410,15 @@
                                     @endphp
                                 </span>
                             </div>
-                            <div class="email-subject {{ $isUnread ? 'bold' : '' }}">
-                                {{ $subject }}
-                                @if($message->getAttachments()->count() > 0)
-                                    <svg style="display:inline;width:14px;height:14px;vertical-align:middle;color:#9ca3af;margin-left:4px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                            <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                                <span class="email-subject {{ $isUnread ? 'bold' : '' }}" style="margin-top:0;">
+                                    {{ $subject }}
+                                    @if($message->getAttachments()->count() > 0)
+                                        <svg style="display:inline;width:14px;height:14px;vertical-align:middle;color:#9ca3af;margin-left:4px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                    @endif
+                                </span>
+                                @if($badge)
+                                    <span class="email-badge {{ $badge['class'] }}">{{ $badge['label'] }}</span>
                                 @endif
                             </div>
                             @if($bodyStr)
