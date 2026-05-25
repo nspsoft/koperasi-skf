@@ -224,12 +224,29 @@
     .dark .reading-subject { color: #f3f4f6; }
     .dark .reading-sender-name { color: #f3f4f6; }
     .dark .reading-body { color: #d1d5db; }
+    .dark .reading-attachments { background: #1f2937; border-color: #374151; }
+    .dark .reading-attachment-item { background: #111827; border-color: #374151; color: #d1d5db; }
+    .dark .reading-date { color: #9ca3af; }
+    .dark .reading-sender-email { color: #6b7280; }
+    .dark .reading-sender-to { color: #6b7280; }
+    .dark .quick-reply { border-color: #374151; }
+    .dark .quick-reply a { color: #6b7280; }
+    .dark .quick-reply:hover { border-color: {{ $cf['color'] }}; }
+    .dark .quick-reply a:hover { background: {{ $cf['color'] }}15; color: {{ $cf['color'] }}; }
+    .dark .compose-form { background: #111827; }
+    .dark .compose-header { border-color: #374151; }
     .dark .compose-header h2 { color: #f3f4f6; }
-    .dark .compose-field { border-color: #374151; }
+    .dark .compose-header p { color: #6b7280; }
+    .dark .compose-field { border-color: #1f2937; }
     .dark .compose-field label { color: #9ca3af; }
     .dark .compose-field input { color: #f3f4f6; }
+    .dark .compose-field input::placeholder { color: #4b5563; }
     .dark .compose-body-area textarea { color: #d1d5db; }
-    .dark .compose-footer { background: #1f2937; border-color: #374151; }
+    .dark .compose-body-area textarea::placeholder { color: #4b5563; }
+    .dark .compose-footer { background: #0f172a; border-color: #374151; }
+    .dark .btn-discard { border-color: #374151; color: #9ca3af; }
+    .dark .btn-discard:hover { background: rgba(220,38,38,0.15); color: #f87171; border-color: #7f1d1d; }
+    .dark .email-empty-state h3 { color: #f3f4f6; }
 </style>
 @endpush
 
