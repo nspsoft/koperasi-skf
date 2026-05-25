@@ -170,15 +170,15 @@
 
     /* Compose */
     .compose-form { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
-    .compose-header { padding: 20px 32px 16px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
-    .compose-header h2 { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 4px; }
-    .compose-header p { font-size: 13px; color: #9ca3af; }
-    .compose-fields { flex: 1; overflow-y: auto; }
-    .compose-field { display: flex; align-items: center; border-bottom: 1px solid #f3f4f6; padding: 0 32px; }
-    .compose-field label { font-size: 14px; font-weight: 500; color: #6b7280; width: 70px; flex-shrink: 0; }
-    .compose-field input { flex: 1; border: none; outline: none; padding: 14px 0; font-size: 14px; color: #111827; background: transparent; }
-    .compose-body-area { flex: 1; padding: 16px 32px; }
-    .compose-body-area textarea { width: 100%; height: 100%; min-height: 200px; border: none; outline: none; resize: none; font-size: 14px; color: #374151; line-height: 1.7; font-family: inherit; background: transparent; }
+    .compose-header { padding: 12px 24px 8px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+    .compose-header h2 { font-size: 17px; font-weight: 700; color: #111827; margin-bottom: 2px; }
+    .compose-header p { font-size: 12px; color: #9ca3af; }
+    .compose-fields { flex-shrink: 0; }
+    .compose-field { display: flex; align-items: center; border-bottom: 1px solid #f3f4f6; padding: 0 24px; }
+    .compose-field label { font-size: 13px; font-weight: 500; color: #6b7280; width: 60px; flex-shrink: 0; }
+    .compose-field input { flex: 1; border: none; outline: none; padding: 10px 0; font-size: 14px; color: #111827; background: transparent; }
+    .compose-body-area { flex: 1; padding: 10px 24px; overflow: hidden; }
+    .compose-body-area textarea { width: 100%; height: 100%; min-height: 120px; border: none; outline: none; resize: none; font-size: 14px; color: #374151; line-height: 1.7; font-family: inherit; background: transparent; }
     .compose-footer { padding: 16px 32px; border-top: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; background: #fafbfc; }
     .btn-send {
         display: inline-flex; align-items: center; gap: 8px;
