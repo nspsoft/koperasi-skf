@@ -53,6 +53,7 @@ class PermissionSeeder extends Seeder
             'Sistem' => [
                 ['name' => 'manage_settings', 'label' => 'Kelola Pengaturan Sistem'],
                 ['name' => 'manage_roles', 'label' => 'Kelola Role & User'],
+                ['name' => 'manage_email', 'label' => 'Akses Email Admin'],
                 ['name' => 'view_audit_log', 'label' => 'Akses Audit Log'],
                 ['name' => 'backup_restore', 'label' => 'Backup & Restore Data'],
                 ['name' => 'import_data', 'label' => 'Import Data (Excel)'],

@@ -10,13 +10,22 @@ use Webklex\IMAP\Facades\Client;
 class AdminEmailController extends Controller
 {
     /**
+     * Check if user has email access permission.
+     */
+    private function authorizeEmail()
+    {
+        $user = auth()->user();
+        if (!$user->isAdmin() && !$user->hasPermission('manage_email')) {
+            abort(403, 'Unauthorized action.');
+        }
+    }
+
+    /**
      * Display a listing of emails.
      */
     public function index(Request $request)
     {
-        if (!auth()->user()->isAdmin()) {
-            abort(403, 'Unauthorized action.');
-        }
+        $this->authorizeEmail();
 
         try {
             /** @var \Webklex\PHPIMAP\Client $client */
@@ -45,9 +54,7 @@ class AdminEmailController extends Controller
      */
     public function show(Request $request, $uid)
     {
-        if (!auth()->user()->isAdmin()) {
-            abort(403, 'Unauthorized action.');
-        }
+        $this->authorizeEmail();
 
         try {
             /** @var \Webklex\PHPIMAP\Client $client */
@@ -82,11 +89,8 @@ class AdminEmailController extends Controller
      */
     public function compose(Request $request)
     {
-        if (!auth()->user()->isAdmin()) {
-            abort(403, 'Unauthorized action.');
-        }
+        $this->authorizeEmail();
 
-        // Pass compose mode to view
         $composeMode = 'new';
         $composeTo = $request->get('to', '');
         $composeSubject = $request->get('subject', '');
@@ -111,9 +115,7 @@ class AdminEmailController extends Controller
      */
     public function reply(Request $request, $uid)
     {
-        if (!auth()->user()->isAdmin()) {
-            abort(403, 'Unauthorized action.');
-        }
+        $this->authorizeEmail();
 
         try {
             $client = Client::account('default');
@@ -157,9 +159,7 @@ class AdminEmailController extends Controller
      */
     public function send(Request $request)
     {
-        if (!auth()->user()->isAdmin()) {
-            abort(403, 'Unauthorized action.');
-        }
+        $this->authorizeEmail();
 
         $request->validate([
             'to' => 'required|email',
@@ -181,7 +181,6 @@ class AdminEmailController extends Controller
             Mail::raw($body, function ($message) use ($to, $cc, $subject) {
                 $message->to($to);
                 if ($cc) {
-                    // Support multiple CC separated by comma
                     $ccList = array_map('trim', explode(',', $cc));
                     foreach ($ccList as $ccAddr) {
                         if (filter_var($ccAddr, FILTER_VALIDATE_EMAIL)) {
