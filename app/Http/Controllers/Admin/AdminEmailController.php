@@ -369,7 +369,22 @@ class AdminEmailController extends Controller
             $body = $request->input('body');
             $files = $request->file('attachments');
 
-            Mail::raw($body, function ($message) use ($to, $cc, $subject, $files) {
+            // Auto-append email signature
+            $coopName = \App\Models\Setting::get('coop_name', 'Koperasi Karyawan SKF');
+            $coopEmail = \App\Models\Setting::get('coop_email', '');
+            $coopPhone = \App\Models\Setting::get('coop_phone', '');
+            $coopAddress = \App\Models\Setting::get('coop_address', '');
+
+            $signature = "\n\n--\n";
+            $signature .= "Hormat kami,\n";
+            $signature .= $coopName . "\n";
+            if ($coopAddress) $signature .= "📍 " . $coopAddress . "\n";
+            if ($coopPhone) $signature .= "📞 " . $coopPhone . "\n";
+            if ($coopEmail) $signature .= "📧 " . $coopEmail . "\n";
+
+            $bodyWithSignature = $body . $signature;
+
+            Mail::raw($bodyWithSignature, function ($message) use ($to, $cc, $subject, $files) {
                 $message->to($to);
                 if ($cc) {
                     $ccList = array_map('trim', explode(',', $cc));
@@ -441,5 +456,85 @@ class AdminEmailController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal mengunduh lampiran: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Search members for email autocomplete.
+     */
+    public function searchMembers(Request $request)
+    {
+        $this->authorizeEmail();
+
+        $q = $request->get('q', '');
+
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $members = \App\Models\Member::with('user')
+            ->where('status', 'active')
+            ->whereHas('user', function ($query) use ($q) {
+                $query->where('name', 'like', "%{$q}%")
+                    ->orWhere('email', 'like', "%{$q}%");
+            })
+            ->limit(10)
+            ->get()
+            ->map(function ($member) {
+                return [
+                    'name' => $member->user->name ?? 'Unknown',
+                    'email' => $member->user->email ?? '',
+                    'department' => $member->department ?? '',
+                    'member_id' => $member->member_id,
+                ];
+            })
+            ->filter(fn($m) => !empty($m['email']))
+            ->values();
+
+        return response()->json($members);
+    }
+
+    /**
+     * Get email templates.
+     */
+    public function getTemplates()
+    {
+        $this->authorizeEmail();
+
+        $coopName = \App\Models\Setting::get('coop_name', 'Koperasi Karyawan SKF');
+
+        $templates = [
+            [
+                'id' => 'reminder_cicilan',
+                'name' => '📄 Pengingat Cicilan',
+                'subject' => 'Pengingat Pembayaran Cicilan Pinjaman',
+                'body' => "Yth. Bapak/Ibu,\n\nDengan hormat,\n\nKami mengingatkan bahwa cicilan pinjaman Anda pada {$coopName} telah jatuh tempo.\n\nMohon untuk segera melakukan pembayaran cicilan sesuai jadwal yang telah disepakati.\n\nApabila sudah melakukan pembayaran, mohon abaikan pemberitahuan ini.\n\nTerima kasih atas perhatian dan kerjasamanya."
+            ],
+            [
+                'id' => 'undangan_rat',
+                'name' => '📋 Undangan RAT',
+                'subject' => 'Undangan Rapat Anggota Tahunan (RAT) ' . date('Y'),
+                'body' => "Yth. Anggota {$coopName},\n\nDengan hormat,\n\nKami mengundang Bapak/Ibu untuk menghadiri Rapat Anggota Tahunan (RAT) {$coopName} Tahun Buku " . (date('Y') - 1) . ".\n\nHari/Tanggal : [Hari], [Tanggal]\nWaktu        : [Waktu] WIB\nTempat       : [Tempat]\n\nAgenda Rapat:\n1. Laporan Pertanggungjawaban Pengurus\n2. Laporan Keuangan\n3. Pembagian SHU\n4. Rencana Kerja Tahun " . date('Y') . "\n\nKehadiran Bapak/Ibu sangat kami harapkan.\n\nTerima kasih."
+            ],
+            [
+                'id' => 'pengumuman',
+                'name' => '📢 Pengumuman Umum',
+                'subject' => 'Pengumuman - ' . $coopName,
+                'body' => "Yth. Seluruh Anggota {$coopName},\n\nDengan hormat,\n\nMelalui email ini, kami sampaikan pengumuman sebagai berikut:\n\n[Isi pengumuman di sini]\n\nDemikian pengumuman ini kami sampaikan. Atas perhatiannya, kami ucapkan terima kasih."
+            ],
+            [
+                'id' => 'konfirmasi_bayar',
+                'name' => '🧾 Konfirmasi Pembayaran',
+                'subject' => 'Konfirmasi Penerimaan Pembayaran',
+                'body' => "Yth. Bapak/Ibu,\n\nDengan hormat,\n\nKami mengkonfirmasi bahwa pembayaran Anda telah kami terima dengan rincian sebagai berikut:\n\nJenis       : [Simpanan/Cicilan/Lainnya]\nJumlah      : Rp [Nominal]\nTanggal     : [Tanggal Bayar]\nNo. Referensi: [No. Ref]\n\nTerima kasih atas pembayaran Anda.\n\nApabila ada pertanyaan, silakan hubungi kami."
+            ],
+            [
+                'id' => 'selamat_bergabung',
+                'name' => '🎉 Selamat Bergabung',
+                'subject' => 'Selamat Bergabung di ' . $coopName,
+                'body' => "Yth. Bapak/Ibu,\n\nSelamat datang dan selamat bergabung sebagai anggota {$coopName}!\n\nBerikut informasi keanggotaan Anda:\n- Nomor Anggota: [Nomor]\n- Tanggal Bergabung: [Tanggal]\n\nSebagai anggota, Anda berhak atas:\n1. Layanan simpan pinjam\n2. Belanja di Mart Koperasi\n3. Pembagian SHU tahunan\n\nUntuk informasi lebih lanjut, silakan login di website atau hubungi kami.\n\nTerima kasih dan selamat berkoperasi!"
+            ],
+        ];
+
+        return response()->json($templates);
     }
 }

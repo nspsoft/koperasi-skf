@@ -177,6 +177,70 @@
     .dark .ai-reply-bar { background: linear-gradient(135deg, #1e1b4b, #172554); }
     .dark .ai-tone-select { background: #1f2937; border-color: #374151; color: #d1d5db; }
 
+    /* Template Selector */
+    .template-btn {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600;
+        border: 1px solid #d1d5db; color: #6b7280; cursor: pointer;
+        transition: all 0.15s; background: #fff;
+    }
+    .template-btn:hover { border-color: {{ $cf['color'] }}; color: {{ $cf['color'] }}; }
+    .template-btn svg { width: 14px; height: 14px; }
+    .template-dropdown {
+        position: absolute; top: 100%; right: 0; z-index: 50;
+        background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.12); min-width: 260px;
+        padding: 6px; display: none; margin-top: 4px;
+    }
+    .template-dropdown.show { display: block; }
+    .template-item {
+        display: block; padding: 10px 12px; border-radius: 6px; cursor: pointer;
+        font-size: 13px; color: #374151; transition: background 0.1s; border: none;
+        background: none; width: 100%; text-align: left;
+    }
+    .template-item:hover { background: {{ $cf['bg'] }}; }
+    .dark .template-btn { background: #1f2937; border-color: #374151; color: #9ca3af; }
+    .dark .template-dropdown { background: #1f2937; border-color: #374151; }
+    .dark .template-item { color: #d1d5db; }
+    .dark .template-item:hover { background: #111827; }
+
+    /* Member Autocomplete */
+    .member-autocomplete {
+        position: absolute; top: 100%; left: 60px; right: 0; z-index: 50;
+        background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.12); max-height: 200px;
+        overflow-y: auto; display: none;
+    }
+    .member-autocomplete.show { display: block; }
+    .member-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 14px; cursor: pointer; transition: background 0.1s;
+        border: none; background: none; width: 100%; text-align: left;
+    }
+    .member-item:hover { background: {{ $cf['bg'] }}; }
+    .member-item-avatar {
+        width: 32px; height: 32px; border-radius: 50%;
+        background: {{ $cf['color'] }}20; color: {{ $cf['color'] }};
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 13px; flex-shrink: 0;
+    }
+    .member-item-info { flex: 1; min-width: 0; }
+    .member-item-name { font-size: 13px; font-weight: 600; color: #111827; }
+    .member-item-email { font-size: 11px; color: #6b7280; }
+    .member-item-dept { font-size: 10px; color: #9ca3af; background: #f3f4f6; padding: 1px 6px; border-radius: 4px; }
+    .dark .member-autocomplete { background: #1f2937; border-color: #374151; }
+    .dark .member-item:hover { background: #111827; }
+    .dark .member-item-name { color: #f3f4f6; }
+    .dark .member-item-dept { background: #374151; color: #9ca3af; }
+
+    /* Signature Preview */
+    .signature-preview {
+        padding: 8px 24px; flex-shrink: 0; border-top: 1px dashed #e5e7eb;
+        font-size: 11px; color: #9ca3af; line-height: 1.6;
+    }
+    .signature-preview strong { color: #6b7280; font-weight: 600; }
+    .dark .signature-preview { border-color: #374151; }
+
     /* ===== RIGHT: READING PANE ===== */
     .email-reading-pane {
         flex: 1; display: flex; flex-direction: column;
@@ -550,13 +614,29 @@
                 <form action="{{ route('admin.email.send') }}" method="POST" class="compose-form" enctype="multipart/form-data">
                     @csrf
                     <div class="compose-header">
-                        <h2>{{ $composeMode === 'reply' ? '↩ Balas Email' : '✏️ Tulis Email Baru' }}</h2>
-                        <p>Dari: {{ config('mail.from.address', 'admin@kopkarskf.com') }}</p>
+                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                            <div>
+                                <h2>{{ $composeMode === 'reply' ? '↩ Balas Email' : '✏️ Tulis Email Baru' }}</h2>
+                                <p>Dari: {{ config('mail.from.address', 'admin@kopkarskf.com') }}</p>
+                            </div>
+                            @if($composeMode === 'new')
+                            <div style="position:relative;">
+                                <button type="button" class="template-btn" onclick="toggleTemplates()">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    Template
+                                </button>
+                                <div class="template-dropdown" id="template-dropdown">
+                                    <div style="padding:6px 12px;font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;">Pilih Template</div>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
                     </div>
                     <div class="compose-fields">
-                        <div class="compose-field">
+                        <div class="compose-field" style="position:relative;">
                             <label for="compose-to">Kepada</label>
-                            <input type="email" name="to" id="compose-to" value="{{ old('to', $composeTo ?? '') }}" placeholder="contoh@email.com" required>
+                            <input type="email" name="to" id="compose-to" value="{{ old('to', $composeTo ?? '') }}" placeholder="ketik nama anggota atau email..." required autocomplete="off" oninput="searchMembers(this.value)" onfocus="searchMembers(this.value)">
+                            <div class="member-autocomplete" id="member-dropdown"></div>
                         </div>
                         <div class="compose-field">
                             <label for="compose-cc">CC</label>
@@ -594,6 +674,16 @@
                         @endforeach
                     </div>
                     @endif
+                    <div class="signature-preview">
+                        <strong>✍ Tanda tangan otomatis:</strong><br>
+                        Hormat kami, {{ \App\Models\Setting::get('coop_name', 'Koperasi Karyawan SKF') }}
+                        @if(\App\Models\Setting::get('coop_address'))
+                            · 📍 {{ \App\Models\Setting::get('coop_address') }}
+                        @endif
+                        @if(\App\Models\Setting::get('coop_phone'))
+                            · 📞 {{ \App\Models\Setting::get('coop_phone') }}
+                        @endif
+                    </div>
                     <div class="file-upload-area">
                         <label class="file-upload-label" for="compose-files">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
@@ -839,6 +929,113 @@ function generateAiReply() {
         status.textContent = '❌ Error: ' + err.message;
         status.className = 'ai-status error';
     });
+}
+
+// ===== TEMPLATE FUNCTIONS =====
+var templateData = [];
+var templatesLoaded = false;
+
+function toggleTemplates() {
+    var dd = document.getElementById('template-dropdown');
+    if (!dd) return;
+    
+    if (!templatesLoaded) {
+        loadTemplates();
+    }
+    dd.classList.toggle('show');
+}
+
+function loadTemplates() {
+    fetch('{{ route("admin.email.templates") }}')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            templateData = data;
+            templatesLoaded = true;
+            var dd = document.getElementById('template-dropdown');
+            data.forEach(function(tpl) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'template-item';
+                btn.textContent = tpl.name;
+                btn.onclick = function() { applyTemplate(tpl); };
+                dd.appendChild(btn);
+            });
+        });
+}
+
+function applyTemplate(tpl) {
+    document.getElementById('compose-subject').value = tpl.subject;
+    document.getElementById('compose-body').value = tpl.body;
+    document.getElementById('template-dropdown').classList.remove('show');
+    document.getElementById('compose-to').focus();
+}
+
+// Close template dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    var dd = document.getElementById('template-dropdown');
+    if (dd && !e.target.closest('.template-btn') && !e.target.closest('.template-dropdown')) {
+        dd.classList.remove('show');
+    }
+    // Also close member dropdown
+    var md = document.getElementById('member-dropdown');
+    if (md && !e.target.closest('.compose-field')) {
+        md.classList.remove('show');
+    }
+});
+
+// ===== MEMBER SEARCH AUTOCOMPLETE =====
+var memberSearchTimeout = null;
+
+function searchMembers(query) {
+    var dd = document.getElementById('member-dropdown');
+    if (!dd) return;
+    
+    clearTimeout(memberSearchTimeout);
+    
+    if (query.length < 2) {
+        dd.classList.remove('show');
+        return;
+    }
+
+    // If it looks like a full email, don't search
+    if (query.indexOf('@') > 0 && query.indexOf('.') > query.indexOf('@')) {
+        dd.classList.remove('show');
+        return;
+    }
+
+    memberSearchTimeout = setTimeout(function() {
+        fetch('{{ route("admin.email.search-members") }}?q=' + encodeURIComponent(query))
+            .then(function(res) { return res.json(); })
+            .then(function(members) {
+                dd.innerHTML = '';
+                if (members.length === 0) {
+                    dd.classList.remove('show');
+                    return;
+                }
+                
+                members.forEach(function(m) {
+                    var initials = m.name.split(' ').map(function(w) { return w[0]; }).join('').substring(0, 2).toUpperCase();
+                    var item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'member-item';
+                    item.innerHTML = '<div class="member-item-avatar">' + initials + '</div>' +
+                        '<div class="member-item-info">' +
+                            '<div class="member-item-name">' + m.name + '</div>' +
+                            '<div class="member-item-email">' + m.email + '</div>' +
+                        '</div>' +
+                        (m.department ? '<span class="member-item-dept">' + m.department + '</span>' : '');
+                    item.onclick = function() { selectMember(m); };
+                    dd.appendChild(item);
+                });
+                dd.classList.add('show');
+            });
+    }, 300);
+}
+
+function selectMember(member) {
+    document.getElementById('compose-to').value = member.email;
+    document.getElementById('member-dropdown').classList.remove('show');
+    document.getElementById('compose-subject').focus();
 }
 </script>
 @endpush
