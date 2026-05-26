@@ -223,6 +223,89 @@ class AdminEmailController extends Controller
     }
 
     /**
+     * Show forward form.
+     */
+    public function forward(Request $request, $uid)
+    {
+        $this->authorizeEmail();
+
+        $activeFolder = $request->get('folder', 'inbox');
+
+        try {
+            $client = Client::account('default');
+            $client->connect();
+            $imapFolder = $this->resolveFolder($client, $activeFolder);
+
+            $page = $request->get('page', 1);
+            $messages = $imapFolder->query()->all()->setFetchOrder("desc")->paginate(15, $page, 'page');
+
+            $selectedMessage = $imapFolder->query()->getMessageByUid($uid);
+            
+            if (!$selectedMessage) {
+                return redirect()->route('admin.email.index')->with('error', 'Email tidak ditemukan.');
+            }
+
+            $composeMode = 'new';
+            $composeTo = '';
+            $composeSubject = 'Fwd: ' . ($selectedMessage->getSubject() ?? '');
+            
+            $originalDate = $selectedMessage->getDate()[0] ?? null;
+            $originalSender = $selectedMessage->getFrom()[0]->personal ?? $selectedMessage->getFrom()[0]->mail ?? 'Unknown';
+            $originalTo = $selectedMessage->getTo()[0]->mail ?? '';
+            $originalBody = $selectedMessage->getTextBody() ?? strip_tags($selectedMessage->getHTMLBody() ?? '');
+            
+            $composeBody = "\n\n---------- Forwarded message ----------\n";
+            $composeBody .= "Dari: {$originalSender}\n";
+            $composeBody .= "Tanggal: " . ($originalDate ? $originalDate->format('d M Y, H:i') : '') . "\n";
+            $composeBody .= "Subjek: " . ($selectedMessage->getSubject() ?? '') . "\n";
+            $composeBody .= "Kepada: {$originalTo}\n\n";
+            $composeBody .= $originalBody;
+
+            return view('admin.email.index', compact('messages', 'selectedMessage', 'composeMode', 'composeTo', 'composeSubject', 'composeBody', 'activeFolder'));
+
+        } catch (\Exception $e) {
+            return redirect()->route('admin.email.index')->with('error', 'Gagal memuat email: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete email (move to trash).
+     */
+    public function delete(Request $request, $uid)
+    {
+        $this->authorizeEmail();
+
+        $folder = $request->get('folder', 'inbox');
+
+        try {
+            $client = Client::account('default');
+            $client->connect();
+
+            $imapFolder = $this->resolveFolder($client, $folder);
+            $message = $imapFolder->query()->getMessageByUid($uid);
+
+            if (!$message) {
+                return redirect()->back()->with('error', 'Email tidak ditemukan.');
+            }
+
+            // If already in trash, permanently delete
+            if ($folder === 'trash') {
+                $message->delete(true);
+                return redirect()->route('admin.email.folder', 'trash')->with('success', 'Email dihapus permanen.');
+            }
+
+            // Move to Trash folder
+            $trashFolder = $this->resolveFolder($client, 'trash');
+            $message->move($trashFolder->path);
+
+            return redirect()->route('admin.email.folder', $folder)->with('success', 'Email dipindahkan ke Sampah.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menghapus email: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Generate AI reply suggestion for an email.
      */
     public function generateAiReply(Request $request)
@@ -537,4 +620,30 @@ class AdminEmailController extends Controller
 
         return response()->json($templates);
     }
+
+    /**
+     * Send automated loan reminders manually.
+     */
+    public function sendLoanReminders(Request $request)
+    {
+        $this->authorizeEmail();
+
+        $days = (int) $request->get('days', 3);
+        $overdue = (bool) $request->get('overdue', true);
+
+        try {
+            $outputBuffer = new \Symfony\Component\Console\Output\BufferedOutput();
+            \Illuminate\Support\Facades\Artisan::call('email:loan-reminders', [
+                '--days' => $days,
+                '--overdue' => $overdue
+            ], $outputBuffer);
+
+            $output = $outputBuffer->fetch();
+
+            return redirect()->back()->with('success', 'Pengingat cicilan berhasil diproses! ' . str_replace("\n", " ", trim($output)));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal mengirim pengingat cicilan: ' . $e->getMessage());
+        }
+    }
 }
+

@@ -114,12 +114,15 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
     Route::get('admin/email/compose', [App\Http\Controllers\Admin\AdminEmailController::class, 'compose'])->name('admin.email.compose');
     Route::post('admin/email/send', [App\Http\Controllers\Admin\AdminEmailController::class, 'send'])->name('admin.email.send');
     Route::get('admin/email/{uid}/reply', [App\Http\Controllers\Admin\AdminEmailController::class, 'reply'])->name('admin.email.reply');
+    Route::get('admin/email/{uid}/forward', [App\Http\Controllers\Admin\AdminEmailController::class, 'forward'])->name('admin.email.forward');
+    Route::delete('admin/email/{uid}/delete', [App\Http\Controllers\Admin\AdminEmailController::class, 'delete'])->name('admin.email.delete');
     Route::get('admin/email/{folder}', [App\Http\Controllers\Admin\AdminEmailController::class, 'index'])->name('admin.email.folder')->where('folder', 'inbox|sent|drafts|trash|spam');
     Route::get('admin/email/{folder}/{uid}', [App\Http\Controllers\Admin\AdminEmailController::class, 'show'])->name('admin.email.show')->where('folder', 'inbox|sent|drafts|trash|spam');
     Route::get('admin/email/attachment/{uid}/{index}', [App\Http\Controllers\Admin\AdminEmailController::class, 'downloadAttachment'])->name('admin.email.attachment');
     Route::post('admin/email/ai-reply', [App\Http\Controllers\Admin\AdminEmailController::class, 'generateAiReply'])->name('admin.email.ai-reply');
     Route::get('admin/email/api/members', [App\Http\Controllers\Admin\AdminEmailController::class, 'searchMembers'])->name('admin.email.search-members');
     Route::get('admin/email/api/templates', [App\Http\Controllers\Admin\AdminEmailController::class, 'getTemplates'])->name('admin.email.templates');
+    Route::post('admin/email/send-loan-reminders', [App\Http\Controllers\Admin\AdminEmailController::class, 'sendLoanReminders'])->name('admin.email.send-loan-reminders');
 
     // Admin Only Core Routes
     Route::middleware('can:admin')->group(function() {

@@ -220,3 +220,6 @@ Artisan::command('purchases:delete-cancelled {--dry-run} {--from=} {--to=}', fun
         $this->warn('Mode dry-run aktif. Tidak ada data yang dihapus.');
     }
 })->purpose('Hapus purchase dengan status cancelled beserta item, jurnal, dan file bukti');
+
+\Illuminate\Support\Facades\Schedule::command('email:loan-reminders --days=3 --overdue')->dailyAt('08:00');
+
