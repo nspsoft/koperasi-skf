@@ -345,7 +345,18 @@ class InventoryController extends Controller
         // Merge Stock In (Purchases & Consignments)
         $stockInDetails = $purchases->concat($consignments)->sortByDesc('date')->values();
 
-        // Fetch completed sales for this product
+        // Calculate TRUE Total In before taking limits
+        $trueTotalPurchasesIn = \App\Models\PurchaseItem::where('product_id', $product->id)
+            ->whereHas('purchase', function($q) { $q->where('status', 'completed'); })
+            ->sum('quantity');
+            
+        $trueTotalConsignmentsIn = \App\Models\ConsignmentInboundItem::where('product_id', $product->id)
+            ->whereHas('inbound', function($q) { $q->where('status', 'completed'); })
+            ->sum('quantity');
+            
+        $trueTotalIn = $trueTotalPurchasesIn + $trueTotalConsignmentsIn;
+
+        // Fetch completed sales for this product (Details for list)
         $stockOutDetails = \App\Models\TransactionItem::with(['transaction.user'])
             ->where('product_id', $product->id)
             ->whereHas('transaction', function($q) {
@@ -374,6 +385,13 @@ class InventoryController extends Controller
             ->sum('quantity');
         $weeklyAvg = round(($sales30Days / 30) * 7, 1);
 
+        // Calculate TRUE Total Out
+        $trueTotalOut = \App\Models\TransactionItem::where('product_id', $product->id)
+            ->whereHas('transaction', function($q) {
+                $q->whereNotIn('status', ['cancelled']);
+            })
+            ->sum('quantity');
+
         return response()->json([
             'product' => [
                 'name' => $product->name,
@@ -387,8 +405,8 @@ class InventoryController extends Controller
             ],
             'in' => $stockInDetails,
             'out' => $stockOutDetails,
-            'total_in' => $stockInDetails->sum('qty'),
-            'total_out' => $stockOutDetails->sum('qty'),
+            'total_in' => $trueTotalIn,
+            'total_out' => $trueTotalOut,
         ]);
     }
 }

@@ -138,7 +138,7 @@
 
         <div class="flex justify-end gap-3 pt-4">
             <a href="{{ route('purchases.index') }}" class="btn-secondary">{{ __('messages.purchases.create_btn_cancel') }}</a>
-            <button type="submit" class="btn-primary" onclick="return confirm('Apakah Anda yakin ingin menyimpan perubahan? Data stok dan akuntansi akan dihitung ulang.')">
+            <button type="submit" class="btn-primary">
                 {{ __('messages.purchases.create_btn_save') }}
             </button>
         </div>
@@ -171,6 +171,7 @@
         </td>
         <td class="p-2">
             <input type="number" name="items[INDEX][cost]" class="form-input cost-input" min="0" value="0" required oninput="calculateRow(this)">
+            <div class="price-warning text-[10px] text-red-500 font-bold mt-1 hidden leading-tight"></div>
         </td>
         <td class="p-2 text-right font-medium subtotal-display">
             Rp 0
@@ -280,6 +281,27 @@
         row.querySelector('.stock-add-display').textContent = '+' + stockAdd;
         row.querySelector('.sale-unit-display').textContent = ' ' + saleUnit;
         
+        // Price Deviation Warning
+        const select = row.querySelector('.product-select');
+        const historicalCost = parseFloat(select.selectedOptions[0]?.getAttribute('data-cost') || 0);
+        const warningEl = row.querySelector('.price-warning');
+        
+        if (historicalCost > 0 && cost > 0) {
+            const deviation = ((cost - historicalCost) / historicalCost) * 100;
+            if (Math.abs(deviation) >= 50) {
+                const direction = deviation > 0 ? 'Naik' : 'Turun';
+                warningEl.innerHTML = `⚠️ <b>${direction} ${Math.abs(deviation).toFixed(0)}%</b> dari historis (Rp ${new Intl.NumberFormat('id-ID').format(historicalCost)}).<br>Cek unit (sachet vs renceng)!`;
+                warningEl.classList.remove('hidden');
+                row.querySelector('.cost-input').classList.add('border-red-500', 'bg-red-50', 'text-red-700');
+            } else {
+                warningEl.classList.add('hidden');
+                row.querySelector('.cost-input').classList.remove('border-red-500', 'bg-red-50', 'text-red-700');
+            }
+        } else {
+            warningEl.classList.add('hidden');
+            row.querySelector('.cost-input').classList.remove('border-red-500', 'bg-red-50', 'text-red-700');
+        }
+
         calculateTotal();
     }
 
@@ -331,6 +353,39 @@
                 this.select();
             }
         }
+    });
+
+    // Form Submission Interceptor
+    document.getElementById('purchaseForm').addEventListener('submit', function(e) {
+        let hasWarning = false;
+        let warningMessages = [];
+        
+        document.querySelectorAll('.item-row').forEach(row => {
+            const warningEl = row.querySelector('.price-warning');
+            if (!warningEl.classList.contains('hidden')) {
+                hasWarning = true;
+                const productName = row.querySelector('.product-select').selectedOptions[0]?.text;
+                warningMessages.push(`- ${productName}`);
+            }
+        });
+
+        if (hasWarning) {
+            const confirmMsg = "⚠️ PERINGATAN DEVIASI HARGA ⚠️\n\nBeberapa produk memiliki harga beli yang melenceng drastis (>50%) dari harga biasanya:\n" 
+                               + warningMessages.join('\n') 
+                               + "\n\nApakah Anda YAKIN harga ini sudah benar (bukan salah input satuan renceng/dus)?";
+            
+            if (!confirm(confirmMsg)) {
+                e.preventDefault();
+                return;
+            }
+        }
+
+        // Default confirm for completed status
+        @if($purchase->status === 'completed')
+            if (!confirm('Apakah Anda yakin ingin menyimpan perubahan? Data stok dan akuntansi akan dihitung ulang.')) {
+                e.preventDefault();
+            }
+        @endif
     });
 
     // Populate existing items
