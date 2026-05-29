@@ -154,6 +154,125 @@
         </div>
     </div>
 
+    <!-- Expense Breakdown Modal -->
+    <div id="expenseBreakdownModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-700 transform scale-95 opacity-0 transition-all duration-300" id="expenseBreakdownModalContent">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30 rounded-t-2xl">
+                <div>
+                    <h3 id="expenseBreakdownTitle" class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <span class="p-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </span>
+                        Breakdown Biaya Operasional
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Rincian pengeluaran operasional berdasarkan kategori akun</p>
+                </div>
+                <button id="closeExpenseBreakdownModal" type="button" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6">
+                <!-- Total Card -->
+                <div class="mb-6 p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 flex justify-between items-center">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">Total Biaya Operasional</p>
+                        <p id="expenseBreakdownTotal" class="text-2xl font-black text-gray-900 dark:text-white mt-1">Rp 0</p>
+                    </div>
+                    <div class="p-3 bg-amber-500 text-white rounded-xl shadow-lg shadow-amber-500/20">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Breakdown List -->
+                <div id="expenseBreakdownList" class="space-y-4 max-h-[300px] overflow-y-auto pr-1">
+                    <!-- Dynamic Items will be rendered here -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="expenseBreakdownEmpty" class="hidden flex flex-col items-center justify-center py-10 text-gray-400">
+                    <span class="text-5xl mb-3 opacity-30">📊</span>
+                    <p class="text-sm font-semibold uppercase tracking-wider text-gray-500">Tidak ada pengeluaran</p>
+                    <p class="text-xs text-gray-400 mt-1">Tidak tercatat biaya operasional pada bulan ini</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expense Line Details Modal -->
+    <div id="expenseLineDetailsModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all duration-300">
+        <div class="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-700 transform scale-95 opacity-0 transition-all duration-300" id="expenseLineDetailsModalContent">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30 rounded-t-2xl">
+                <div>
+                    <h3 id="expenseLineDetailsTitle" class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <span class="p-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                            </svg>
+                        </span>
+                        Rincian Transaksi Biaya
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Daftar jurnal pengeluaran rincian transaksi</p>
+                </div>
+                <button id="closeExpenseLineDetailsModal" type="button" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6">
+                <!-- Loading Spinner -->
+                <div id="expenseLineDetailsLoading" class="flex flex-col items-center justify-center py-12">
+                    <svg class="animate-spin h-8 w-8 text-amber-500 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="text-sm text-gray-500 font-medium">Memuat rincian transaksi...</p>
+                </div>
+
+                <!-- Details Table Container -->
+                <div id="expenseLineDetailsContainer" class="hidden">
+                    <div class="max-h-[350px] overflow-y-auto pr-1">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <th class="py-3 px-2">Keterangan</th>
+                                    <th class="py-3 px-2 text-right">Total Jumlah</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenseLineDetailsList" class="divide-y divide-gray-100 dark:divide-gray-800/50">
+                                <!-- Dynamic Items will be rendered here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="expenseLineDetailsEmpty" class="hidden flex flex-col items-center justify-center py-12 text-gray-400">
+                    <span class="text-5xl mb-3 opacity-30">📋</span>
+                    <p class="text-sm font-semibold uppercase tracking-wider text-gray-500">Tidak ada rincian</p>
+                    <p class="text-xs text-gray-400 mt-1">Tidak ada detail transaksi untuk kategori ini</p>
+                </div>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="flex justify-end px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30 rounded-b-2xl">
+                <button id="backToBreakdownButton" type="button" class="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-semibold">Kembali</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Row 2: Savings, Sales & Loans -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <!-- Savings Chart -->
@@ -542,6 +661,7 @@
         const rawMonthlyProfit = @json($monthlyProfit);
         const rawMonthlyOperationalProfit = @json($monthlyOperationalProfit);
         const rawMonthlyOperationalExpense = @json($monthlyOperationalExpense);
+        const monthlyExpenseBreakdown = @json($monthlyExpenseBreakdown);
 
         let dailyChart = null;
         let revenueProfitChart = null;
@@ -724,6 +844,193 @@
             });
         }
 
+        const expenseModalEl = document.getElementById('expenseBreakdownModal');
+        const expenseModalContentEl = document.getElementById('expenseBreakdownModalContent');
+        const closeExpenseModalButton = document.getElementById('closeExpenseBreakdownModal');
+        const expenseModalTitle = document.getElementById('expenseBreakdownTitle');
+        const expenseModalTotal = document.getElementById('expenseBreakdownTotal');
+        const expenseModalList = document.getElementById('expenseBreakdownList');
+        const expenseModalEmpty = document.getElementById('expenseBreakdownEmpty');
+
+        const openExpenseBreakdownModal = (monthIndex) => {
+            const breakdown = monthlyExpenseBreakdown[monthIndex] || [];
+            const monthName = monthNames[monthIndex];
+            const totalExpense = rawMonthlyOperationalExpense[monthIndex] || 0;
+
+            expenseModalTitle.innerHTML = `
+                <span class="p-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                </span>
+                Breakdown Biaya Operasional - ${monthName}
+            `;
+            
+            expenseModalTotal.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(totalExpense);
+
+            // Clear previous items
+            expenseModalList.innerHTML = '';
+
+            if (breakdown.length === 0) {
+                expenseModalList.classList.add('hidden');
+                expenseModalEmpty.classList.remove('hidden');
+                expenseModalEmpty.classList.add('flex');
+            } else {
+                expenseModalEmpty.classList.add('hidden');
+                expenseModalEmpty.classList.remove('flex');
+                expenseModalList.classList.remove('hidden');
+
+                breakdown.forEach(item => {
+                    const percentage = totalExpense > 0 ? ((item.amount / totalExpense) * 100).toFixed(1) : 0;
+                    
+                    const itemHTML = `
+                        <div onclick="fetchExpenseLineDetails(${monthIndex + 1}, '${item.code}', '${item.name}', '${monthName}')" class="p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/10 hover:border-amber-400 dark:hover:border-amber-600 hover:bg-amber-50/10 dark:hover:bg-amber-950/10 transition-all duration-200 cursor-pointer hover:scale-[1.01] transform hover:shadow-sm">
+                            <div class="flex justify-between items-start gap-4 mb-2">
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-mono">
+                                            ${item.code}
+                                        </span>
+                                        <span class="font-semibold text-sm text-gray-900 dark:text-white truncate">
+                                            ${item.name}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="text-right flex-shrink-0">
+                                    <span class="font-bold text-sm text-gray-900 dark:text-white">
+                                        Rp ${new Intl.NumberFormat('id-ID').format(item.amount)}
+                                    </span>
+                                    <span class="block text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mt-0.5">
+                                        ${percentage}%
+                                    </span>
+                                </div>
+                            </div>
+                            <!-- Visual Progress Bar -->
+                            <div class="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
+                            </div>
+                        </div>
+                    `;
+                    expenseModalList.insertAdjacentHTML('beforeend', itemHTML);
+                });
+            }
+
+            // Show Modal with smooth animation
+            expenseModalEl.classList.remove('hidden');
+            expenseModalEl.classList.add('flex');
+            // Allow browser to render then scale up
+            setTimeout(() => {
+                expenseModalContentEl.classList.remove('scale-95', 'opacity-0');
+                expenseModalContentEl.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        };
+
+        const closeExpenseBreakdownModal = () => {
+            expenseModalContentEl.classList.remove('scale-100', 'opacity-100');
+            expenseModalContentEl.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                expenseModalEl.classList.add('hidden');
+                expenseModalEl.classList.remove('flex');
+            }, 300);
+        };
+
+        if (closeExpenseModalButton && expenseModalEl) {
+            closeExpenseModalButton.addEventListener('click', closeExpenseBreakdownModal);
+
+            expenseModalEl.addEventListener('click', (event) => {
+                if (event.target === expenseModalEl) {
+                    closeExpenseBreakdownModal();
+                }
+            });
+        }
+
+        const lineDetailsModalEl = document.getElementById('expenseLineDetailsModal');
+        const lineDetailsModalContentEl = document.getElementById('expenseLineDetailsModalContent');
+        const closeLineDetailsButton = document.getElementById('closeExpenseLineDetailsModal');
+        const backToBreakdownButton = document.getElementById('backToBreakdownButton');
+        const lineDetailsTitle = document.getElementById('expenseLineDetailsTitle');
+        const lineDetailsLoading = document.getElementById('expenseLineDetailsLoading');
+        const lineDetailsContainer = document.getElementById('expenseLineDetailsContainer');
+        const lineDetailsList = document.getElementById('expenseLineDetailsList');
+        const lineDetailsEmpty = document.getElementById('expenseLineDetailsEmpty');
+
+        const fetchExpenseLineDetails = (month, accountCode, accountName, monthName) => {
+            // Set Header Title
+            lineDetailsTitle.innerHTML = `
+                <span class="p-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                </span>
+                Rincian ${accountName} - ${monthName}
+            `;
+
+            // Reset States
+            lineDetailsLoading.classList.remove('hidden');
+            lineDetailsContainer.classList.add('hidden');
+            lineDetailsEmpty.classList.add('hidden');
+            lineDetailsList.innerHTML = '';
+
+            // Open Modal
+            lineDetailsModalEl.classList.remove('hidden');
+            lineDetailsModalEl.classList.add('flex');
+            setTimeout(() => {
+                lineDetailsModalContentEl.classList.remove('scale-95', 'opacity-0');
+                lineDetailsModalContentEl.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            // Fetch Data
+            fetch(`/dashboard/expense-details?month=${month}&account_code=${accountCode}`)
+                .then(response => response.json())
+                .then(res => {
+                    lineDetailsLoading.classList.add('hidden');
+                    if (res.status === 'success' && res.data.length > 0) {
+                        lineDetailsContainer.classList.remove('hidden');
+                        res.data.forEach(item => {
+                            const row = `
+                                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/25 transition-colors border-b border-gray-100 dark:border-gray-800/50">
+                                    <td class="py-3 px-2 text-gray-900 dark:text-white font-semibold">${item.description}</td>
+                                    <td class="py-3 px-2 text-right text-gray-900 dark:text-white font-bold whitespace-nowrap">
+                                        Rp ${new Intl.NumberFormat('id-ID').format(item.amount)}
+                                    </td>
+                                </tr>
+                            `;
+                            lineDetailsList.insertAdjacentHTML('beforeend', row);
+                        });
+                    } else {
+                        lineDetailsEmpty.classList.remove('hidden');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching expense details:', err);
+                    lineDetailsLoading.classList.add('hidden');
+                    lineDetailsEmpty.classList.remove('hidden');
+                });
+        };
+
+        window.fetchExpenseLineDetails = fetchExpenseLineDetails;
+
+        const closeLineDetailsModal = () => {
+            lineDetailsModalContentEl.classList.remove('scale-100', 'opacity-100');
+            lineDetailsModalContentEl.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                lineDetailsModalEl.classList.add('hidden');
+                lineDetailsModalEl.classList.remove('flex');
+            }, 300);
+        };
+
+        if (closeLineDetailsButton && lineDetailsModalEl) {
+            closeLineDetailsButton.addEventListener('click', closeLineDetailsModal);
+            
+            backToBreakdownButton.addEventListener('click', closeLineDetailsModal);
+
+            lineDetailsModalEl.addEventListener('click', (event) => {
+                if (event.target === lineDetailsModalEl) {
+                    closeLineDetailsModal();
+                }
+            });
+        }
+
         if (toggleExConsignmentSeries) {
             toggleExConsignmentSeries.addEventListener('change', () => {
                 syncExConsignmentSeriesVisibility(revenueProfitChart);
@@ -838,7 +1145,12 @@
                 height: 250,
                 type: 'bar',
                 toolbar: { show: false },
-                fontFamily: 'Inter, sans-serif'
+                fontFamily: 'Inter, sans-serif',
+                events: {
+                    dataPointSelection: function(event, chartContext, config) {
+                        openExpenseBreakdownModal(config.dataPointIndex);
+                    }
+                }
             },
             colors: ['#f59e0b'],
             plotOptions: {

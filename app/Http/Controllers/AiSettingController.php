@@ -285,7 +285,7 @@ class AiSettingController extends Controller
                         ],
                         'generationConfig' => [
                             'temperature' => 0.7,
-                            'maxOutputTokens' => 1024,
+                            'maxOutputTokens' => 8192,
                         ]
                     ]);
                 

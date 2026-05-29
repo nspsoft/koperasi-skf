@@ -151,6 +151,125 @@ class ManualJournalController extends Controller
         return view('journals.show', compact('journal'));
     }
 
+    public function edit(JournalEntry $journal)
+    {
+        \Illuminate\Support\Facades\Gate::authorize('admin');
+
+        // Only allow editing manual journals to prevent breaking automatic ones
+        if ($journal->reference_type !== 'Manual') {
+            return redirect()->back()->with('error', 'Jurnal otomatis tidak dapat diedit secara manual.');
+        }
+
+        $journal->load('lines.account');
+
+        $excludedCodes = [
+            '1201', // Piutang Anggota (Managed by Loans)
+            '1301', // Persediaan (Managed by Mart/Purchases)
+            '2101', // Simpanan Pokok
+            '2102', // Simpanan Wajib
+            '2103', // Simpanan Sukarela
+            '4101', // Pendapatan Bunga (Managed by Loans)
+            '4102', // Pendapatan Jual (Managed by Mart)
+            '5201', // HPP (Managed by Mart)
+        ];
+
+        $accounts = Account::whereNotIn('code', $excludedCodes)
+            ->orderBy('code')
+            ->get()
+            ->groupBy('type');
+
+        return view('journals.edit', compact('journal', 'accounts'));
+    }
+
+    public function update(Request $request, JournalEntry $journal)
+    {
+        \Illuminate\Support\Facades\Gate::authorize('admin');
+
+        if ($journal->reference_type !== 'Manual') {
+            return redirect()->back()->with('error', 'Jurnal otomatis tidak dapat diedit secara manual.');
+        }
+
+        $request->validate([
+            'transaction_date' => 'required|date',
+            'description' => 'required|string',
+            'lines' => 'required|array|min:2',
+            'lines.*.account_code' => 'required|exists:accounts,code',
+            'lines.*.debit' => 'nullable|numeric|min:0',
+            'lines.*.credit' => 'nullable|numeric|min:0',
+            'lines.*.description' => 'nullable|string',
+        ]);
+
+        $totalDebit = 0;
+        $totalCredit = 0;
+        $entries = [];
+
+        foreach ($request->lines as $line) {
+            $debit = floatval($line['debit'] ?? 0);
+            $credit = floatval($line['credit'] ?? 0);
+            
+            if ($debit == 0 && $credit == 0) continue;
+
+            $totalDebit += $debit;
+            $totalCredit += $credit;
+            
+            $entries[] = [
+                'account_code' => $line['account_code'],
+                'debit' => $debit,
+                'credit' => $credit,
+                'description' => $line['description'] ?? $request->description,
+            ];
+        }
+
+        if (abs($totalDebit - $totalCredit) > 0.01) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', "Jurnal tidak seimbang! Total Debit: Rp " . number_format($totalDebit) . ", Total Kredit: Rp " . number_format($totalCredit));
+        }
+
+        if (count($entries) < 2) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', "Minimal harus ada 2 baris transaksi yang diinput.");
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $journal->update([
+                'transaction_date' => $request->transaction_date,
+                'description' => $request->description,
+                'total_debit' => $totalDebit,
+                'total_credit' => $totalCredit,
+            ]);
+
+            // Clear old lines
+            $journal->lines()->delete();
+
+            // Insert new lines
+            foreach ($entries as $entry) {
+                $account = Account::where('code', $entry['account_code'])->first();
+                JournalEntryLine::create([
+                    'journal_entry_id' => $journal->id,
+                    'account_id' => $account->id,
+                    'debit' => $entry['debit'],
+                    'credit' => $entry['credit'],
+                    'description' => $entry['description']
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->route('journals.index')
+                ->with('success', 'Jurnal manual berhasil diperbarui.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal memperbarui jurnal: ' . $e->getMessage());
+        }
+    }
+
     public function destroy(JournalEntry $journal)
     {
         \Illuminate\Support\Facades\Gate::authorize('delete-data');

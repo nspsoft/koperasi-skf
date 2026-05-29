@@ -36,7 +36,7 @@ class DashboardController extends Controller
     {
         $currentYear = date('Y');
 
-        $data = Cache::remember("dashboard_admin_{$currentYear}_v4", 60, function () use ($currentYear) {
+        $data = Cache::remember("dashboard_admin_{$currentYear}_v6", 60, function () use ($currentYear) {
             $stats = [
                 'total_members' => Member::where('status', 'active')->count(),
                 'total_savings' => Saving::where('transaction_type', 'deposit')->sum('amount') -
@@ -122,6 +122,35 @@ class DashboardController extends Controller
                 $monthlyProfit[] = $monthlyRevenue[$i] - $monthlyExpense[$i];
                 $monthlyOperationalProfit[] = ($monthlyRevenue[$i] - $monthlyExpense[$i]) + $monthlyConsignmentExpense[$i];
                 $monthlyOperationalExpense[] = $monthlyExpense[$i] - $monthlyConsignmentExpense[$i];
+            }
+
+            $monthlyExpenseBreakdown = [];
+            for ($i = 0; $i < 12; $i++) {
+                $monthlyExpenseBreakdown[$i] = [];
+            }
+
+            $expenseBreakdownQuery = \App\Models\JournalEntryLine::query()
+                ->join('journal_entries', 'journal_entries.id', '=', 'journal_entry_lines.journal_entry_id')
+                ->join('accounts', 'accounts.id', '=', 'journal_entry_lines.account_id')
+                ->where('journal_entries.status', 'posted')
+                ->whereYear('journal_entries.transaction_date', $currentYear)
+                ->where('accounts.code', 'like', '5%')
+                ->where('accounts.code', '!=', '5201') // Exclude HPP
+                ->selectRaw("MONTH(journal_entries.transaction_date) as month, accounts.code, accounts.name as account_name, SUM(COALESCE(journal_entry_lines.debit, 0) - COALESCE(journal_entry_lines.credit, 0)) as total_amount")
+                ->groupBy('month', 'accounts.code', 'accounts.name')
+                ->orderBy('total_amount', 'desc')
+                ->get();
+
+            foreach ($expenseBreakdownQuery as $row) {
+                $monthIndex = (int) $row->month - 1;
+                $amount = (float) $row->total_amount;
+                if ($amount > 0) {
+                    $monthlyExpenseBreakdown[$monthIndex][] = [
+                        'code' => $row->code,
+                        'name' => $row->account_name,
+                        'amount' => $amount
+                    ];
+                }
             }
 
             $dailyRevenueProfit = [];
@@ -233,7 +262,8 @@ class DashboardController extends Controller
                 'monthlyOperationalProfit',
                 'monthlyOperationalExpense',
                 'dailyRevenueProfit',
-                'topCustomers'
+                'topCustomers',
+                'monthlyExpenseBreakdown'
             );
         });
 
@@ -332,5 +362,45 @@ class DashboardController extends Controller
             'announcements',
             'savingsChart'
         ));
+    }
+
+    public function getExpenseDetails(Request $request)
+    {
+        $request->validate([
+            'month' => 'required|integer|between:1,12',
+            'account_code' => 'required|string',
+        ]);
+
+        $currentYear = date('Y');
+        $month = $request->input('month');
+        $accountCode = $request->input('account_code');
+
+        $details = \App\Models\JournalEntryLine::query()
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_entry_lines.journal_entry_id')
+            ->join('accounts', 'accounts.id', '=', 'journal_entry_lines.account_id')
+            ->where('journal_entries.status', 'posted')
+            ->whereYear('journal_entries.transaction_date', $currentYear)
+            ->whereMonth('journal_entries.transaction_date', $month)
+            ->where('accounts.code', $accountCode)
+            ->selectRaw("
+                COALESCE(NULLIF(journal_entry_lines.description, ''), NULLIF(journal_entries.description, ''), 'Tanpa keterangan') as description,
+                SUM(COALESCE(journal_entry_lines.debit, 0) - COALESCE(journal_entry_lines.credit, 0)) as total_amount
+            ")
+            ->groupBy(DB::raw("COALESCE(NULLIF(journal_entry_lines.description, ''), NULLIF(journal_entries.description, ''), 'Tanpa keterangan')"))
+            ->orderBy('total_amount', 'desc')
+            ->get();
+
+        // Format map description and amount
+        $formattedDetails = $details->map(function ($item) {
+            return [
+                'description' => $item->description,
+                'amount' => (float) $item->total_amount
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $formattedDetails
+        ]);
     }
 }

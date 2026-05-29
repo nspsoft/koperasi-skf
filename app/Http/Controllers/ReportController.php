@@ -783,4 +783,206 @@ class ReportController extends Controller
         );
         return Excel::download(new LoansExport($request), 'laporan-pinjaman-' . now()->format('Y-m-d') . '.xlsx');
     }
+
+    public function analyzeIncomeStatement(Request $request)
+    {
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date',
+        ]);
+
+        $startDate = Carbon::parse($request->start_date);
+        $endDate = Carbon::parse($request->end_date);
+
+        // Fetch Revenues and Expenses (identical calculations)
+        $revenues = Account::where('code', 'like', '4%')->orderBy('code')->get();
+        $expenses = Account::where('code', 'like', '5%')->orderBy('code')->get();
+
+        $allAccountIds = array_merge($revenues->pluck('id')->toArray(), $expenses->pluck('id')->toArray());
+
+        $movements = JournalEntryLine::whereIn('account_id', $allAccountIds)
+            ->whereHas('journalEntry', function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('transaction_date', [$startDate, $endDate])
+                  ->where('status', 'posted');
+            })
+            ->select('account_id', DB::raw('SUM(debit) as total_debit'), DB::raw('SUM(credit) as total_credit'))
+            ->groupBy('account_id')
+            ->get()
+            ->keyBy('account_id');
+
+        $revenueList = [];
+        foreach ($revenues as $account) {
+            $mv = $movements->get($account->id);
+            $bal = $mv ? ($mv->total_credit - $mv->total_debit) : 0;
+            if ($bal != 0) {
+                $revenueList[] = "- {$account->code} {$account->name}: Rp " . number_format($bal, 0, ',', '.');
+            }
+        }
+
+        $expenseList = [];
+        foreach ($expenses as $account) {
+            $mv = $movements->get($account->id);
+            $bal = $mv ? ($mv->total_debit - $mv->total_credit) : 0;
+            if ($bal != 0) {
+                $expenseList[] = "- {$account->code} {$account->name}: Rp " . number_format($bal, 0, ',', '.');
+            }
+        }
+
+        $totalRevenue = $revenues->sum(function($account) use ($movements) {
+            $mv = $movements->get($account->id);
+            return $mv ? ($mv->total_credit - $mv->total_debit) : 0;
+        });
+
+        $totalExpense = $expenses->sum(function($account) use ($movements) {
+            $mv = $movements->get($account->id);
+            return $mv ? ($mv->total_debit - $mv->total_credit) : 0;
+        });
+
+        $netIncome = $totalRevenue - $totalExpense;
+
+        // AI Configurations
+        $config = \App\Models\AiSetting::getConfig();
+        if (!$config['enabled']) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Modul Asisten AI belum diaktifkan oleh Administrator. Silakan aktifkan terlebih dahulu di menu Pengaturan AI.'
+            ], 403);
+        }
+
+        $provider = $config['provider'];
+        $url = $config['url'];
+        $model = $config['model'];
+        $apiKey = $config['apiKey'];
+
+        // Build prompt
+        $financialReportStr = "LAPORAN LABA RUGI KOPERASI\n";
+        $financialReportStr .= "Periode: " . $startDate->translatedFormat('d F Y') . " s/d " . $endDate->translatedFormat('d F Y') . "\n\n";
+        $financialReportStr .= "POST PENDAPATAN (REVENUE):\n" . (empty($revenueList) ? "- Tidak ada data pendapatan\n" : implode("\n", $revenueList)) . "\n";
+        $financialReportStr .= "TOTAL PENDAPATAN: Rp " . number_format($totalRevenue, 0, ',', '.') . "\n\n";
+        $financialReportStr .= "POST BEBAN (EXPENSES):\n" . (empty($expenseList) ? "- Tidak ada data beban\n" : implode("\n", $expenseList)) . "\n";
+        $financialReportStr .= "TOTAL BEBAN: Rp " . number_format($totalExpense, 0, ',', '.') . "\n\n";
+        $financialReportStr .= "LABA BERSIH / SHU BERJALAN: Rp " . number_format($netIncome, 0, ',', '.') . "\n";
+        
+        $systemPrompt = "Anda adalah Chief Financial Officer (CFO), auditor finansial profesional senior, dan konsultan ahli bisnis koperasi.
+Tugas Anda adalah melakukan analisa audit mendalam dan kritis atas Laporan Laba Rugi Koperasi yang diberikan.
+
+Lakukan perhitungan persentase secara presisi berdasarkan angka-angka yang diberikan.
+Berikan analisis yang sangat mendalam, profesional, dan mudah dipahami dalam Bahasa Indonesia, dengan struktur Markdown yang sangat rapi dan menarik. Respons Anda harus terbagi dalam 3 bagian utama menggunakan judul Markdown yang tepat:
+
+### 🔴 Evaluasi Kinerja (Analisis Rasio Keuangan)
+- **Ringkasan Finansial**: Sajikan sebuah tabel Markdown perbandingan metrik utama yang mencakup:
+  * Total Pendapatan
+  * Harga Pokok Penjualan (HPP)
+  * Laba Kotor (Gross Profit = Total Pendapatan - HPP)
+  * Margin Laba Kotor (Gross Profit Margin %)
+  * Total Beban Operasional (Total Beban - HPP)
+  * Laba Bersih / SHU Berjalan
+  * Margin Laba Bersih (Net Profit Margin %)
+- **Analisis Kritis & Akar Masalah**: 
+  * Jika HPP lebih besar dari Total Pendapatan (HPP > 100% dari Pendapatan), tandai ini sebagai **ANOMALI VITAL DAN SANGAT BERBAHAYA**. Jelaskan konsekuensinya secara mendalam (koperasi merugi secara langsung di setiap produk yang terjual bahkan sebelum menghitung biaya operasional).
+  * Ulas proporsi Pendapatan vs Beban secara kritis.
+  * Sorot akun pengeluaran spesifik yang paling membebani dan jelaskan rasionya terhadap pendapatan.
+  * Simpulkan status kesehatan finansial koperasi saat ini secara jujur, lugas, dan terperinci.
+
+### 🟢 Rekomendasi Aksi Operasional
+- Gunakan format Callout Box jika ada hal darurat (misalnya: `> [!CAUTION]` jika HPP melebihi Pendapatan, atau `> [!WARNING]` jika biaya operasional terlalu tinggi).
+- Berikan daftar rekomendasi taktis, konkret, dan dapat segera dilaksanakan oleh pengurus koperasi, terutama untuk:
+  1. **Kebijakan Penetapan Harga (Pricing Strategy Overhaul)**: Aturan markup harga jual minimum (misal: Cost + 10-15%) agar tidak menjual rugi.
+  2. **Audit & Manajemen Inventoris (Stocktaking & Shrinkage Control)**: Melakukan stok opname berkala untuk mendeteksi kehilangan barang atau pencatatan yang keliru.
+  3. **Negosiasi Supplier & Pengadaan Barang**: Beralih ke distributor utama atau sistem konsinyasi guna memangkas harga beli pokok.
+  4. **Efisiensi Beban Operasional**: Langkah spesifik memangkas pos biaya operasional yang tidak perlu.
+
+### 🔵 Rencana Bisnis Langkah Ke Depan
+- Berikan panduan langkah demi langkah (checklist checklist dengan format `- [ ]` atau `- [x]`) untuk menstabilkan arus kas, menghentikan kebocoran, dan membalikkan kerugian menjadi surplus SHU pada bulan berikutnya.
+- Buat target-target pencapaian realistis per minggu untuk tim manajemen.
+
+Format respons Anda HARUS menggunakan struktur tajuk Markdown di atas secara konsisten agar parser di frontend dapat merendernya dengan visual yang premium. Berikan detail yang lengkap, jangan ringkas atau terpotong.";
+
+        $message = "Berikut adalah laporan laba rugi kami untuk dianalisa:\n\n" . $financialReportStr;
+
+        try {
+            if ($provider === 'ollama') {
+                $response = \Illuminate\Support\Facades\Http::timeout(120)->post("{$url}/api/generate", [
+                    'model' => $model,
+                    'prompt' => "{$systemPrompt}\n\nUser: {$message}\nAssistant:",
+                    'stream' => false
+                ]);
+                
+                if (!$response->successful()) {
+                    throw new \Exception('Ollama tidak merespons: ' . $response->status());
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'response' => $response->json('response', 'Tidak ada respons')
+                ]);
+                
+            } elseif ($provider === 'openai') {
+                $response = \Illuminate\Support\Facades\Http::timeout(60)
+                    ->withHeaders(['Authorization' => "Bearer {$apiKey}"])
+                    ->post('https://api.openai.com/v1/chat/completions', [
+                        'model' => $model,
+                        'messages' => [
+                            ['role' => 'system', 'content' => $systemPrompt],
+                            ['role' => 'user', 'content' => $message]
+                        ]
+                    ]);
+                
+                if (!$response->successful()) {
+                    throw new \Exception('OpenAI error: ' . $response->json('error.message', 'Unknown error'));
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'response' => $response->json('choices.0.message.content', 'Tidak ada respons')
+                ]);
+                
+            } elseif ($provider === 'gemini') {
+                $response = \Illuminate\Support\Facades\Http::timeout(60)
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", [
+                        'contents' => [
+                            [
+                                'parts' => [
+                                    ['text' => "{$systemPrompt}\n\nUser: {$message}\n\nPlease respond in Indonesian."]
+                                ]
+                            ]
+                        ],
+                        'generationConfig' => [
+                            'temperature' => 0.7,
+                            'maxOutputTokens' => 8192,
+                        ]
+                    ]);
+                
+                if (!$response->successful()) {
+                    $errorMsg = $response->json('error.message', 'Unknown error');
+                    throw new \Exception('Gemini error: ' . $errorMsg);
+                }
+                
+                $text = $response->json('candidates.0.content.parts.0.text', 'Tidak ada respons');
+                
+                return response()->json([
+                    'success' => true,
+                    'response' => $text
+                ]);
+                
+            } else {
+                // Custom provider
+                $response = \Illuminate\Support\Facades\Http::timeout(60)->post("{$url}/generate", [
+                    'prompt' => "{$systemPrompt}\n\nUser: {$message}\nAssistant:"
+                ]);
+                
+                $data = $response->json();
+                return response()->json([
+                    'success' => true,
+                    'response' => $data['response'] ?? $data['text'] ?? $data['output'] ?? 'Tidak ada respons'
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Gagal terhubung dengan layanan AI: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

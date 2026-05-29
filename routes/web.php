@@ -72,8 +72,8 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
 Route::get('documents/verify/{id}', [App\Http\Controllers\PublicDocumentController::class, 'verify'])->name('documents.verify.public');
 
 Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(function () {
-    // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/expense-details', [DashboardController::class, 'getExpenseDetails'])->name('dashboard.expense-details');
 
     // API for Member Search (POS)
     Route::get('/api/members/search', [MemberController::class, 'apiSearch'])->name('api.members.search');
@@ -310,11 +310,12 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
 
     // Accounting Reports
     Route::get('journals/tutorial', [ManualJournalController::class, 'tutorial'])->name('journals.tutorial');
-    Route::resource('journals', ManualJournalController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
+    Route::resource('journals', ManualJournalController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
     Route::get('reports/accounting/ledger', [ReportController::class, 'generalLedger'])->name('reports.ledger');
     Route::get('reports/accounting/trial-balance', [ReportController::class, 'trialBalance'])->name('reports.trial-balance');
     Route::get('reports/accounting/balance-sheet', [ReportController::class, 'balanceSheet'])->name('reports.balance-sheet');
     Route::get('reports/accounting/income-statement', [ReportController::class, 'incomeStatement'])->name('reports.income-statement');
+    Route::post('reports/accounting/income-statement/analyze', [ReportController::class, 'analyzeIncomeStatement'])->name('reports.income-statement.analyze');
 
     // Report Exports
     Route::get('reports/members/export-pdf', [ReportController::class, 'exportMembersPDF'])->name('reports.members.pdf');
