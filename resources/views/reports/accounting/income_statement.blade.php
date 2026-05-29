@@ -31,20 +31,62 @@
     </div>
 
     <div class="max-w-4xl mx-auto">
-        <div class="glass-card p-6">
-            <!-- PENDAPATAN -->
-            <div class="mb-8">
-                <div class="flex justify-between items-center bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-100 dark:border-green-800 mb-4">
-                    <h2 class="text-lg font-bold text-green-800 dark:text-green-300">PENDAPATAN (REVENUE)</h2>
-                </div>
+        <div class="glass-card p-8">
+            @php
+                // Grouping revenues dynamically
+                $salesRevenueAccounts = $revenues->filter(function($acc) {
+                    return $acc->code == '4102' || str_contains(strtolower($acc->name), 'penjualan') || str_contains(strtolower($acc->name), 'jual');
+                });
+                $salesRevenue = $salesRevenueAccounts->sum('period_balance');
+
+                $otherRevenueAccounts = $revenues->filter(function($acc) use ($salesRevenueAccounts) {
+                    return !$salesRevenueAccounts->contains('id', $acc->id);
+                });
+                $otherRevenue = $otherRevenueAccounts->sum('period_balance');
+
+                // Grouping expenses dynamically
+                $hppAccounts = $expenses->filter(function($acc) {
+                    return $acc->code == '5201' || str_contains(strtolower($acc->name), 'hpp') || str_contains(strtolower($acc->name), 'harga pokok');
+                });
+                $hpp = $hppAccounts->sum('period_balance');
+
+                $nonOpExpenseAccounts = $expenses->filter(function($acc) {
+                    return str_starts_with($acc->code, '59') || str_contains(strtolower($acc->name), 'lain-lain') || str_contains(strtolower($acc->name), 'non-operasional');
+                });
+                $nonOpExpense = $nonOpExpenseAccounts->sum('period_balance');
+
+                $opExpenseAccounts = $expenses->filter(function($acc) use ($hppAccounts, $nonOpExpenseAccounts) {
+                    return !$hppAccounts->contains('id', $acc->id) && !$nonOpExpenseAccounts->contains('id', $acc->id);
+                });
+                $opExpense = $opExpenseAccounts->sum('period_balance');
+
+                // Multi-Step Calculations
+                $grossProfit = $salesRevenue - $hpp;
+                $totalGrossAndOther = $grossProfit + $otherRevenue;
+                $operatingProfit = $totalGrossAndOther - $opExpense;
                 
+                // Safety GPM Margin Calculation
+                $gpm = $salesRevenue > 0 ? ($grossProfit / $salesRevenue) * 100 : 0;
+                $opMargin = ($salesRevenue + $otherRevenue) > 0 ? ($operatingProfit / ($salesRevenue + $otherRevenue)) * 100 : 0;
+            @endphp
+
+            <!-- SECTION 1: PENDAPATAN PENJUALAN & HPP (MART) -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-800/40 px-4 py-2.5 rounded-lg border border-gray-100 dark:border-gray-700/80 mb-3">
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">I. Unit Usaha Pertokoan (Mart / Dagang)</h3>
+                </div>
+
                 <table class="w-full text-sm">
                     <tbody>
-                        @forelse($revenues as $account)
+                        <!-- Sales Revenues -->
+                        <tr class="font-semibold text-gray-800 dark:text-gray-200">
+                            <td class="py-1.5 pl-2" colspan="2">Pendapatan Penjualan Mart</td>
+                        </tr>
+                        @foreach($salesRevenueAccounts as $account)
                             @if($account->period_balance != 0)
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                    <td class="py-2 pl-2">
-                                        <span class="font-mono text-gray-500 mr-2">{{ $account->code }}</span>
+                                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 text-xs text-gray-600 dark:text-gray-400">
+                                    <td class="py-1.5 pl-6">
+                                        <span class="font-mono text-gray-400 dark:text-gray-600 mr-2">{{ $account->code }}</span>
                                         {{ $account->name }}
                                     </td>
                                     <td class="text-right pr-2 font-mono text-gray-700 dark:text-gray-300">
@@ -52,65 +94,192 @@
                                     </td>
                                 </tr>
                             @endif
-                        @empty
-                            <tr><td colspan="2" class="text-center italic text-gray-400">Tidak ada data pendapatan</td></tr>
-                        @endforelse
-                    </tbody>
-                    <tfoot class="border-t-2 border-green-200 dark:border-green-800">
-                        <tr>
-                            <td class="py-3 pl-2 font-bold text-lg">TOTAL PENDAPATAN</td>
-                            <td class="text-right pr-2 py-3 font-bold text-lg font-mono text-green-600">
-                                Rp {{ number_format($totalRevenue, 0, ',', '.') }}
+                        @endforeach
+                        <tr class="border-t border-dashed border-gray-200 dark:border-gray-700 text-xs font-semibold">
+                            <td class="py-2 pl-6 text-gray-500">Total Pendapatan Penjualan Mart</td>
+                            <td class="text-right pr-2 py-2 font-mono text-gray-700 dark:text-gray-350">
+                                Rp {{ number_format($salesRevenue, 0, ',', '.') }}
                             </td>
                         </tr>
-                    </tfoot>
-                </table>
-            </div>
 
-            <!-- BEBAN -->
-            <div class="mb-8">
-                <div class="flex justify-between items-center bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-100 dark:border-red-800 mb-4">
-                    <h2 class="text-lg font-bold text-red-800 dark:text-red-300">BEBAN (EXPENSES)</h2>
-                </div>
-                
-                <table class="w-full text-sm">
-                    <tbody>
-                        @forelse($expenses as $account)
+                        <!-- Cost of Goods Sold (HPP) -->
+                        <tr class="font-semibold text-gray-850 dark:text-gray-200 mt-2">
+                            <td class="py-1.5 pl-2 pt-4" colspan="2">Harga Pokok Penjualan (HPP)</td>
+                        </tr>
+                        @foreach($hppAccounts as $account)
                             @if($account->period_balance != 0)
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                    <td class="py-2 pl-2">
-                                        <span class="font-mono text-gray-500 mr-2">{{ $account->code }}</span>
+                                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 text-xs text-gray-600 dark:text-gray-400">
+                                    <td class="py-1.5 pl-6">
+                                        <span class="font-mono text-gray-400 dark:text-gray-600 mr-2">{{ $account->code }}</span>
                                         {{ $account->name }}
                                     </td>
-                                    <td class="text-right pr-2 font-mono text-gray-700 dark:text-gray-300">
-                                        Rp {{ number_format($account->period_balance, 0, ',', '.') }}
+                                    <td class="text-right pr-2 font-mono text-red-600 dark:text-red-400">
+                                        (Rp {{ number_format($account->period_balance, 0, ',', '.') }})
                                     </td>
                                 </tr>
                             @endif
-                        @empty
-                            <tr><td colspan="2" class="text-center italic text-gray-400">Tidak ada data beban</td></tr>
-                        @endforelse
-                    </tbody>
-                    <tfoot class="border-t-2 border-red-200 dark:border-red-800">
-                        <tr>
-                            <td class="py-3 pl-2 font-bold text-lg">TOTAL BEBAN</td>
-                            <td class="text-right pr-2 py-3 font-bold text-lg font-mono text-red-600">
-                                Rp {{ number_format($totalExpense, 0, ',', '.') }}
+                        @endforeach
+                        <tr class="border-t border-dashed border-gray-200 dark:border-gray-700 text-xs font-semibold">
+                            <td class="py-2 pl-6 text-gray-500">Total Harga Pokok Penjualan</td>
+                            <td class="text-right pr-2 py-2 font-mono text-red-600 dark:text-red-450">
+                                (Rp {{ number_format($hpp, 0, ',', '.') }})
                             </td>
                         </tr>
-                    </tfoot>
+                    </tbody>
                 </table>
-            </div>
 
-            <!-- NET INCOME -->
-            <div class="border-t-4 border-double border-gray-300 dark:border-gray-600 pt-6">
-                <div class="flex justify-between items-center bg-gray-100 dark:bg-gray-800/50 p-6 rounded-xl">
+                <!-- GROSS PROFIT CARD -->
+                <div class="mt-4 p-4 rounded-xl bg-gradient-to-r from-emerald-500/5 to-teal-500/5 dark:from-emerald-500/10 dark:to-teal-500/10 border border-emerald-500/10 dark:border-emerald-500/20 flex justify-between items-center">
                     <div>
-                        <h2 class="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-wider">Laba Bersih / SHU</h2>
-                        <p class="text-gray-500 text-sm mt-1">Total Pendapatan - Total Beban</p>
+                        <span class="text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">Laba Kotor Penjualan (Gross Profit)</span>
+                        <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Pendapatan Penjualan Mart - HPP</div>
                     </div>
-                    <div class="text-right">
-                        <span class="block text-3xl font-black font-mono {{ $netIncome >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400' }}">
+                    <div class="text-right flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-350">
+                            GPM: {{ number_format($gpm, 2) }}%
+                        </span>
+                        <span class="font-mono text-base font-extrabold text-emerald-700 dark:text-emerald-400">
+                            Rp {{ number_format($grossProfit, 0, ',', '.') }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: PENDAPATAN JASA & OPERASIONAL LAIN -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-800/40 px-4 py-2.5 rounded-lg border border-gray-100 dark:border-gray-700/80 mb-3">
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">II. Pendapatan Jasa & Lainnya</h3>
+                </div>
+
+                <table class="w-full text-sm">
+                    <tbody>
+                        @forelse($otherRevenueAccounts as $account)
+                            @if($account->period_balance != 0)
+                                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 text-xs">
+                                    <td class="py-2 pl-2 text-gray-700 dark:text-gray-300">
+                                        <span class="font-mono text-gray-400 dark:text-gray-600 mr-2">{{ $account->code }}</span>
+                                        {{ $account->name }}
+                                    </td>
+                                    <td class="text-right pr-2 font-mono text-gray-700 dark:text-gray-300 font-semibold">
+                                        Rp {{ number_format($account->period_balance, 0, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @endif
+                        @empty
+                            <tr><td colspan="2" class="text-center italic text-xs text-gray-400 py-3">Tidak ada pendapatan jasa tambahan</td></tr>
+                        @endforelse
+                    </tbody>
+                    <tfoot class="border-t border-gray-250/70 dark:border-gray-700">
+                        <tr class="font-bold text-xs">
+                            <td class="py-3 pl-2 text-gray-800 dark:text-gray-200">TOTAL LABA KOTOR + PENDAPATAN JASA</td>
+                            <td class="text-right pr-2 py-3 font-mono text-gray-850 dark:text-gray-200">
+                                Rp {{ number_format($totalGrossAndOther, 0, ',', '.') }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- SECTION 3: BEBAN OPERASIONAL -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-800/40 px-4 py-2.5 rounded-lg border border-gray-100 dark:border-gray-700/80 mb-3">
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">III. Beban Operasional</h3>
+                </div>
+
+                <table class="w-full text-sm">
+                    <tbody>
+                        @forelse($opExpenseAccounts as $account)
+                            @if($account->period_balance != 0)
+                                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 text-xs text-gray-600 dark:text-gray-400">
+                                    <td class="py-2 pl-2">
+                                        <span class="font-mono text-gray-400 dark:text-gray-600 mr-2">{{ $account->code }}</span>
+                                        {{ $account->name }}
+                                    </td>
+                                    <td class="text-right pr-2 font-mono text-gray-700 dark:text-gray-300">
+                                        Rp {{ number_format($account->period_balance, 0, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @endif
+                        @empty
+                            <tr><td colspan="2" class="text-center italic text-xs text-gray-400 py-3">Tidak ada beban operasional</td></tr>
+                        @endforelse
+                    </tbody>
+                    <tfoot class="border-t border-gray-250/70 dark:border-gray-700">
+                        <tr class="text-xs font-semibold">
+                            <td class="py-2.5 pl-2 text-gray-500">Total Beban Operasional</td>
+                            <td class="text-right pr-2 py-2.5 font-mono text-gray-700 dark:text-gray-300">
+                                Rp {{ number_format($opExpense, 0, ',', '.') }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <!-- OPERATING INCOME CARD -->
+                <div class="mt-4 p-4 rounded-xl bg-gradient-to-r from-blue-500/5 to-indigo-500/5 dark:from-blue-500/10 dark:to-indigo-500/10 border border-blue-500/10 dark:border-blue-500/20 flex justify-between items-center">
+                    <div>
+                        <span class="text-xs font-bold text-blue-800 dark:text-blue-400 uppercase tracking-wider">Laba Operasional (Operating Income)</span>
+                        <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Laba Kotor & Jasa - Beban Operasional</div>
+                    </div>
+                    <div class="text-right flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-350">
+                            Op Margin: {{ number_format($opMargin, 2) }}%
+                        </span>
+                        <span class="font-mono text-base font-extrabold text-blue-700 dark:text-blue-400">
+                            Rp {{ number_format($operatingProfit, 0, ',', '.') }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: BEBAN NON-OPERASIONAL -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-800/40 px-4 py-2.5 rounded-lg border border-gray-100 dark:border-gray-700/80 mb-3">
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">IV. Beban Non-Operasional (Lain-lain)</h3>
+                </div>
+
+                <table class="w-full text-sm">
+                    <tbody>
+                        @forelse($nonOpExpenseAccounts as $account)
+                            @if($account->period_balance != 0)
+                                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 text-xs text-gray-600 dark:text-gray-400">
+                                    <td class="py-2 pl-2">
+                                        <span class="font-mono text-gray-400 dark:text-gray-600 mr-2">{{ $account->code }}</span>
+                                        {{ $account->name }}
+                                    </td>
+                                    <td class="text-right pr-2 font-mono text-gray-700 dark:text-gray-300">
+                                        Rp {{ number_format($account->period_balance, 0, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @endif
+                        @empty
+                            <tr><td colspan="2" class="text-center italic text-xs text-gray-400 py-3">Tidak ada beban non-operasional</td></tr>
+                        @endforelse
+                    </tbody>
+                    <tfoot class="border-t border-gray-250/70 dark:border-gray-700">
+                        <tr class="text-xs font-semibold">
+                            <td class="py-2.5 pl-2 text-gray-500">Total Beban Non-Operasional</td>
+                            <td class="text-right pr-2 py-2.5 font-mono text-gray-700 dark:text-gray-300">
+                                Rp {{ number_format($nonOpExpense, 0, ',', '.') }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- SECTION 5: GRAND TOTAL (LABA BERSIH AKHIR / SHU) -->
+            <div class="border-t-2 border-double border-gray-300 dark:border-gray-700 pt-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-6 rounded-2xl shadow-md border border-indigo-900/50 relative overflow-hidden">
+                    <!-- Subtle Glow effect -->
+                    <div class="absolute -right-10 -bottom-10 w-24 h-24 bg-indigo-500/10 blur-2xl rounded-full"></div>
+                    
+                    <div class="relative z-10">
+                        <h2 class="text-xl font-black uppercase tracking-wider flex items-center gap-1.5">
+                            <span>✨</span> LABA BERSIH AKHIR (SHU BERJALAN)
+                        </h2>
+                        <p class="text-indigo-200/70 text-xs mt-1">Laba Operasional - Beban Non-Operasional</p>
+                    </div>
+                    <div class="text-right relative z-10 mt-3 sm:mt-0">
+                        <span class="block text-3xl font-black font-mono tracking-tight {{ $netIncome >= 0 ? 'text-amber-400' : 'text-red-400' }}">
                             Rp {{ number_format($netIncome, 0, ',', '.') }}
                         </span>
                     </div>
