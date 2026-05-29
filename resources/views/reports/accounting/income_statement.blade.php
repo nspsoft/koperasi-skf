@@ -268,18 +268,19 @@
 
             <!-- SECTION 5: GRAND TOTAL (LABA BERSIH AKHIR / SHU) -->
             <div class="border-t-2 border-double border-gray-300 dark:border-gray-700 pt-6">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-br from-slate-900 to-indigo-950 text-white p-6 rounded-2xl shadow-md border border-indigo-900/50 relative overflow-hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-6 rounded-2xl shadow-md border relative overflow-hidden"
+                     style="background: linear-gradient(135deg, #0f172a, #1e1b4b) !important; color: white !important; border-color: #1e1b4b !important;">
                     <!-- Subtle Glow effect -->
                     <div class="absolute -right-10 -bottom-10 w-24 h-24 bg-indigo-500/10 blur-2xl rounded-full"></div>
                     
                     <div class="relative z-10">
-                        <h2 class="text-xl font-black uppercase tracking-wider flex items-center gap-1.5">
+                        <h2 class="text-xl font-black uppercase tracking-wider flex items-center gap-1.5" style="color: white !important;">
                             <span>✨</span> LABA BERSIH AKHIR (SHU BERJALAN)
                         </h2>
-                        <p class="text-indigo-200/70 text-xs mt-1">Laba Operasional - Beban Non-Operasional</p>
+                        <p class="text-xs mt-1" style="color: rgba(255, 255, 255, 0.7) !important;">Laba Operasional - Beban Non-Operasional</p>
                     </div>
                     <div class="text-right relative z-10 mt-3 sm:mt-0">
-                        <span class="block text-3xl font-black font-mono tracking-tight {{ $netIncome >= 0 ? 'text-amber-400' : 'text-red-400' }}">
+                        <span class="block text-3xl font-black font-mono tracking-tight" style="color: {{ $netIncome >= 0 ? '#f59e0b' : '#ef4444' }} !important;">
                             Rp {{ number_format($netIncome, 0, ',', '.') }}
                         </span>
                     </div>
