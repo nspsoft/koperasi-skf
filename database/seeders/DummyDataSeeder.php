@@ -108,8 +108,8 @@ class DummyDataSeeder extends Seeder
                 'department' => $deptNames[array_rand($deptNames)],
                 'position' => $posNames[array_rand($posNames)],
                 'gender' => $i % 3 == 0 ? 'female' : 'male',
-                'join_date' => Carbon::now()->subMonths(rand(1, 24)),
-                'birth_date' => Carbon::now()->subYears(rand(25, 50)),
+                'join_date' => Carbon::now()->subYear()->subMonths(rand(1, 24)),
+                'birth_date' => Carbon::now()->subYear()->subYears(rand(25, 50)),
                 'id_card_number' => '3215'.rand(100000000000, 999999999999),
                 'address' => 'Jl. Contoh No. '.rand(1, 100).', Karawang',
                 'status' => 'active',
@@ -140,7 +140,7 @@ class DummyDataSeeder extends Seeder
                 'type' => $type,
                 'transaction_type' => $transType,
                 'amount' => $amount,
-                'transaction_date' => Carbon::now()->subDays(rand(1, 180)),
+                'transaction_date' => Carbon::now()->subYear()->subDays(rand(1, 180)),
                 'reference_number' => 'SAV'.time().rand(1000, 9999),
                 'description' => ($transType === 'deposit' ? 'Setoran ' : 'Penarikan ').ucfirst($type),
             ]);
@@ -174,7 +174,7 @@ class DummyDataSeeder extends Seeder
                 $monthlyInterest = $installment - $monthlyPrincipal;
                 $totalAmount = $installment * $duration;
 
-                $appDate = Carbon::now()->subDays(rand(10, 200));
+                $appDate = Carbon::now()->subYear()->subDays(rand(10, 200));
 
                 $loan = Loan::create([
                     'member_id' => $member->id,
@@ -292,7 +292,7 @@ class DummyDataSeeder extends Seeder
                     $member = $members[array_rand($members)];
                     $status = $onlineStatuses[array_rand($onlineStatuses)];
                     $paymentMethod = ['transfer', 'kredit', 'saldo'][rand(0, 2)];
-                    $orderDate = Carbon::now()->subDays(rand(1, 60));
+                    $orderDate = Carbon::now()->subYear()->subDays(rand(1, 60));
 
                     $transaction = Transaction::create([
                         'invoice_number' => 'ONL-' . $orderDate->format('Ymd') . '-' . strtoupper(Str::random(4)),
@@ -350,7 +350,7 @@ class DummyDataSeeder extends Seeder
                 try {
                     $expense = Expense::create([
                         'expense_category_id' => $expenseCategories->random()->id,
-                        'expense_date' => Carbon::now()->subDays(rand(1, 150)),
+                        'expense_date' => Carbon::now()->subYear()->subDays(rand(1, 150)),
                         'amount' => rand(50, 1000) * 1000,
                         'description' => 'Biaya operasional kantor dummy #'.($i + 1),
                         'created_by' => 1,
@@ -373,10 +373,10 @@ class DummyDataSeeder extends Seeder
                     $purchase = Purchase::create([
                         'supplier_id' => $suppliers->random()->id,
                         'reference_number' => 'PUR-'.date('Ymd').'-'.strtoupper(Str::random(4)),
-                        'purchase_date' => Carbon::now()->subDays(rand(1, 150)),
+                        'purchase_date' => Carbon::now()->subYear()->subDays(rand(1, 150)),
                         'total_amount' => 0,
                         'status' => 'completed',
-                        'completed_at' => Carbon::now()->subDays(rand(1, 150)),
+                        'completed_at' => Carbon::now()->subYear()->subDays(rand(1, 150)),
                         'created_by' => 1,
                     ]);
 
@@ -432,8 +432,8 @@ class DummyDataSeeder extends Seeder
                     'min_purchase' => $v['min_purchase'],
                     'usage_limit' => $v['usage_limit'],
                     'used_count' => rand(0, min(10, $v['usage_limit'] ?? 10)),
-                    'start_date' => Carbon::now()->subDays(rand(0, 30)),
-                    'end_date' => Carbon::now()->addDays($v['days_valid']),
+                    'start_date' => Carbon::now()->subYear()->subDays(rand(0, 30)),
+                    'end_date' => Carbon::now()->subYear()->addDays($v['days_valid']),
                     'is_active' => true,
                 ]);
             } catch (\Exception $e) {
