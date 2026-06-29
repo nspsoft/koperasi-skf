@@ -21,7 +21,7 @@ jobs:
           coverage: none
 
       - name: Install Composer Dependencies
-        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist --optimize-autoloader --no-dev
+        run: composer update -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist --optimize-autoloader --no-dev
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
