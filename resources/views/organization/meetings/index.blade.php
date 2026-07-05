@@ -73,7 +73,7 @@
         </div>
         <div class="divide-y divide-gray-200 dark:divide-gray-700">
             @forelse($meetings as $meeting)
-            <div class="p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex flex-col md:flex-row gap-6 relative group" x-data="{ showEditModal: false }">
+            <div class="p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors flex flex-col md:flex-row gap-6 relative group" x-data="{ showEditModal: false, showDetailModal: false }">
                 <!-- Date Box -->
                 <div class="flex-shrink-0 flex flex-col items-center justify-center w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600 text-center">
                     <span class="text-xs font-bold text-red-500 uppercase tracking-widest">{{ $meeting->scheduled_at->format('M') }}</span>
@@ -97,7 +97,10 @@
                             
                             <!-- Actions -->
                             <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button @click="showEditModal = true" class="text-blue-500 hover:text-blue-700">
+                                <button @click="showDetailModal = true" class="text-green-500 hover:text-green-700" title="Lihat Detail & Notulen">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                </button>
+                                <button @click="showEditModal = true" class="text-blue-500 hover:text-blue-700" title="Edit Rapat">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-5M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                                 </button>
                                 <form action="{{ route('organization.meetings.destroy', $meeting) }}" method="POST" onsubmit="return confirm('Hapus riwayat rapat ini?')">
@@ -130,56 +133,96 @@
                     @endif
 
                     <!-- Edit Modal -->
-                    <div x-show="showEditModal" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
-                        <div class="flex items-center justify-center min-h-screen px-4">
-                            <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showEditModal = false"></div>
-                            <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full p-6 text-left border border-gray-100 dark:border-gray-700">
-                                <h3 class="text-lg font-bold mb-4">Edit Rapat</h3>
-                                <form action="{{ route('organization.meetings.update', $meeting) }}" method="POST" class="space-y-4">
-                                    @csrf
-                                    @method('PUT')
-                                    <div class="form-group">
-                                        <label class="form-label">Judul Rapat</label>
-                                        <input type="text" name="title" class="form-input" value="{{ $meeting->title }}" required>
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-4">
+                    <template x-teleport="body">
+                        <div x-show="showEditModal" class="fixed inset-0 z-[100] overflow-y-auto" x-cloak>
+                            <div class="flex items-center justify-center min-h-screen px-4 py-8">
+                                <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showEditModal = false"></div>
+                                <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-2xl w-full p-6 text-left border border-gray-100 dark:border-gray-700">
+                                    <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white">Edit Rapat</h3>
+                                    <form action="{{ route('organization.meetings.update', $meeting) }}" method="POST" class="space-y-4">
+                                        @csrf
+                                        @method('PUT')
                                         <div class="form-group">
-                                            <label class="form-label">Tipe</label>
-                                            <select name="type" class="form-select">
-                                                <option value="Rapat Pengurus Harian" {{ $meeting->type == 'Rapat Pengurus Harian' ? 'selected' : '' }}>Rapat Pengurus Harian</option>
-                                                <option value="Rapat Pleno" {{ $meeting->type == 'Rapat Pleno' ? 'selected' : '' }}>Rapat Pleno</option>
-                                                <option value="RAT" {{ $meeting->type == 'RAT' ? 'selected' : '' }}>RAT</option>
-                                            </select>
+                                            <label class="form-label">Judul Rapat</label>
+                                            <input type="text" name="title" class="form-input" value="{{ $meeting->title }}" required>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div class="form-group">
+                                                <label class="form-label">Tipe</label>
+                                                <select name="type" class="form-select">
+                                                    <option value="Rapat Pengurus Harian" {{ $meeting->type == 'Rapat Pengurus Harian' ? 'selected' : '' }}>Rapat Pengurus Harian</option>
+                                                    <option value="Rapat Pleno" {{ $meeting->type == 'Rapat Pleno' ? 'selected' : '' }}>Rapat Pleno</option>
+                                                    <option value="RAT" {{ $meeting->type == 'RAT' ? 'selected' : '' }}>RAT</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label">Status</label>
+                                                <select name="status" class="form-select">
+                                                    <option value="scheduled" {{ $meeting->status == 'scheduled' ? 'selected' : '' }}>Terjadwal</option>
+                                                    <option value="completed" {{ $meeting->status == 'completed' ? 'selected' : '' }}>Selesai</option>
+                                                    <option value="cancelled" {{ $meeting->status == 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
+                                                </select>
+                                            </div>
                                         </div>
                                         <div class="form-group">
-                                            <label class="form-label">Status</label>
-                                            <select name="status" class="form-select">
-                                                <option value="scheduled" {{ $meeting->status == 'scheduled' ? 'selected' : '' }}>Terjadwal</option>
-                                                <option value="completed" {{ $meeting->status == 'completed' ? 'selected' : '' }}>Selesai</option>
-                                                <option value="cancelled" {{ $meeting->status == 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
-                                            </select>
+                                            <label class="form-label">Waktu</label>
+                                            <input type="datetime-local" name="scheduled_at" class="form-input" value="{{ $meeting->scheduled_at->format('Y-m-d\TH:i') }}" required>
                                         </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Waktu</label>
-                                        <input type="datetime-local" name="scheduled_at" class="form-input" value="{{ $meeting->scheduled_at->format('Y-m-d\TH:i') }}" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Lokasi</label>
-                                        <input type="text" name="location" class="form-input" value="{{ $meeting->location }}">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Notulen / Agenda</label>
-                                        <textarea name="agenda" class="form-input" rows="4">{{ $meeting->agenda }}</textarea>
-                                    </div>
-                                    <div class="flex justify-end gap-2 pt-4">
-                                        <button type="button" @click="showEditModal = false" class="px-4 py-2 text-gray-500">Batal</button>
-                                        <button type="submit" class="btn-primary">Update Rapat</button>
-                                    </div>
-                                </form>
+                                        <div class="form-group">
+                                            <label class="form-label">Lokasi</label>
+                                            <input type="text" name="location" class="form-input" value="{{ $meeting->location }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Agenda</label>
+                                            <textarea name="agenda" class="form-input" rows="3">{{ $meeting->agenda }}</textarea>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Hasil Keputusan (Notulen)</label>
+                                            <textarea name="notes" class="form-input" rows="4" placeholder="Tuliskan hasil rapat atau notulensi di sini...">{{ $meeting->notes }}</textarea>
+                                        </div>
+                                        <div class="flex justify-end gap-2 pt-4">
+                                            <button type="button" @click="showEditModal = false" class="px-4 py-2 text-gray-500">Batal</button>
+                                            <button type="submit" class="btn-primary">Update Rapat</button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </template>
+
+                    <!-- Detail Modal -->
+                    <template x-teleport="body">
+                        <div x-show="showDetailModal" class="fixed inset-0 z-[100] overflow-y-auto" x-cloak>
+                            <div class="flex items-center justify-center min-h-screen px-4 py-8">
+                                <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @click="showDetailModal = false"></div>
+                                <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-2xl w-full p-6 text-left border border-gray-100 dark:border-gray-700">
+                                    <div class="flex justify-between items-center mb-4 border-b pb-4 dark:border-gray-700">
+                                        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Detail & Notulen Rapat</h3>
+                                        <button @click="showDetailModal = false" class="text-gray-500 hover:text-gray-700">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        </button>
+                                    </div>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <h4 class="font-bold text-lg text-gray-800 dark:text-white">{{ $meeting->title }}</h4>
+                                            <p class="text-sm text-gray-500">{{ $meeting->scheduled_at->format('l, d F Y H:i') }} WIB | {{ $meeting->location ?? 'Online' }}</p>
+                                        </div>
+                                        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                                            <h5 class="font-bold text-blue-800 dark:text-blue-300 mb-2">Agenda Utama:</h5>
+                                            <p class="text-sm text-gray-700 dark:text-gray-300">{{ $meeting->agenda ?? '-' }}</p>
+                                        </div>
+                                        <div class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                                            <h5 class="font-bold text-gray-800 dark:text-gray-200 mb-2">Hasil Keputusan (Notulen):</h5>
+                                            <div class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ $meeting->notes ?? 'Belum ada notulen/hasil keputusan untuk rapat ini.' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-end pt-4 mt-4 border-t dark:border-gray-700">
+                                        <button type="button" @click="showDetailModal = false" class="btn-primary">Tutup</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
             @empty

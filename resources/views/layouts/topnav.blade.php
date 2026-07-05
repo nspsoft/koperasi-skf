@@ -1,5 +1,5 @@
 <!-- Top Navigation -->
-<header class="sticky top-0 z-30 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700">
+<header class="sticky top-0 z-[60] bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-700">
     <div class="flex items-center justify-between h-16 px-4 lg:px-8">
         <!-- Left Side -->
         <div class="flex items-center gap-4">
@@ -224,7 +224,7 @@
                      x-transition:leave="transition ease-in duration-150"
                      x-transition:leave-start="opacity-100 scale-100"
                      x-transition:leave-end="opacity-0 scale-95"
-                     class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                     class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
                     <div class="p-3 border-b border-gray-200 dark:border-gray-700">
                         <p class="font-medium text-gray-900 dark:text-white">{{ auth()->user()->name }}</p>
                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ auth()->user()->email }}</p>
