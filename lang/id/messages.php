@@ -161,7 +161,7 @@ return [
         'title' => 'Daftar Anggota',
         'subtitle' => 'Kelola data anggota koperasi',
         'add_member' => 'Tambah Anggota',
-        'search_placeholder' => 'Nama, Email, NIK...',
+        'search_placeholder' => 'Nama, Email, NIK, ID Amigo...',
         'all_status' => 'Semua Status',
         'all_department' => 'Semua Departemen',
         'member_id' => 'ID Anggota',

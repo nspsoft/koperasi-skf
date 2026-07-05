@@ -140,6 +140,7 @@
                         <th>NIK Karyawan</th>
                         <th>Departemen</th>
                         <th>Tgl Bergabung</th>
+                        <th>Poin Belanja</th>
                         <th>Status</th>
                         <th class="text-center">Aksi</th>
                     </tr>
@@ -154,8 +155,16 @@
                                    @click="toggle({{ $member->id }})"
                                    :checked="selected.includes({{ $member->id }})">
                         </td>
-                        <td class="font-semibold text-primary-600 dark:text-primary-400">
-                            {{ $member->member_id }}
+                        <td>
+                            <div class="font-semibold text-primary-600 dark:text-primary-400">
+                                {{ $member->member_id }}
+                            </div>
+                            @if($member->id_amigo)
+                            <div class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800" title="ID Amigo">
+                                <span class="text-purple-500 dark:text-purple-400">Amigo:</span>
+                                <span class="font-mono font-bold">{{ $member->id_amigo }}</span>
+                            </div>
+                            @endif
                         </td>
                         <td>
                             <div class="flex items-center gap-3">
@@ -182,6 +191,17 @@
                         </td>
                         <td>
                             <span class="text-gray-600 dark:text-gray-300">{{ $member->join_date->format('d/m/Y') }}</span>
+                        </td>
+                        <td>
+                            <div class="flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400">
+                                <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                                </svg>
+                                <span>{{ number_format($member->points ?? 0, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                ≈ Rp {{ number_format($member->points_value ?? 0, 0, ',', '.') }}
+                            </div>
                         </td>
                         <td>
                             @if($member->status === 'active')
@@ -239,7 +259,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="text-center py-12">
+                        <td colspan="9" class="text-center py-12">
                             <div class="empty-state">
                                 <svg class="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>

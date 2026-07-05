@@ -25,6 +25,7 @@ class MemberController extends Controller
             ->when($request->search, function ($q) use ($request) {
                 $q->where('member_id', 'like', '%'.$request->search.'%')
                     ->orWhere('employee_id', 'like', '%'.$request->search.'%')
+                    ->orWhere('id_amigo', 'like', '%'.$request->search.'%')
                     ->orWhereHas('user', function ($userQuery) use ($request) {
                         $userQuery->where('name', 'like', '%'.$request->search.'%')
                             ->orWhere('email', 'like', '%'.$request->search.'%');
@@ -61,6 +62,7 @@ class MemberController extends Controller
             ->when($request->search, function ($q) use ($request) {
                 $q->where('member_id', 'like', '%'.$request->search.'%')
                     ->orWhere('employee_id', 'like', '%'.$request->search.'%')
+                    ->orWhere('id_amigo', 'like', '%'.$request->search.'%')
                     ->orWhereHas('user', function ($userQuery) use ($request) {
                         $userQuery->where('name', 'like', '%'.$request->search.'%')
                             ->orWhere('email', 'like', '%'.$request->search.'%');

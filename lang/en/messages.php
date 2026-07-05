@@ -164,7 +164,7 @@ return [
         'title' => 'Member List',
         'subtitle' => 'Manage cooperative member data',
         'add_member' => 'Add Member',
-        'search_placeholder' => 'Name, Email, NIK...',
+        'search_placeholder' => 'Name, Email, NIK, Amigo ID...',
         'all_status' => 'All Status',
         'all_department' => 'All Departments',
         'member_id' => 'Member ID',
