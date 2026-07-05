@@ -87,49 +87,103 @@
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <!-- Revenue Card -->
-        <div class="glass-glow-card p-5 group">
-            <div class="flex items-center justify-between mb-4">
-                <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <div class="glass-glow-card p-5 group flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <!-- Trend Badge -->
+                    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold {{ $salesTrend >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/40' }}">
+                        <span>{!! $salesTrend >= 0 ? '↑' : '↓' !!} {{ abs(round($salesTrend, 1)) }}%</span>
+                    </div>
                 </div>
-                <!-- Trend Badge -->
-                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold {{ $salesTrend >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/40' }}">
-                    <span>{!! $salesTrend >= 0 ? '↑' : '↓' !!} {{ abs(round($salesTrend, 1)) }}%</span>
+                <div class="flex items-end justify-between mb-2">
+                    <div>
+                        <p class="text-xs font-medium text-gray-500 mb-1">{{ __('messages.titles.sales_today') }}</p>
+                        <p class="text-xl lg:text-2xl font-black text-gray-900 dark:text-white leading-none">Rp {{ number_format($todaySales, 0, ',', '.') }}</p>
+                    </div>
+                    <div class="w-24 h-12 -mb-2 -mr-2">
+                        <div id="salesSparkline"></div>
+                    </div>
                 </div>
             </div>
-            <div class="flex items-end justify-between">
-                <div>
-                    <p class="text-xs font-medium text-gray-500 mb-1">{{ __('messages.titles.sales_today') }}</p>
-                    <p class="text-xl lg:text-2xl font-black text-gray-900 dark:text-white leading-none">Rp {{ number_format($todaySales, 0, ',', '.') }}</p>
-                </div>
-                <div class="w-24 h-12 -mb-2 -mr-2">
-                    <div id="salesSparkline"></div>
+            <!-- Breakdown Per Metode -->
+            <div class="pt-3 mt-2 border-t border-gray-100 dark:border-gray-700/60">
+                <div class="flex flex-wrap gap-1.5 text-[11px]">
+                    @php
+                        $methodLabels = [
+                            'cash' => 'Tunai',
+                            'kredit' => 'Kredit',
+                            'transfer' => 'Transfer',
+                            'poin' => 'Poin',
+                            'saldo' => 'Saldo',
+                            'cash_pickup' => 'Ambil di Toko',
+                            'qris' => 'QRIS'
+                        ];
+                    @endphp
+                    @if(isset($todaySalesByMethod) && count($todaySalesByMethod) > 0)
+                        @foreach($todaySalesByMethod as $method => $amount)
+                            <div class="bg-gray-50/80 dark:bg-gray-800/80 px-2 py-0.5 rounded-md border border-gray-200/60 dark:border-gray-700 flex items-center gap-1 shadow-2xs">
+                                <span class="text-gray-500 dark:text-gray-400 font-medium">{{ $methodLabels[$method] ?? ucfirst(str_replace('_', ' ', $method)) }}:</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-200">Rp {{ number_format($amount, 0, ',', '.') }}</span>
+                            </div>
+                        @endforeach
+                    @else
+                        <span class="text-[11px] text-gray-400 dark:text-gray-500 italic">Belum ada transaksi hari ini</span>
+                    @endif
                 </div>
             </div>
         </div>
 
         <!-- Transactions Card -->
-        <div class="glass-glow-card p-5 group">
-            <div class="flex items-center justify-between mb-4">
-                <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+        <div class="glass-glow-card p-5 group flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                    </div>
+                    <!-- Trend Badge -->
+                    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold {{ $trxTrend >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/40' }}">
+                        <span>{!! $trxTrend >= 0 ? '↑' : '↓' !!} {{ abs(round($trxTrend, 1)) }}%</span>
+                    </div>
                 </div>
-                <!-- Trend Badge -->
-                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold {{ $trxTrend >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/40' }}">
-                    <span>{!! $trxTrend >= 0 ? '↑' : '↓' !!} {{ abs(round($trxTrend, 1)) }}%</span>
+                <div class="flex items-end justify-between mb-2">
+                    <div>
+                        <p class="text-xs font-medium text-gray-500 mb-1">{{ __('messages.titles.trx_today') }}</p>
+                        <p class="text-xl lg:text-2xl font-black text-gray-900 dark:text-white leading-none">{{ $todayCount }} <span class="text-sm font-bold text-gray-400">Trx</span></p>
+                    </div>
+                    <div class="w-24 h-12 -mb-2 -mr-2">
+                        <div id="trxSparkline"></div>
+                    </div>
                 </div>
             </div>
-            <div class="flex items-end justify-between">
-                <div>
-                    <p class="text-xs font-medium text-gray-500 mb-1">{{ __('messages.titles.trx_today') }}</p>
-                    <p class="text-xl lg:text-2xl font-black text-gray-900 dark:text-white leading-none">{{ $todayCount }} <span class="text-sm font-bold text-gray-400">Trx</span></p>
-                </div>
-                <div class="w-24 h-12 -mb-2 -mr-2">
-                    <div id="trxSparkline"></div>
+            <!-- Breakdown Per Tipe Transaksi -->
+            <div class="pt-3 mt-2 border-t border-gray-100 dark:border-gray-700/60">
+                <div class="flex flex-wrap gap-1.5 text-[11px]">
+                    @php
+                        $typeLabels = [
+                            'offline' => 'POS (Offline)',
+                            'online' => 'Online',
+                            'sukarela' => 'Sukarela',
+                            'loyalty' => 'Loyalty',
+                            'reward' => 'Reward'
+                        ];
+                    @endphp
+                    @if(isset($todayCountByType) && count($todayCountByType) > 0)
+                        @foreach($todayCountByType as $type => $count)
+                            <div class="bg-gray-50/80 dark:bg-gray-800/80 px-2 py-0.5 rounded-md border border-gray-200/60 dark:border-gray-700 flex items-center gap-1 shadow-2xs">
+                                <span class="text-gray-500 dark:text-gray-400 font-medium">{{ $typeLabels[$type] ?? ucfirst(str_replace('_', ' ', $type)) }}:</span>
+                                <span class="font-bold text-gray-800 dark:text-gray-200">{{ $count }} Trx</span>
+                            </div>
+                        @endforeach
+                    @else
+                        <span class="text-[11px] text-gray-400 dark:text-gray-500 italic">Belum ada transaksi hari ini</span>
+                    @endif
                 </div>
             </div>
         </div>
-        <div class="glass-glow-card p-6">
+        <div class="glass-glow-card p-6 flex flex-col justify-center">
             <form action="" method="GET" class="flex flex-wrap gap-2">
                 <div class="flex-1 flex gap-2">
                     <input type="date" name="start_date" value="{{ request('start_date') }}" class="form-input flex-1" title="Tanggal Mulai">

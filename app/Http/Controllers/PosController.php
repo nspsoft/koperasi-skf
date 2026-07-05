@@ -227,6 +227,18 @@ class PosController extends Controller
         $todaySales = Transaction::whereDate('created_at', now())->whereNot('status', 'cancelled')->sum('total_amount');
         $todayCount = Transaction::whereDate('created_at', now())->whereNot('status', 'cancelled')->count();
         
+        $todaySalesByMethod = Transaction::whereDate('created_at', now())
+            ->whereNot('status', 'cancelled')
+            ->selectRaw('payment_method, sum(total_amount) as total')
+            ->groupBy('payment_method')
+            ->pluck('total', 'payment_method');
+
+        $todayCountByType = Transaction::whereDate('created_at', now())
+            ->whereNot('status', 'cancelled')
+            ->selectRaw('type, count(*) as count')
+            ->groupBy('type')
+            ->pluck('count', 'type');
+        
         $yesterdaySales = Transaction::whereDate('created_at', now()->subDay())->whereNot('status', 'cancelled')->sum('total_amount');
         $yesterdayCount = Transaction::whereDate('created_at', now()->subDay())->whereNot('status', 'cancelled')->count();
 
@@ -398,7 +410,7 @@ class PosController extends Controller
         });
 
         return view('commerce.pos.history', compact(
-            'transactions', 'todaySales', 'todayCount', 'cashiers', 
+            'transactions', 'todaySales', 'todayCount', 'todaySalesByMethod', 'todayCountByType', 'cashiers', 
             'hourlyLabels', 'hourlyCounts', 'hourlyAmounts',
             'topProductsLabels', 'topProductsCounts',
             'topRevenueLabels', 'topRevenueAmounts',
