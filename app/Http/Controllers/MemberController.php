@@ -140,11 +140,12 @@ class MemberController extends Controller
         // Data (starting at row 5)
         $row = 5;
         foreach ($members as $m) {
-            $gender = $m->gender == 'L' ? 'Laki-laki' : ($m->gender == 'P' ? 'Perempuan' : '-');
+            $gender = $m->gender == 'male' ? 'Laki-laki' : ($m->gender == 'female' ? 'Perempuan' : '-');
+            $phone = !empty($m->user->phone) ? $m->user->phone : (!empty($m->phone) ? $m->phone : '-');
 
             $sheet->setCellValue('A'.$row, $m->user->name ?? '-');
             $sheet->setCellValue('B'.$row, $m->user->email ?? '-');
-            $sheet->setCellValue('C'.$row, $m->user->phone ?? '-'); // Assuming this aligns with logic
+            $sheet->setCellValue('C'.$row, $phone);
             $sheet->setCellValue('D'.$row, $m->user->role ?? 'member');
             $sheet->setCellValue('E'.$row, $m->member_id);
             $sheet->setCellValue('F'.$row, $m->employee_id ?? '-');
