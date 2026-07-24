@@ -404,7 +404,7 @@ class JournalService
      */
     public static function journalConsignmentSettlement($settlement, string $paymentMethod = 'cash'): ?JournalEntry
     {
-        $expenseAccount = '5201';
+        $expenseAccount = '1301'; // Dr Persediaan (since it was credited when sold)
         
         $isBank = in_array(strtolower($paymentMethod), ['bank', 'transfer']);
         $assetAccount = $isBank ? '1102' : '1101'; // Bank vs Cash
@@ -414,10 +414,10 @@ class JournalService
             "Settlement Konsinyasi #{$settlement->transaction_number} - {$settlement->consignor->name}",
             [
                 [
-                    'account_code' => $expenseAccount, // Dr HPP
+                    'account_code' => $expenseAccount, // Dr Persediaan
                     'debit' => $settlement->total_payable_amount,
                     'credit' => 0,
-                    'description' => "HPP Konsinyasi ({$settlement->consignor->name})"
+                    'description' => "Pembayaran Konsinyasi ({$settlement->consignor->name})"
                 ],
                 [
                     'account_code' => $assetAccount, // Cr Cash/Bank
