@@ -12,20 +12,6 @@
                 </svg>
             </a>
             <div>
-@extends('layouts.app')
-
-@section('title', 'Laporan Transaksi')
-
-@section('content')
-    <!-- Page Header -->
-    <div class="page-header">
-         <div class="flex items-center gap-4">
-            <a href="{{ route('reports.index') }}" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-            </a>
-            <div>
                 <h1 class="page-title">Laporan Transaksi & Penjualan</h1>
                 <p class="page-subtitle">Periode: {{ $startDate->format('d M Y') }} - {{ $endDate->format('d M Y') }}</p>
             </div>
@@ -34,7 +20,7 @@
 
     <!-- Filter -->
     <div class="glass-card-solid p-6 mb-6">
-        <form method="GET" action="{{ route('reports.transactions') }}" id="reportFilterForm" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+        <form method="GET" action="{{ route('reports.transactions') }}" id="reportFilterForm" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
             <input type="hidden" name="chart_period" id="chartPeriodInput" value="{{ request('chart_period', $chartPeriod ?? 'daily') }}">
              <div>
                 <label class="form-label">Tanggal Mulai</label>
