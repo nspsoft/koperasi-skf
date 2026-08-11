@@ -590,6 +590,7 @@ class ReportController extends Controller
         $endDate = $request->end_date ? Carbon::parse($request->end_date) : Carbon::now()->endOfDay();
         $type = $request->type; // pos, online, or all
         $status = $request->status;
+        $chartPeriod = $request->get('chart_period', 'daily');
 
         // Base Query
         $query = Transaction::whereBetween('created_at', [$startDate, $endDate]);
@@ -606,6 +607,21 @@ class ReportController extends Controller
         $totalSales = $salesQuery->sum('total_amount');
         $totalTransactions = $salesQuery->count();
         $averageTransaction = $totalTransactions > 0 ? $totalSales / $totalTransactions : 0;
+
+        // Total COGS and Margin Calculation
+        $cogsQuery = DB::table('transaction_items')
+            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_items.product_id', '=', 'products.id')
+            ->whereBetween('transactions.created_at', [$startDate, $endDate])
+            ->whereIn('transactions.status', ['completed', 'paid', 'delivered', 'credit']);
+
+        if ($type) {
+            $cogsQuery->where('transactions.type', $type);
+        }
+
+        $totalCogs = (float) $cogsQuery->sum(DB::raw('transaction_items.quantity * (CASE WHEN products.conversion_factor > 0 THEN products.cost / products.conversion_factor ELSE products.cost END)'));
+        $totalMargin = $totalSales - $totalCogs;
+        $marginPercentage = $totalSales > 0 ? ($totalMargin / $totalSales) * 100 : 0;
         
         // Pending/Processing Orders
         $pendingOrders = (clone $query)->whereIn('status', ['pending', 'processing'])->count();
@@ -617,13 +633,68 @@ class ReportController extends Controller
             ->groupBy('payment_method')
             ->get();
 
-        // 3. Daily Sales (for chart)
-        $dailySales = Transaction::whereBetween('created_at', [$startDate, $endDate])
-            ->whereIn('status', ['completed', 'paid', 'delivered', 'credit'])
-            ->select(DB::raw('DATE(created_at) as date'), DB::raw('sum(total_amount) as total'))
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
+        // 3. Sales & Margin Chart Data Grouped by Period
+        $periodSelect = match($chartPeriod) {
+            'weekly' => "DATE_FORMAT(transactions.created_at, '%X-W%V') as period_key, CONCAT('Mkg ', WEEK(transactions.created_at, 1), ' ', YEAR(transactions.created_at)) as label",
+            'monthly' => "DATE_FORMAT(transactions.created_at, '%Y-%m') as period_key, DATE_FORMAT(transactions.created_at, '%b %Y') as label",
+            'quarterly' => "CONCAT(YEAR(transactions.created_at), '-Q', QUARTER(transactions.created_at)) as period_key, CONCAT('Q', QUARTER(transactions.created_at), ' ', YEAR(transactions.created_at)) as label",
+            'semi_annually' => "CONCAT(YEAR(transactions.created_at), '-S', IF(MONTH(transactions.created_at) <= 6, 1, 2)) as period_key, CONCAT('Semester ', IF(MONTH(transactions.created_at) <= 6, 1, 2), ' ', YEAR(transactions.created_at)) as label",
+            default => "DATE(transactions.created_at) as period_key, DATE_FORMAT(transactions.created_at, '%d %b') as label",
+        };
+
+        $periodGroupBy = match($chartPeriod) {
+            'weekly' => [DB::raw("DATE_FORMAT(transactions.created_at, '%X-W%V')"), DB::raw("CONCAT('Mkg ', WEEK(transactions.created_at, 1), ' ', YEAR(transactions.created_at))")],
+            'monthly' => [DB::raw("DATE_FORMAT(transactions.created_at, '%Y-%m')"), DB::raw("DATE_FORMAT(transactions.created_at, '%b %Y')")],
+            'quarterly' => [DB::raw("CONCAT(YEAR(transactions.created_at), '-Q', QUARTER(transactions.created_at))"), DB::raw("CONCAT('Q', QUARTER(transactions.created_at), ' ', YEAR(transactions.created_at))")],
+            'semi_annually' => [DB::raw("CONCAT(YEAR(transactions.created_at), '-S', IF(MONTH(transactions.created_at) <= 6, 1, 2))"), DB::raw("CONCAT('Semester ', IF(MONTH(transactions.created_at) <= 6, 1, 2), ' ', YEAR(transactions.created_at))")],
+            default => [DB::raw("DATE(transactions.created_at)"), DB::raw("DATE_FORMAT(transactions.created_at, '%d %b')")],
+        };
+
+        $chartSalesQuery = Transaction::whereBetween('created_at', [$startDate, $endDate])
+            ->whereIn('status', ['completed', 'paid', 'delivered', 'credit']);
+        if ($type) {
+            $chartSalesQuery->where('type', $type);
+        }
+
+        $salesGrouped = $chartSalesQuery
+            ->select(DB::raw($periodSelect), DB::raw('SUM(total_amount) as sales_total'))
+            ->groupBy($periodGroupBy)
+            ->orderBy('period_key')
+            ->get()
+            ->keyBy('period_key');
+
+        $chartCogsQuery = DB::table('transaction_items')
+            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_items.product_id', '=', 'products.id')
+            ->whereBetween('transactions.created_at', [$startDate, $endDate])
+            ->whereIn('transactions.status', ['completed', 'paid', 'delivered', 'credit']);
+        if ($type) {
+            $chartCogsQuery->where('transactions.type', $type);
+        }
+
+        $cogsGrouped = $chartCogsQuery
+            ->select(DB::raw($periodSelect), DB::raw('SUM(transaction_items.quantity * (CASE WHEN products.conversion_factor > 0 THEN products.cost / products.conversion_factor ELSE products.cost END)) as cogs_total'))
+            ->groupBy($periodGroupBy)
+            ->orderBy('period_key')
+            ->get()
+            ->keyBy('period_key');
+
+        $chartData = collect();
+        foreach ($salesGrouped as $key => $salesRow) {
+            $salesVal = (float) $salesRow->sales_total;
+            $cogsVal = (float) ($cogsGrouped->get($key)->cogs_total ?? 0);
+            $marginVal = $salesVal - $cogsVal;
+
+            $chartData->push([
+                'period_key' => $key,
+                'label' => $salesRow->label,
+                'sales' => round($salesVal, 2),
+                'margin' => round($marginVal, 2)
+            ]);
+        }
+
+        // Backward compatibility for daily sales
+        $dailySales = $salesGrouped;
 
         // 4. Transaction List
         $transactions = $query->with(['user', 'cashier', 'items.product'])
@@ -646,6 +717,7 @@ class ReportController extends Controller
 
         return view('reports.transactions', compact(
             'totalSales', 'totalTransactions', 'averageTransaction', 'pendingOrders',
+            'totalMargin', 'marginPercentage', 'chartPeriod', 'chartData',
             'byPaymentMethod', 'dailySales', 'transactions', 'topProducts',
             'startDate', 'endDate', 'type', 'status'
         ));

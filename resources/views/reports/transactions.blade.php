@@ -12,6 +12,20 @@
                 </svg>
             </a>
             <div>
+@extends('layouts.app')
+
+@section('title', 'Laporan Transaksi')
+
+@section('content')
+    <!-- Page Header -->
+    <div class="page-header">
+         <div class="flex items-center gap-4">
+            <a href="{{ route('reports.index') }}" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                <svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </a>
+            <div>
                 <h1 class="page-title">Laporan Transaksi & Penjualan</h1>
                 <p class="page-subtitle">Periode: {{ $startDate->format('d M Y') }} - {{ $endDate->format('d M Y') }}</p>
             </div>
@@ -20,7 +34,8 @@
 
     <!-- Filter -->
     <div class="glass-card-solid p-6 mb-6">
-        <form method="GET" action="{{ route('reports.transactions') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+        <form method="GET" action="{{ route('reports.transactions') }}" id="reportFilterForm" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+            <input type="hidden" name="chart_period" id="chartPeriodInput" value="{{ request('chart_period', $chartPeriod ?? 'daily') }}">
              <div>
                 <label class="form-label">Tanggal Mulai</label>
                 <input type="date" name="start_date" value="{{ request('start_date', $startDate->format('Y-m-d')) }}" class="form-input">
@@ -47,6 +62,16 @@
                     <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
                 </select>
             </div>
+            <div>
+                <label class="form-label">Periode Grafik</label>
+                <select onchange="document.getElementById('chartPeriodInput').value=this.value; this.form.submit();" class="form-input">
+                    <option value="daily" {{ request('chart_period', $chartPeriod) == 'daily' ? 'selected' : '' }}>Harian</option>
+                    <option value="weekly" {{ request('chart_period', $chartPeriod) == 'weekly' ? 'selected' : '' }}>Mingguan</option>
+                    <option value="monthly" {{ request('chart_period', $chartPeriod) == 'monthly' ? 'selected' : '' }}>Bulanan</option>
+                    <option value="quarterly" {{ request('chart_period', $chartPeriod) == 'quarterly' ? 'selected' : '' }}>Kuartalan</option>
+                    <option value="semi_annually" {{ request('chart_period', $chartPeriod) == 'semi_annually' ? 'selected' : '' }}>Semesteran</option>
+                </select>
+            </div>
             <button type="submit" class="btn-primary">
                 Terapkan Filter
             </button>
@@ -54,26 +79,46 @@
     </div>
 
      <!-- Summary Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div class="glass-card p-6 border-l-4 border-green-500">
-            <p class="text-sm text-gray-500 mb-1">Total Penjualan</p>
-            <p class="text-3xl font-bold text-gray-900 dark:text-white">Rp {{ number_format($totalSales, 0, ',', '.') }}</p>
-            <p class="text-xs text-gray-400 mt-1">Transaksi selesai</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div class="glass-card p-5 border-l-4 border-green-500 flex flex-col justify-between">
+            <div>
+                <p class="text-sm text-gray-500 mb-1">Total Penjualan</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">Rp {{ number_format($totalSales, 0, ',', '.') }}</p>
+            </div>
+            <p class="text-xs text-gray-400 mt-2">Transaksi selesai</p>
         </div>
-        <div class="glass-card p-6 border-l-4 border-blue-500">
-             <p class="text-sm text-gray-500 mb-1">Total Transaksi</p>
-            <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ number_format($totalTransactions) }}</p>
-            <p class="text-xs text-gray-400 mt-1">Transaksi selesai</p>
+        <div class="glass-card p-5 border-l-4 border-teal-500 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total Margin</p>
+                    <span class="px-2 py-0.5 text-xs font-semibold rounded-full {{ $marginPercentage >= 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300' }}">
+                        {{ number_format($marginPercentage, 1) }}%
+                    </span>
+                </div>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">Rp {{ number_format($totalMargin, 0, ',', '.') }}</p>
+            </div>
+            <p class="text-xs text-gray-400 mt-2">Laba kotor penjualan</p>
         </div>
-        <div class="glass-card p-6 border-l-4 border-purple-500">
-             <p class="text-sm text-gray-500 mb-1">Rata-rata Transaksi</p>
-            <p class="text-3xl font-bold text-gray-900 dark:text-white">Rp {{ number_format($averageTransaction, 0, ',', '.') }}</p>
-            <p class="text-xs text-gray-400 mt-1">Per transaksi</p>
+        <div class="glass-card p-5 border-l-4 border-blue-500 flex flex-col justify-between">
+            <div>
+                <p class="text-sm text-gray-500 mb-1">Total Transaksi</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ number_format($totalTransactions) }}</p>
+            </div>
+            <p class="text-xs text-gray-400 mt-2">Transaksi selesai</p>
         </div>
-        <div class="glass-card p-6 border-l-4 border-amber-500">
-             <p class="text-sm text-gray-500 mb-1">Order Pending</p>
-            <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ $pendingOrders }}</p>
-            <p class="text-xs text-gray-400 mt-1">Perlu diproses</p>
+        <div class="glass-card p-5 border-l-4 border-purple-500 flex flex-col justify-between">
+            <div>
+                <p class="text-sm text-gray-500 mb-1">Rata-rata Transaksi</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">Rp {{ number_format($averageTransaction, 0, ',', '.') }}</p>
+            </div>
+            <p class="text-xs text-gray-400 mt-2">Per transaksi</p>
+        </div>
+        <div class="glass-card p-5 border-l-4 border-amber-500 flex flex-col justify-between">
+            <div>
+                <p class="text-sm text-gray-500 mb-1">Order Pending</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $pendingOrders }}</p>
+            </div>
+            <p class="text-xs text-gray-400 mt-2">Perlu diproses</p>
         </div>
     </div>
 
@@ -139,13 +184,43 @@
         </div>
     </div>
 
-    <!-- Daily Sales Chart -->
-    @if($dailySales->count() > 0)
+    <!-- Sales & Margin Chart -->
     <div class="glass-card-solid p-6 mb-6">
-        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Grafik Penjualan Harian</h3>
-        <div id="dailySalesChart"></div>
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+            <div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Grafik Penjualan & Margin</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Mode Pengelompokan: <span class="font-semibold text-primary capitalize">{{ str_replace('_', ' ', $chartPeriod ?? 'Harian') }}</span>
+                </p>
+            </div>
+            <!-- Quick Period Tabs -->
+            <div class="flex flex-wrap gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg text-xs">
+                @php
+                    $periods = [
+                        'daily' => 'Harian',
+                        'weekly' => 'Mingguan',
+                        'monthly' => 'Bulanan',
+                        'quarterly' => 'Kuartalan',
+                        'semi_annually' => 'Semesteran'
+                    ];
+                    $currentPeriod = request('chart_period', $chartPeriod ?? 'daily');
+                @endphp
+                @foreach($periods as $key => $label)
+                <button type="button" 
+                        onclick="document.getElementById('chartPeriodInput').value='{{ $key }}'; document.getElementById('reportFilterForm').submit();"
+                        class="px-3 py-1.5 rounded-md font-medium transition-colors {{ $currentPeriod == $key ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
+                    {{ $label }}
+                </button>
+                @endforeach
+            </div>
+        </div>
+        
+        @if(isset($chartData) && $chartData->count() > 0)
+        <div id="salesMarginChart"></div>
+        @else
+        <p class="text-sm text-gray-500 text-center italic py-8">Tidak ada data penjualan pada grafik periode ini.</p>
+        @endif
     </div>
-    @endif
 
     <!-- Transactions Table -->
     <div class="glass-card-solid overflow-hidden">
@@ -230,38 +305,44 @@
 </style>
 @endpush
 
-@if($dailySales->count() > 0)
+@if(isset($chartData) && $chartData->count() > 0)
 @push('scripts')
 <script>
 window.runApex(() => {
 document.addEventListener('DOMContentLoaded', function() {
     var options = {
-        series: [{
-            name: 'Penjualan',
-            data: @json($dailySales->pluck('total')->map(fn($v) => (float) $v))
-        }],
+        series: [
+            {
+                name: 'Total Penjualan',
+                data: @json($chartData->pluck('sales'))
+            },
+            {
+                name: 'Margin (Laba Kotor)',
+                data: @json($chartData->pluck('margin'))
+            }
+        ],
         chart: {
             type: 'area',
-            height: 300,
+            height: 330,
             toolbar: { show: false },
             fontFamily: 'Inter, sans-serif'
         },
-        colors: ['#10b981'],
+        colors: ['#10b981', '#3b82f6'],
         fill: {
             type: 'gradient',
             gradient: {
                 shadeIntensity: 1,
-                opacityFrom: 0.45,
+                opacityFrom: 0.4,
                 opacityTo: 0.05,
                 stops: [50, 100]
             }
         },
         stroke: {
             curve: 'smooth',
-            width: 2
+            width: [2, 2]
         },
         xaxis: {
-            categories: @json($dailySales->pluck('date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d M'))),
+            categories: @json($chartData->pluck('label')),
             labels: { style: { colors: '#9ca3af' } }
         },
         yaxis: {
@@ -278,15 +359,24 @@ document.addEventListener('DOMContentLoaded', function() {
             strokeDashArray: 4
         },
         tooltip: {
+            shared: true,
+            intersect: false,
             y: {
                 formatter: function(val) {
                     return 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
                 }
             }
+        },
+        legend: {
+            position: 'top',
+            horizontalAlign: 'right',
+            labels: {
+                colors: '#9ca3af'
+            }
         }
     };
 
-    var chart = new ApexCharts(document.querySelector("#dailySalesChart"), options);
+    var chart = new ApexCharts(document.querySelector("#salesMarginChart"), options);
     chart.render();
 });
 });

@@ -1,9 +1,10 @@
 $ErrorActionPreference = "Stop"
 
-$deployDir = "c:\laragon\www\Koperasi\deploy_stage"
-$zipFile = "c:\laragon\www\Koperasi\koperasi_production_update.zip"
+$projectRoot = "c:\laragon\www\Koperasi"
+$deployDir = "$env:TEMP\deploy_stage"
+$zipFile = "$projectRoot\koperasi_production_update.zip"
 
-# Clean up previous attempts
+# Clean up previous staging
 if (Test-Path $deployDir) { Remove-Item -Recurse -Force $deployDir }
 if (Test-Path $zipFile) { Remove-Item -Force $zipFile }
 
@@ -14,14 +15,18 @@ New-Item -ItemType Directory -Path "$deployDir\public_html" | Out-Null
 Write-Host "Copying core files to kopkarskf..."
 $excludeItems = @('.git', '.agent', 'node_modules', 'deploy_stage', 'koperasi_production_update.zip', 'public', 'pack_for_cpanel.ps1', 'vendor')
 
-Get-ChildItem -Path "c:\laragon\www\Koperasi" | Where-Object { $_.Name -notin $excludeItems } | Copy-Item -Destination "$deployDir\kopkarskf" -Recurse -Force
+Get-ChildItem -Path $projectRoot | Where-Object { $_.Name -notin $excludeItems } | Copy-Item -Destination "$deployDir\kopkarskf" -Recurse -Force
 
 Write-Host "Copying vendor..."
-Copy-Item -Path "c:\laragon\www\Koperasi\vendor" -Destination "$deployDir\kopkarskf" -Recurse -Force
+if (Test-Path "$projectRoot\vendor") {
+    Copy-Item -Path "$projectRoot\vendor" -Destination "$deployDir\kopkarskf" -Recurse -Force
+}
 
 Write-Host "Copying public files to public_html..."
-Copy-Item -Path "c:\laragon\www\Koperasi\public\*" -Destination "$deployDir\public_html" -Recurse -Force
-Copy-Item -Path "c:\laragon\www\Koperasi\public\.htaccess" -Destination "$deployDir\public_html" -Force -ErrorAction SilentlyContinue
+if (Test-Path "$projectRoot\public") {
+    Copy-Item -Path "$projectRoot\public\*" -Destination "$deployDir\public_html" -Recurse -Force
+    Copy-Item -Path "$projectRoot\public\.htaccess" -Destination "$deployDir\public_html" -Force -ErrorAction SilentlyContinue
+}
 
 Write-Host "Modifying index.php..."
 $indexContent = @"
@@ -45,9 +50,9 @@ require __DIR__.'/../kopkarskf/vendor/autoload.php';
 Set-Content -Path "$deployDir\public_html\index.php" -Value $indexContent
 
 Write-Host "Creating zip archive..."
-Compress-Archive -Path "$deployDir\*" -DestinationPath $zipFile
+Compress-Archive -Path "$deployDir\*" -DestinationPath $zipFile -Force
 
 Write-Host "Cleaning up staging directory..."
 Remove-Item -Recurse -Force $deployDir
 
-Write-Host "Packing complete: koperasi_production_update.zip"
+Write-Host "Packing complete: $zipFile"
