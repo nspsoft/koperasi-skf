@@ -172,32 +172,51 @@
 
     <!-- Sales & Margin Chart -->
     <div class="glass-card-solid p-6 mb-6">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
             <div>
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white">Grafik Penjualan & Margin</h3>
                 <p class="text-xs text-gray-500 dark:text-gray-400">
                     Mode Pengelompokan: <span class="font-semibold text-primary capitalize">{{ str_replace('_', ' ', $chartPeriod ?? 'Harian') }}</span>
                 </p>
             </div>
-            <!-- Quick Period Tabs -->
-            <div class="flex flex-wrap gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg text-xs">
-                @php
-                    $periods = [
-                        'daily' => 'Harian',
-                        'weekly' => 'Mingguan',
-                        'monthly' => 'Bulanan',
-                        'quarterly' => 'Kuartalan',
-                        'semi_annually' => 'Semesteran'
-                    ];
-                    $currentPeriod = request('chart_period', $chartPeriod ?? 'daily');
-                @endphp
-                @foreach($periods as $key => $label)
-                <button type="button" 
-                        onclick="document.getElementById('chartPeriodInput').value='{{ $key }}'; document.getElementById('reportFilterForm').submit();"
-                        class="px-3 py-1.5 rounded-md font-medium transition-colors {{ $currentPeriod == $key ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
-                    {{ $label }}
-                </button>
-                @endforeach
+            
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Mode Akumulasi vs Periodik Toggle -->
+                <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg text-xs">
+                    <button type="button" 
+                            id="btnModePeriodic" 
+                            onclick="switchChartMode('periodic')" 
+                            class="px-3 py-1.5 rounded-md font-medium transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm">
+                        Periodik
+                    </button>
+                    <button type="button" 
+                            id="btnModeCumulative" 
+                            onclick="switchChartMode('cumulative')" 
+                            class="px-3 py-1.5 rounded-md font-medium transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+                        Akumulasi
+                    </button>
+                </div>
+
+                <!-- Quick Period Tabs -->
+                <div class="flex flex-wrap gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg text-xs">
+                    @php
+                        $periods = [
+                            'daily' => 'Harian',
+                            'weekly' => 'Mingguan',
+                            'monthly' => 'Bulanan',
+                            'quarterly' => 'Kuartalan',
+                            'semi_annually' => 'Semesteran'
+                        ];
+                        $currentPeriod = request('chart_period', $chartPeriod ?? 'daily');
+                    @endphp
+                    @foreach($periods as $key => $label)
+                    <button type="button" 
+                            onclick="document.getElementById('chartPeriodInput').value='{{ $key }}'; document.getElementById('reportFilterForm').submit();"
+                            class="px-3 py-1.5 rounded-md font-medium transition-colors {{ $currentPeriod == $key ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
+                        {{ $label }}
+                    </button>
+                    @endforeach
+                </div>
             </div>
         </div>
         
@@ -257,7 +276,7 @@
                                 $statusLabels = [
                                     'completed' => 'Selesai',
                                     'pending' => 'Pending',
-                                    'processing' => 'Diproses',
+                                    'processing' => 'Dipproses',
                                     'cancelled' => 'Dibatalkan',
                                 ];
                             @endphp
@@ -296,15 +315,29 @@
 <script>
 window.runApex(() => {
 document.addEventListener('DOMContentLoaded', function() {
+    const rawSales = @json($chartData->pluck('sales'));
+    const rawMargin = @json($chartData->pluck('margin'));
+
+    // Compute cumulative data
+    let cumulativeSales = [];
+    let cumulativeMargin = [];
+    let runS = 0, runM = 0;
+    for (let i = 0; i < rawSales.length; i++) {
+        runS += parseFloat(rawSales[i] || 0);
+        runM += parseFloat(rawMargin[i] || 0);
+        cumulativeSales.push(Math.round(runS * 100) / 100);
+        cumulativeMargin.push(Math.round(runM * 100) / 100);
+    }
+
     var options = {
         series: [
             {
                 name: 'Total Penjualan',
-                data: @json($chartData->pluck('sales'))
+                data: rawSales
             },
             {
                 name: 'Margin (Laba Kotor)',
-                data: @json($chartData->pluck('margin'))
+                data: rawMargin
             }
         ],
         chart: {
@@ -364,6 +397,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var chart = new ApexCharts(document.querySelector("#salesMarginChart"), options);
     chart.render();
+
+    window.switchChartMode = function(mode) {
+        const btnP = document.getElementById('btnModePeriodic');
+        const btnC = document.getElementById('btnModeCumulative');
+        const activeClass = "px-3 py-1.5 rounded-md font-medium transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm";
+        const inactiveClass = "px-3 py-1.5 rounded-md font-medium transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white";
+        
+        if (mode === 'cumulative') {
+            if (btnC) btnC.className = activeClass;
+            if (btnP) btnP.className = inactiveClass;
+            chart.updateSeries([
+                { name: 'Penjualan (Akumulasi)', data: cumulativeSales },
+                { name: 'Margin (Akumulasi)', data: cumulativeMargin }
+            ]);
+        } else {
+            if (btnP) btnP.className = activeClass;
+            if (btnC) btnC.className = inactiveClass;
+            chart.updateSeries([
+                { name: 'Total Penjualan', data: rawSales },
+                { name: 'Margin (Laba Kotor)', data: rawMargin }
+            ]);
+        }
+    };
 });
 });
 </script>
