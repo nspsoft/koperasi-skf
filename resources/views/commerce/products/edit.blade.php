@@ -226,8 +226,8 @@
                             </div>
                             <div x-show="isCredit" x-transition.opacity.duration.300ms class="pl-8">
                                 <label class="form-label text-sm text-gray-500 mb-2 block">Tenor Kredit</label>
-                                @php $tenorOptions = [1, 2, 3, 6, 12]; @endphp
-                                <div class="grid grid-cols-3 gap-2">
+                                @php $tenorOptions = range(1, 12); @endphp
+                                <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
                                     @foreach($tenorOptions as $tenor)
                                         <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                             <input type="checkbox" name="credit_tenors[]" value="{{ $tenor }}" class="form-checkbox rounded text-orange-600 focus:ring-orange-500" {{ in_array($tenor, old('credit_tenors', $product->credit_tenors ?? [])) ? 'checked' : '' }}>

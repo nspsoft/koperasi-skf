@@ -120,7 +120,7 @@ class ProductController extends Controller
             'preorder_eta' => 'nullable|string|max:255',
             'is_credit_eligible' => 'nullable|boolean',
             'credit_tenors' => 'required_if:is_credit_eligible,1|array',
-            'credit_tenors.*' => 'integer|in:1,2,3,6,12',
+            'credit_tenors.*' => 'integer|min:1|max:12',
             // Consignment Validations
             'is_consignment' => 'nullable|boolean',
             'consignor_type' => 'required_if:is_consignment,1|nullable|in:member,supplier',
@@ -177,7 +177,7 @@ class ProductController extends Controller
             'preorder_eta' => 'nullable|string|max:255',
             'is_credit_eligible' => 'nullable|boolean',
             'credit_tenors' => 'required_if:is_credit_eligible,1|array',
-            'credit_tenors.*' => 'integer|in:1,2,3,6,12',
+            'credit_tenors.*' => 'integer|min:1|max:12',
             // Consignment Validations
             'is_consignment' => 'nullable|boolean',
             'consignor_type' => 'required_if:is_consignment,1|nullable|in:member,supplier',
