@@ -854,17 +854,22 @@ class ReportController extends Controller
             DB::raw("CASE WHEN SUM(transaction_items.subtotal) > 0 THEN (SUM(transaction_items.subtotal - (transaction_items.quantity * $costFormula)) / SUM(transaction_items.subtotal)) * 100 ELSE 0 END as margin_pct")
         ];
 
+        $profitSort = $request->get('profit_sort', 'profit'); // 'profit' or 'margin'
+        $sortColumn = ($profitSort === 'margin') ? 'margin_pct' : 'total_profit';
+
         $topProfitable = (clone $profitabilityBaseQuery)
             ->select($profitabilitySelect)
             ->groupBy('products.id', 'products.name', 'products.code', 'products.is_consignment')
-            ->orderByDesc('total_profit')
+            ->orderByDesc($sortColumn)
+            ->orderByDesc('total_sales')
             ->limit(20)
             ->get();
 
         $leastProfitable = (clone $profitabilityBaseQuery)
             ->select($profitabilitySelect)
             ->groupBy('products.id', 'products.name', 'products.code', 'products.is_consignment')
-            ->orderBy('total_profit', 'asc')
+            ->orderBy($sortColumn, 'asc')
+            ->orderBy('total_sales', 'asc')
             ->limit(20)
             ->get();
 
@@ -872,7 +877,7 @@ class ReportController extends Controller
             'totalSales', 'totalTransactions', 'averageTransaction', 'pendingOrders',
             'totalMargin', 'marginPercentage', 'chartPeriod', 'chartData',
             'byPaymentMethod', 'dailySales', 'transactions', 'topProducts',
-            'topProfitable', 'leastProfitable',
+            'topProfitable', 'leastProfitable', 'profitSort',
             'startDate', 'endDate', 'type', 'status', 'productType',
             'posSales', 'posTrxCount', 'posPercentage',
             'onlineSales', 'onlineTrxCount', 'onlinePercentage',

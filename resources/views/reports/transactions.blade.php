@@ -22,6 +22,7 @@
     <div class="glass-card-solid p-6 mb-6">
         <form method="GET" action="{{ route('reports.transactions') }}" id="reportFilterForm" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 items-end">
             <input type="hidden" name="chart_period" id="chartPeriodInput" value="{{ request('chart_period', $chartPeriod ?? 'daily') }}">
+            <input type="hidden" name="profit_sort" value="{{ request('profit_sort', $profitSort ?? 'profit') }}">
              <div>
                 <label class="form-label">Tanggal Mulai</label>
                 <input type="date" name="start_date" value="{{ request('start_date', $startDate->format('Y-m-d')) }}" class="form-input">
@@ -394,21 +395,36 @@
                 </p>
             </div>
 
-            <!-- Quick Toggle Tipe Barang (Semua / Toko / Konsinyasi) -->
-            <div class="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800/80 p-1 rounded-lg text-xs self-stretch sm:self-auto justify-between sm:justify-start">
-                <span class="text-gray-400 text-[11px] px-2 font-medium">Tipe:</span>
-                <a href="{{ request()->fullUrlWithQuery(['product_type' => '']) }}" 
-                   class="px-3 py-1.5 rounded-md font-medium transition-colors {{ empty(request('product_type', $productType ?? '')) ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
-                    Semua
-                </a>
-                <a href="{{ request()->fullUrlWithQuery(['product_type' => 'regular']) }}" 
-                   class="px-3 py-1.5 rounded-md font-medium transition-colors {{ request('product_type', $productType ?? '') === 'regular' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
-                    Toko Saja
-                </a>
-                <a href="{{ request()->fullUrlWithQuery(['product_type' => 'consignment']) }}" 
-                   class="px-3 py-1.5 rounded-md font-medium transition-colors {{ request('product_type', $productType ?? '') === 'consignment' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
-                    Konsinyasi Saja
-                </a>
+            <div class="flex flex-wrap items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-start">
+                <!-- Urutkan Berdasarkan (Profit vs Margin) -->
+                <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800/80 p-1 rounded-lg text-xs">
+                    <span class="text-gray-400 text-[11px] px-2 font-medium">Urutan:</span>
+                    <a href="{{ request()->fullUrlWithQuery(['profit_sort' => 'profit']) }}" 
+                       class="px-2.5 py-1.5 rounded-md font-medium transition-colors {{ ($profitSort ?? 'profit') === 'profit' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm font-semibold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
+                        Total Profit (Rp)
+                    </a>
+                    <a href="{{ request()->fullUrlWithQuery(['profit_sort' => 'margin']) }}" 
+                       class="px-2.5 py-1.5 rounded-md font-medium transition-colors {{ ($profitSort ?? 'profit') === 'margin' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm font-semibold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
+                        Margin (%)
+                    </a>
+                </div>
+
+                <!-- Quick Toggle Tipe Barang (Semua / Toko / Konsinyasi) -->
+                <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800/80 p-1 rounded-lg text-xs">
+                    <span class="text-gray-400 text-[11px] px-2 font-medium">Tipe:</span>
+                    <a href="{{ request()->fullUrlWithQuery(['product_type' => '']) }}" 
+                       class="px-2.5 py-1.5 rounded-md font-medium transition-colors {{ empty(request('product_type', $productType ?? '')) ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm font-semibold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
+                        Semua
+                    </a>
+                    <a href="{{ request()->fullUrlWithQuery(['product_type' => 'regular']) }}" 
+                       class="px-2.5 py-1.5 rounded-md font-medium transition-colors {{ request('product_type', $productType ?? '') === 'regular' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm font-semibold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
+                        Toko Saja
+                    </a>
+                    <a href="{{ request()->fullUrlWithQuery(['product_type' => 'consignment']) }}" 
+                       class="px-2.5 py-1.5 rounded-md font-medium transition-colors {{ request('product_type', $productType ?? '') === 'consignment' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm font-semibold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
+                        Konsinyasi Saja
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -448,8 +464,26 @@
                         <th class="text-right py-2.5 px-3">Qty Terjual</th>
                         <th class="text-right py-2.5 px-3">Total Penjualan</th>
                         <th class="text-right py-2.5 px-3">Total HPP</th>
-                        <th class="text-right py-2.5 px-3">Total Profit</th>
-                        <th class="text-center py-2.5 px-3">Margin (%)</th>
+                        <th class="text-right py-2.5 px-3">
+                            <a href="{{ request()->fullUrlWithQuery(['profit_sort' => 'profit']) }}" 
+                               class="inline-flex items-center gap-1 justify-end hover:text-emerald-600 transition-colors {{ ($profitSort ?? 'profit') === 'profit' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : '' }}" 
+                               title="Klik untuk mengurutkan berdasarkan Total Profit Tertinggi (Rp)">
+                                Total Profit
+                                @if(($profitSort ?? 'profit') === 'profit')
+                                <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                @endif
+                            </a>
+                        </th>
+                        <th class="text-center py-2.5 px-3">
+                            <a href="{{ request()->fullUrlWithQuery(['profit_sort' => 'margin']) }}" 
+                               class="inline-flex items-center gap-1 justify-center hover:text-emerald-600 transition-colors {{ ($profitSort ?? 'profit') === 'margin' ? 'text-emerald-600 dark:text-emerald-400 font-bold' : '' }}" 
+                               title="Klik untuk mengurutkan berdasarkan Persentase Margin Tertinggi (%)">
+                                Margin (%)
+                                @if(($profitSort ?? 'profit') === 'margin')
+                                <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                @endif
+                            </a>
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -504,8 +538,26 @@
                         <th class="text-right py-2.5 px-3">Qty Terjual</th>
                         <th class="text-right py-2.5 px-3">Total Penjualan</th>
                         <th class="text-right py-2.5 px-3">Total HPP</th>
-                        <th class="text-right py-2.5 px-3">Total Profit</th>
-                        <th class="text-center py-2.5 px-3">Margin (%)</th>
+                        <th class="text-right py-2.5 px-3">
+                            <a href="{{ request()->fullUrlWithQuery(['profit_sort' => 'profit']) }}" 
+                               class="inline-flex items-center gap-1 justify-end hover:text-rose-600 transition-colors {{ ($profitSort ?? 'profit') === 'profit' ? 'text-rose-600 dark:text-rose-400 font-bold' : '' }}" 
+                               title="Klik untuk mengurutkan berdasarkan Total Profit Terendah / Rugi (Rp)">
+                                Total Profit
+                                @if(($profitSort ?? 'profit') === 'profit')
+                                <svg class="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                                @endif
+                            </a>
+                        </th>
+                        <th class="text-center py-2.5 px-3">
+                            <a href="{{ request()->fullUrlWithQuery(['profit_sort' => 'margin']) }}" 
+                               class="inline-flex items-center gap-1 justify-center hover:text-rose-600 transition-colors {{ ($profitSort ?? 'profit') === 'margin' ? 'text-rose-600 dark:text-rose-400 font-bold' : '' }}" 
+                               title="Klik untuk mengurutkan berdasarkan Persentase Margin Terendah (%)">
+                                Margin (%)
+                                @if(($profitSort ?? 'profit') === 'margin')
+                                <svg class="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                                @endif
+                            </a>
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
