@@ -222,12 +222,17 @@ class LoanController extends Controller
             abort(403);
         }
 
-        if (!in_array($loan->status, ['pending', 'rejected'])) {
-             return redirect()->back()->with('error', 'Hanya pinjaman pending atau ditolak yang dapat dihapus.');
+        if (!in_array($loan->status, ['pending', 'approved', 'rejected'])) {
+             return redirect()->back()->with('error', 'Hanya pinjaman yang belum dicairkan yang dapat dihapus.');
         }
 
         DB::beginTransaction();
         try {
+            // Delete signature file if exists
+            if ($loan->signature && \Illuminate\Support\Facades\Storage::disk('public')->exists($loan->signature)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($loan->signature);
+            }
+
             // Delete related journal entries first
             \App\Models\JournalEntry::where('reference_type', Loan::class)
                 ->where('reference_id', $loan->id)
@@ -236,11 +241,12 @@ class LoanController extends Controller
                     $journal->delete();
                 });
 
+            $loanNumber = $loan->loan_number ?? 'N/A';
             $loan->delete();
 
             \App\Models\AuditLog::log(
                 'delete', 
-                "Menghapus pengajuan pinjaman: " . ($loan->loan_number ?? 'N/A')
+                "Menghapus pengajuan pinjaman: " . $loanNumber
             );
 
             DB::commit();
@@ -274,10 +280,15 @@ class LoanController extends Controller
             foreach ($request->ids as $id) {
                 $loan = Loan::find($id);
                 
-                // Only allow delete if pending or rejected
-                if (!in_array($loan->status, ['pending', 'rejected'])) {
+                // Only allow delete if not yet disbursed (pending, approved, rejected)
+                if (!in_array($loan->status, ['pending', 'approved', 'rejected'])) {
                     $failed++;
                     continue;
+                }
+
+                // Delete signature file if exists
+                if ($loan->signature && \Illuminate\Support\Facades\Storage::disk('public')->exists($loan->signature)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($loan->signature);
                 }
 
                 // Delete related journal entries first
@@ -296,7 +307,7 @@ class LoanController extends Controller
 
             $message = "Berhasil menghapus {$count} pengajuan pinjaman.";
             if ($failed > 0) {
-                $message .= " ({$failed} pinjaman gagal dihapus karena status bukan pending/rejected)";
+                $message .= " ({$failed} pinjaman gagal dihapus karena sudah dicairkan/aktif)";
             }
 
             \App\Models\AuditLog::log(

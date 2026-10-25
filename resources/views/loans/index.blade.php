@@ -86,7 +86,7 @@
         toggleAll() {
             this.allSelected = !this.allSelected;
             if (this.allSelected) {
-                this.selected = [{{ $loans->filter(fn($l) => in_array($l->status, ['pending', 'rejected']))->pluck('id')->implode(',') }}];
+                this.selected = [{{ $loans->filter(fn($l) => in_array($l->status, ['pending', 'approved', 'rejected']))->pluck('id')->implode(',') }}];
             } else {
                 this.selected = [];
             }
@@ -135,7 +135,7 @@
                                    class="form-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                                    @click="toggleAll()"
                                    :checked="allSelected"
-                                   title="Pilih semua yang bisa dihapus (Pending/Rejected)">
+                                   title="Pilih semua yang belum dicairkan (Pending/Approved/Rejected)">
                         </th>
                         <th class="px-6 py-4 font-semibold uppercase tracking-wider">{{ __('messages.loans_page.loan_no') }}</th>
                         <th class="px-6 py-4 font-semibold uppercase tracking-wider">{{ __('messages.loans_page.member') }}</th>
@@ -152,7 +152,7 @@
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                         :class="selected.includes({{ $loan->id }}) ? 'bg-primary-50 dark:bg-primary-900/10' : ''">
                         <td class="px-6 py-4 text-center">
-                            @if(in_array($loan->status, ['pending', 'rejected']))
+                            @if(in_array($loan->status, ['pending', 'approved', 'rejected']))
                             <input type="checkbox" 
                                    class="form-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                                    value="{{ $loan->id }}"
@@ -191,15 +191,15 @@
                                     </svg>
                                 </a>
                                 
-                                @if($loan->status === 'pending' && auth()->user()->hasAdminAccess())
+                                @if(in_array($loan->status, ['pending', 'approved', 'rejected']) && auth()->user()->hasAdminAccess())
                                 <form action="{{ route('loans.destroy', $loan) }}" method="POST" 
-                                      onsubmit="return confirm('Yakin ingin membatalkan pengajuan ini?')"
+                                      onsubmit="return confirm('Yakin ingin menghapus pengajuan pinjaman ini?')"
                                       class="inline">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" 
                                             class="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                            title="Batalkan Pengajuan">
+                                            title="Hapus Pinjaman (Belum Dicairkan)">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                         </svg>

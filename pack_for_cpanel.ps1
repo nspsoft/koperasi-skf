@@ -1,4 +1,5 @@
 $ErrorActionPreference = "Stop"
+$ProgressPreference = "SilentlyContinue"
 
 $projectRoot = "c:\laragon\www\Koperasi"
 $deployDir = "$env:TEMP\deploy_stage"
