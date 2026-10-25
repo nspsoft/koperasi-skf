@@ -242,11 +242,19 @@ class LoanController extends Controller
                 });
 
             $loanNumber = $loan->loan_number ?? 'N/A';
+            $memberName = $loan->member->user->name ?? 'Anggota';
+            $memberId = $loan->member->member_id ?? '-';
+            $amountFormatted = number_format($loan->amount, 0, ',', '.');
+            $statusLabel = $loan->status_label;
+            $oldValues = $loan->toArray();
+
             $loan->delete();
 
             \App\Models\AuditLog::log(
                 'delete', 
-                "Menghapus pengajuan pinjaman: " . $loanNumber
+                "Menghapus pengajuan pinjaman {$loanNumber} ({$memberName} - {$memberId}) senilai Rp {$amountFormatted} [Status: {$statusLabel}]",
+                null,
+                $oldValues
             );
 
             DB::commit();
@@ -274,6 +282,7 @@ class LoanController extends Controller
         try {
             $count = 0;
             $failed = 0;
+            $deletedLoanNumbers = [];
 
             DB::beginTransaction();
 
@@ -285,6 +294,8 @@ class LoanController extends Controller
                     $failed++;
                     continue;
                 }
+
+                $deletedLoanNumbers[] = $loan->loan_number;
 
                 // Delete signature file if exists
                 if ($loan->signature && \Illuminate\Support\Facades\Storage::disk('public')->exists($loan->signature)) {
@@ -310,9 +321,10 @@ class LoanController extends Controller
                 $message .= " ({$failed} pinjaman gagal dihapus karena sudah dicairkan/aktif)";
             }
 
+            $details = !empty($deletedLoanNumbers) ? " (" . implode(', ', $deletedLoanNumbers) . ")" : "";
             \App\Models\AuditLog::log(
                 'delete', 
-                "Menghapus {$count} pengajuan pinjaman secara massal" . ($failed > 0 ? " ({$failed} gagal)" : "")
+                "Menghapus {$count} pengajuan pinjaman secara massal{$details}" . ($failed > 0 ? " ({$failed} gagal)" : "")
             );
 
             return redirect()->back()->with($failed > 0 ? 'warning' : 'success', $message);
