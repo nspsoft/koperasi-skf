@@ -377,6 +377,187 @@
         @endif
     </div>
 
+    <!-- Product Profitability Analysis (Top 20 Most Profitable & Top 20 Least Profitable) -->
+    <div class="glass-card-solid p-6 mb-6">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-5 pb-4 border-b border-gray-100 dark:border-gray-800">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                    </span>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Analisis Profitabilitas Produk (Top 20)</h3>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Evaluasi performa 20 produk paling menguntungkan vs 20 produk paling rugi / margin terendah pada periode ini.
+                </p>
+            </div>
+
+            <!-- Quick Toggle Tipe Barang (Semua / Toko / Konsinyasi) -->
+            <div class="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800/80 p-1 rounded-lg text-xs self-stretch sm:self-auto justify-between sm:justify-start">
+                <span class="text-gray-400 text-[11px] px-2 font-medium">Tipe:</span>
+                <a href="{{ request()->fullUrlWithQuery(['product_type' => '']) }}" 
+                   class="px-3 py-1.5 rounded-md font-medium transition-colors {{ empty(request('product_type', $productType ?? '')) ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
+                    Semua
+                </a>
+                <a href="{{ request()->fullUrlWithQuery(['product_type' => 'regular']) }}" 
+                   class="px-3 py-1.5 rounded-md font-medium transition-colors {{ request('product_type', $productType ?? '') === 'regular' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
+                    Toko Saja
+                </a>
+                <a href="{{ request()->fullUrlWithQuery(['product_type' => 'consignment']) }}" 
+                   class="px-3 py-1.5 rounded-md font-medium transition-colors {{ request('product_type', $productType ?? '') === 'consignment' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
+                    Konsinyasi Saja
+                </a>
+            </div>
+        </div>
+
+        <!-- Profit Tabs (Paling Untung vs Paling Rugi) -->
+        <div class="flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-gray-800 pb-2">
+            <button type="button" 
+                    id="btnTabMostProfitable" 
+                    onclick="switchProfitTab('most')" 
+                    class="px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Top 20 Paling Untung
+                <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-200/60 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-200">
+                    {{ $topProfitable->count() }}
+                </span>
+            </button>
+            <button type="button" 
+                    id="btnTabLeastProfitable" 
+                    onclick="switchProfitTab('least')" 
+                    class="px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800">
+                <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                Top 20 Paling Rugi / Margin Terendah
+                <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    {{ $leastProfitable->count() }}
+                </span>
+            </button>
+        </div>
+
+        <!-- Panel 1: Top 20 Most Profitable -->
+        <div id="panelMostProfitable" class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        <th class="text-left py-2.5 px-3">#</th>
+                        <th class="text-left py-2.5 px-3">SKU / Barcode</th>
+                        <th class="text-left py-2.5 px-3">Nama Produk</th>
+                        <th class="text-center py-2.5 px-3">Tipe</th>
+                        <th class="text-right py-2.5 px-3">Qty Terjual</th>
+                        <th class="text-right py-2.5 px-3">Total Penjualan</th>
+                        <th class="text-right py-2.5 px-3">Total HPP</th>
+                        <th class="text-right py-2.5 px-3">Total Profit</th>
+                        <th class="text-center py-2.5 px-3">Margin (%)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @forelse($topProfitable as $index => $item)
+                    <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition-colors">
+                        <td class="py-2.5 px-3 text-xs text-gray-400">{{ $index + 1 }}</td>
+                        <td class="py-2.5 px-3 font-mono text-xs text-gray-600 dark:text-gray-400">{{ $item->code ?: '-' }}</td>
+                        <td class="py-2.5 px-3 font-medium text-gray-900 dark:text-white">
+                            <span class="truncate max-w-xs block" title="{{ $item->name }}">{{ $item->name }}</span>
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            @if($item->is_consignment)
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                Konsinyasi
+                            </span>
+                            @else
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                Toko
+                            </span>
+                            @endif
+                        </td>
+                        <td class="py-2.5 px-3 text-right font-medium text-gray-800 dark:text-gray-200 tabular-nums">{{ number_format($item->total_qty) }}</td>
+                        <td class="py-2.5 px-3 text-right font-medium text-gray-900 dark:text-white tabular-nums">Rp {{ number_format($item->total_sales, 0, ',', '.') }}</td>
+                        <td class="py-2.5 px-3 text-right text-gray-500 dark:text-gray-400 tabular-nums">Rp {{ number_format($item->total_cogs, 0, ',', '.') }}</td>
+                        <td class="py-2.5 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                            +Rp {{ number_format($item->total_profit, 0, ',', '.') }}
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 tabular-nums">
+                                {{ number_format($item->margin_pct, 1) }}%
+                            </span>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="9" class="text-center py-6 text-gray-500">Tidak ada data produk terjual pada periode ini.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Panel 2: Top 20 Least Profitable / Rugi -->
+        <div id="panelLeastProfitable" class="overflow-x-auto hidden">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        <th class="text-left py-2.5 px-3">#</th>
+                        <th class="text-left py-2.5 px-3">SKU / Barcode</th>
+                        <th class="text-left py-2.5 px-3">Nama Produk</th>
+                        <th class="text-center py-2.5 px-3">Tipe</th>
+                        <th class="text-right py-2.5 px-3">Qty Terjual</th>
+                        <th class="text-right py-2.5 px-3">Total Penjualan</th>
+                        <th class="text-right py-2.5 px-3">Total HPP</th>
+                        <th class="text-right py-2.5 px-3">Total Profit</th>
+                        <th class="text-center py-2.5 px-3">Margin (%)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @forelse($leastProfitable as $index => $item)
+                    @php
+                        $isLoss = $item->total_profit < 0;
+                    @endphp
+                    <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition-colors {{ $isLoss ? 'bg-rose-50/20 dark:bg-rose-950/10' : '' }}">
+                        <td class="py-2.5 px-3 text-xs text-gray-400">{{ $index + 1 }}</td>
+                        <td class="py-2.5 px-3 font-mono text-xs text-gray-600 dark:text-gray-400">{{ $item->code ?: '-' }}</td>
+                        <td class="py-2.5 px-3 font-medium text-gray-900 dark:text-white">
+                            <span class="truncate max-w-xs block" title="{{ $item->name }}">{{ $item->name }}</span>
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            @if($item->is_consignment)
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                Konsinyasi
+                            </span>
+                            @else
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                Toko
+                            </span>
+                            @endif
+                        </td>
+                        <td class="py-2.5 px-3 text-right font-medium text-gray-800 dark:text-gray-200 tabular-nums">{{ number_format($item->total_qty) }}</td>
+                        <td class="py-2.5 px-3 text-right font-medium text-gray-900 dark:text-white tabular-nums">Rp {{ number_format($item->total_sales, 0, ',', '.') }}</td>
+                        <td class="py-2.5 px-3 text-right text-gray-500 dark:text-gray-400 tabular-nums">Rp {{ number_format($item->total_cogs, 0, ',', '.') }}</td>
+                        <td class="py-2.5 px-3 text-right font-bold tabular-nums {{ $isLoss ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400' }}">
+                            {{ $item->total_profit < 0 ? '-' : '+' }}Rp {{ number_format(abs($item->total_profit), 0, ',', '.') }}
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            @if($isLoss)
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800 tabular-nums">
+                                {{ number_format($item->margin_pct, 1) }}% (Rugi)
+                            </span>
+                            @else
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800 tabular-nums">
+                                {{ number_format($item->margin_pct, 1) }}%
+                            </span>
+                            @endif
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="9" class="text-center py-6 text-gray-500">Tidak ada data produk terjual pada periode ini.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Transactions Table -->
     <div class="glass-card-solid overflow-hidden">
         <div class="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
@@ -458,6 +639,33 @@
         color: rgb(147, 51, 234);
     }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+window.switchProfitTab = function(tab) {
+    const btnMost = document.getElementById('btnTabMostProfitable');
+    const btnLeast = document.getElementById('btnTabLeastProfitable');
+    const panelMost = document.getElementById('panelMostProfitable');
+    const panelLeast = document.getElementById('panelLeastProfitable');
+
+    if (!btnMost || !btnLeast || !panelMost || !panelLeast) return;
+
+    if (tab === 'most') {
+        panelMost.classList.remove('hidden');
+        panelLeast.classList.add('hidden');
+
+        btnMost.className = "px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800";
+        btnLeast.className = "px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800";
+    } else {
+        panelMost.classList.add('hidden');
+        panelLeast.classList.remove('hidden');
+
+        btnLeast.className = "px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800";
+        btnMost.className = "px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800";
+    }
+};
+</script>
 @endpush
 
 @if(isset($chartData) && $chartData->count() > 0)

@@ -820,10 +820,59 @@ class ReportController extends Controller
             ->limit(10)
             ->get();
 
+        // 6. Product Profitability Analysis (Top 20 Most Profitable & Top 20 Least Profitable / Rugi)
+        $costFormula = '(CASE 
+            WHEN products.is_consignment = 1 THEN COALESCE(products.consignment_price, products.cost, 0)
+            WHEN products.conversion_factor > 0 THEN products.cost / products.conversion_factor 
+            ELSE products.cost 
+        END)';
+
+        $profitabilityBaseQuery = DB::table('transaction_items')
+            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_items.product_id', '=', 'products.id')
+            ->whereBetween('transactions.created_at', [$startDate, $endDate])
+            ->whereIn('transactions.status', ['completed', 'paid', 'delivered', 'credit']);
+
+        if ($type) {
+            $profitabilityBaseQuery->where('transactions.type', $type);
+        }
+        if ($productType === 'consignment') {
+            $profitabilityBaseQuery->where('products.is_consignment', true);
+        } elseif ($productType === 'regular') {
+            $profitabilityBaseQuery->where('products.is_consignment', false);
+        }
+
+        $profitabilitySelect = [
+            'products.id',
+            'products.name',
+            'products.code',
+            'products.is_consignment',
+            DB::raw('SUM(transaction_items.quantity) as total_qty'),
+            DB::raw('SUM(transaction_items.subtotal) as total_sales'),
+            DB::raw("SUM(transaction_items.quantity * $costFormula) as total_cogs"),
+            DB::raw("SUM(transaction_items.subtotal - (transaction_items.quantity * $costFormula)) as total_profit"),
+            DB::raw("CASE WHEN SUM(transaction_items.subtotal) > 0 THEN (SUM(transaction_items.subtotal - (transaction_items.quantity * $costFormula)) / SUM(transaction_items.subtotal)) * 100 ELSE 0 END as margin_pct")
+        ];
+
+        $topProfitable = (clone $profitabilityBaseQuery)
+            ->select($profitabilitySelect)
+            ->groupBy('products.id', 'products.name', 'products.code', 'products.is_consignment')
+            ->orderByDesc('total_profit')
+            ->limit(20)
+            ->get();
+
+        $leastProfitable = (clone $profitabilityBaseQuery)
+            ->select($profitabilitySelect)
+            ->groupBy('products.id', 'products.name', 'products.code', 'products.is_consignment')
+            ->orderBy('total_profit', 'asc')
+            ->limit(20)
+            ->get();
+
         return view('reports.transactions', compact(
             'totalSales', 'totalTransactions', 'averageTransaction', 'pendingOrders',
             'totalMargin', 'marginPercentage', 'chartPeriod', 'chartData',
             'byPaymentMethod', 'dailySales', 'transactions', 'topProducts',
+            'topProfitable', 'leastProfitable',
             'startDate', 'endDate', 'type', 'status', 'productType',
             'posSales', 'posTrxCount', 'posPercentage',
             'onlineSales', 'onlineTrxCount', 'onlinePercentage',
