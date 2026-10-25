@@ -698,6 +698,10 @@ class PosController extends Controller
             abort(403);
         }
 
+        // Increase memory and execution time limits for large exports
+        ini_set('memory_limit', '1024M');
+        set_time_limit(300);
+
         $query = Transaction::with(['items.product', 'cashier'])->latest();
 
         // Filter by date range
@@ -806,10 +810,16 @@ class PosController extends Controller
         // Format amount columns
         $sheet->getStyle('G5:G' . $row)->getNumberFormat()->setFormatCode('#,##0');
 
-        // Auto-size columns
-        foreach (range('A', 'I') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
+        // Explicit column widths (zero memory footprint, avoids regex PCRE crash on large rows)
+        $sheet->getColumnDimension('A')->setWidth(8);
+        $sheet->getColumnDimension('B')->setWidth(20);
+        $sheet->getColumnDimension('C')->setWidth(18);
+        $sheet->getColumnDimension('D')->setWidth(25);
+        $sheet->getColumnDimension('E')->setWidth(12);
+        $sheet->getColumnDimension('F')->setWidth(12);
+        $sheet->getColumnDimension('G')->setWidth(18);
+        $sheet->getColumnDimension('H')->setWidth(16);
+        $sheet->getColumnDimension('I')->setWidth(20);
 
         // Add borders to data
         $sheet->getStyle('A4:I' . $row)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
@@ -1003,6 +1013,10 @@ class PosController extends Controller
             abort(403);
         }
 
+        // Increase memory and execution time limits for large exports
+        ini_set('memory_limit', '1024M');
+        set_time_limit(300);
+
         $query = \App\Models\TransactionItem::query()
             ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
             ->join('products', 'transaction_items.product_id', '=', 'products.id')
@@ -1038,8 +1052,6 @@ class PosController extends Controller
             $query->where('transactions.cashier_id', $request->cashier_id);
         }
 
-        $items = $query->get();
-
         // Create Excel file
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -1062,7 +1074,7 @@ class PosController extends Controller
         ];
 
         // Report Title
-        $sheet->mergeCells('A1:H1');
+        $sheet->mergeCells('A1:I1');
         $sheet->setCellValue('A1', 'LAPORAN DETAIL PRODUK TERJUAL');
         $sheet->getStyle('A1')->applyFromArray($titleStyle);
 
@@ -1072,12 +1084,11 @@ class PosController extends Controller
         if ($request->end_date) $filterInfo[] = "Sampai: " . Carbon::parse($request->end_date)->format('d/m/Y');
         if ($request->type) $filterInfo[] = "Tipe: " . ucfirst($request->type);
         
-        $sheet->mergeCells('A2:H2');
+        $sheet->mergeCells('A2:I2');
         $sheet->setCellValue('A2', empty($filterInfo) ? 'Semua Data - Diunduh: ' . date('d/m/Y H:i') : implode(' | ', $filterInfo) . ' | Diunduh: ' . date('d/m/Y H:i'));
         $sheet->getStyle('A2')->applyFromArray($subtitleStyle);
 
         // Column Headers
-        $headers = ['No', 'Tanggal', 'Invoice', 'Nama Produk', 'Kode/SKU', 'Kategori', 'Qty', 'Harga Satuan', 'Subtotal'];
         $col = 'A';
         foreach (['No', 'Tanggal', 'Invoice', 'Nama Produk', 'SKU', 'Kategori', 'Qty', 'Harga', 'Subtotal'] as $header) {
             $sheet->setCellValue($col . '4', $header);
@@ -1085,36 +1096,52 @@ class PosController extends Controller
         }
         $sheet->getStyle('A4:I4')->applyFromArray($headerStyle);
 
-        // Data
+        // Stream Data using chunk to preserve memory
         $row = 5;
-        foreach ($items as $index => $item) {
-            $sheet->setCellValue('A' . $row, $index + 1);
-            $sheet->setCellValue('B' . $row, Carbon::parse($item->transaction_date)->format('d/m/Y H:i'));
-            $sheet->setCellValue('C' . $row, $item->invoice_number);
-            $sheet->setCellValue('D' . $row, $item->product_name);
-            $sheet->setCellValue('E' . $row, $item->product_code);
-            $sheet->setCellValue('F' . $row, $item->category_name ?? '-');
-            $sheet->setCellValue('G' . $row, $item->quantity);
-            $sheet->setCellValue('H' . $row, $item->price);
-            $sheet->setCellValue('I' . $row, $item->subtotal);
-            $row++;
-        }
+        $index = 1;
+        $totalQty = 0;
+        $totalSubtotal = 0;
+
+        $query->chunk(1000, function ($items) use (&$sheet, &$row, &$index, &$totalQty, &$totalSubtotal) {
+            foreach ($items as $item) {
+                $sheet->setCellValue('A' . $row, $index++);
+                $sheet->setCellValue('B' . $row, Carbon::parse($item->transaction_date)->format('d/m/Y H:i'));
+                $sheet->setCellValue('C' . $row, $item->invoice_number);
+                $sheet->setCellValue('D' . $row, $item->product_name);
+                $sheet->setCellValue('E' . $row, $item->product_code);
+                $sheet->setCellValue('F' . $row, $item->category_name ?? '-');
+                $sheet->setCellValue('G' . $row, $item->quantity);
+                $sheet->setCellValue('H' . $row, $item->price);
+                $sheet->setCellValue('I' . $row, $item->subtotal);
+
+                $totalQty += $item->quantity;
+                $totalSubtotal += $item->subtotal;
+                $row++;
+            }
+        });
 
         // Totals
         $sheet->mergeCells('A' . $row . ':F' . $row);
         $sheet->setCellValue('A' . $row, 'TOTAL KESELURUHAN');
         $sheet->getStyle('A' . $row)->getFont()->setBold(true);
-        $sheet->setCellValue('G' . $row, $items->sum('quantity'));
-        $sheet->setCellValue('I' . $row, $items->sum('subtotal'));
+        $sheet->setCellValue('G' . $row, $totalQty);
+        $sheet->setCellValue('I' . $row, $totalSubtotal);
         $sheet->getStyle('G' . $row . ':I' . $row)->getFont()->setBold(true);
         $sheet->getStyle('A' . $row . ':I' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('F3F4F6');
 
         // Formats
         $sheet->getStyle('H5:I' . $row)->getNumberFormat()->setFormatCode('#,##0');
         
-        foreach (range('A', 'I') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
+        // Explicit Column Widths (Zero memory overhead, avoids regex PCRE crash on large rows)
+        $sheet->getColumnDimension('A')->setWidth(8);
+        $sheet->getColumnDimension('B')->setWidth(18);
+        $sheet->getColumnDimension('C')->setWidth(20);
+        $sheet->getColumnDimension('D')->setWidth(35);
+        $sheet->getColumnDimension('E')->setWidth(16);
+        $sheet->getColumnDimension('F')->setWidth(18);
+        $sheet->getColumnDimension('G')->setWidth(10);
+        $sheet->getColumnDimension('H')->setWidth(15);
+        $sheet->getColumnDimension('I')->setWidth(18);
 
         $filename = 'Detail_Produk_Terjual_' . date('Y-m-d_His') . '.xlsx';
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
