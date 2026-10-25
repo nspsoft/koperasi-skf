@@ -1025,8 +1025,13 @@ class PosController extends Controller
             ->select(
                 'transactions.created_at as transaction_date',
                 'transactions.invoice_number',
+                'transactions.type as transaction_type',
                 'products.name as product_name',
                 'products.code as product_code',
+                'products.is_consignment',
+                'products.consignment_price',
+                'products.cost as product_cost',
+                'products.conversion_factor',
                 'categories.name as category_name',
                 'transaction_items.quantity',
                 'transaction_items.price',
@@ -1074,8 +1079,8 @@ class PosController extends Controller
         ];
 
         // Report Title
-        $sheet->mergeCells('A1:I1');
-        $sheet->setCellValue('A1', 'LAPORAN DETAIL PRODUK TERJUAL');
+        $sheet->mergeCells('A1:O1');
+        $sheet->setCellValue('A1', 'LAPORAN DETAIL PRODUK TERJUAL & PROFIT');
         $sheet->getStyle('A1')->applyFromArray($titleStyle);
 
         // Filter Info
@@ -1084,64 +1089,117 @@ class PosController extends Controller
         if ($request->end_date) $filterInfo[] = "Sampai: " . Carbon::parse($request->end_date)->format('d/m/Y');
         if ($request->type) $filterInfo[] = "Tipe: " . ucfirst($request->type);
         
-        $sheet->mergeCells('A2:I2');
+        $sheet->mergeCells('A2:O2');
         $sheet->setCellValue('A2', empty($filterInfo) ? 'Semua Data - Diunduh: ' . date('d/m/Y H:i') : implode(' | ', $filterInfo) . ' | Diunduh: ' . date('d/m/Y H:i'));
         $sheet->getStyle('A2')->applyFromArray($subtitleStyle);
 
         // Column Headers
+        $headers = [
+            'No', 'Tanggal', 'Invoice', 'Kanal', 'Nama Produk', 'SKU / Barcode',
+            'Kategori', 'Tipe Barang', 'Qty', 'Harga Jual', 'Subtotal',
+            'HPP Pokok', 'Total HPP', 'Profit (Laba)', 'Margin (%)'
+        ];
         $col = 'A';
-        foreach (['No', 'Tanggal', 'Invoice', 'Nama Produk', 'SKU', 'Kategori', 'Qty', 'Harga', 'Subtotal'] as $header) {
+        foreach ($headers as $header) {
             $sheet->setCellValue($col . '4', $header);
             $col++;
         }
-        $sheet->getStyle('A4:I4')->applyFromArray($headerStyle);
+        $sheet->getStyle('A4:O4')->applyFromArray($headerStyle);
 
         // Stream Data using chunk to preserve memory
         $row = 5;
         $index = 1;
         $totalQty = 0;
         $totalSubtotal = 0;
+        $totalCost = 0;
+        $totalProfit = 0;
 
-        $query->chunk(1000, function ($items) use (&$sheet, &$row, &$index, &$totalQty, &$totalSubtotal) {
+        $query->chunk(1000, function ($items) use (&$sheet, &$row, &$index, &$totalQty, &$totalSubtotal, &$totalCost, &$totalProfit) {
             foreach ($items as $item) {
+                // Kanal (POS / Online)
+                $channel = ($item->transaction_type === 'online') ? 'Online' : 'Kasir (POS)';
+
+                // Tipe Produk
+                $isConsignment = (bool) $item->is_consignment;
+                $productTypeLabel = $isConsignment ? 'Konsinyasi' : 'Toko';
+
+                // Cost / HPP per unit
+                if ($isConsignment) {
+                    $costPerUnit = (float) ($item->consignment_price ?? $item->product_cost ?? 0);
+                } else {
+                    $costPerUnit = ($item->conversion_factor > 0) 
+                        ? ((float) $item->product_cost / (float) $item->conversion_factor) 
+                        : (float) $item->product_cost;
+                }
+
+                $itemTotalCost = round($costPerUnit * (float) $item->quantity, 2);
+                $itemProfit = (float) $item->subtotal - $itemTotalCost;
+                $itemMarginRatio = ((float) $item->subtotal > 0) ? ($itemProfit / (float) $item->subtotal) : 0;
+
+                // Write Cells
                 $sheet->setCellValue('A' . $row, $index++);
                 $sheet->setCellValue('B' . $row, Carbon::parse($item->transaction_date)->format('d/m/Y H:i'));
                 $sheet->setCellValue('C' . $row, $item->invoice_number);
-                $sheet->setCellValue('D' . $row, $item->product_name);
-                $sheet->setCellValue('E' . $row, $item->product_code);
-                $sheet->setCellValue('F' . $row, $item->category_name ?? '-');
-                $sheet->setCellValue('G' . $row, $item->quantity);
-                $sheet->setCellValue('H' . $row, $item->price);
-                $sheet->setCellValue('I' . $row, $item->subtotal);
+                $sheet->setCellValue('D' . $row, $channel);
+                $sheet->setCellValue('E' . $row, $item->product_name);
 
-                $totalQty += $item->quantity;
-                $totalSubtotal += $item->subtotal;
+                // SKU formatted explicitly as text to prevent scientific notation (e.g. 8.99E+12)
+                $sheet->setCellValueExplicit('F' . $row, (string) ($item->product_code ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+
+                $sheet->setCellValue('G' . $row, $item->category_name ?? '-');
+                $sheet->setCellValue('H' . $row, $productTypeLabel);
+                $sheet->setCellValue('I' . $row, (float) $item->quantity);
+                $sheet->setCellValue('J' . $row, (float) $item->price);
+                $sheet->setCellValue('K' . $row, (float) $item->subtotal);
+                $sheet->setCellValue('L' . $row, $costPerUnit);
+                $sheet->setCellValue('M' . $row, $itemTotalCost);
+                $sheet->setCellValue('N' . $row, $itemProfit);
+                $sheet->setCellValue('O' . $row, $itemMarginRatio);
+
+                $totalQty += (float) $item->quantity;
+                $totalSubtotal += (float) $item->subtotal;
+                $totalCost += $itemTotalCost;
+                $totalProfit += $itemProfit;
                 $row++;
             }
         });
 
-        // Totals
-        $sheet->mergeCells('A' . $row . ':F' . $row);
+        // Totals Row
+        $sheet->mergeCells('A' . $row . ':H' . $row);
         $sheet->setCellValue('A' . $row, 'TOTAL KESELURUHAN');
         $sheet->getStyle('A' . $row)->getFont()->setBold(true);
-        $sheet->setCellValue('G' . $row, $totalQty);
-        $sheet->setCellValue('I' . $row, $totalSubtotal);
-        $sheet->getStyle('G' . $row . ':I' . $row)->getFont()->setBold(true);
-        $sheet->getStyle('A' . $row . ':I' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('F3F4F6');
+        $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        $sheet->setCellValue('I' . $row, $totalQty);
+        $sheet->setCellValue('K' . $row, $totalSubtotal);
+        $sheet->setCellValue('M' . $row, $totalCost);
+        $sheet->setCellValue('N' . $row, $totalProfit);
+        $sheet->setCellValue('O' . $row, ($totalSubtotal > 0) ? ($totalProfit / $totalSubtotal) : 0);
+
+        $sheet->getStyle('I' . $row . ':O' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('A' . $row . ':O' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('F3F4F6');
 
         // Formats
-        $sheet->getStyle('H5:I' . $row)->getNumberFormat()->setFormatCode('#,##0');
-        
+        $sheet->getStyle('I5:I' . $row)->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle('J5:N' . $row)->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle('O5:O' . $row)->getNumberFormat()->setFormatCode('0.0%');
+
         // Explicit Column Widths (Zero memory overhead, avoids regex PCRE crash on large rows)
-        $sheet->getColumnDimension('A')->setWidth(8);
-        $sheet->getColumnDimension('B')->setWidth(18);
-        $sheet->getColumnDimension('C')->setWidth(20);
-        $sheet->getColumnDimension('D')->setWidth(35);
-        $sheet->getColumnDimension('E')->setWidth(16);
-        $sheet->getColumnDimension('F')->setWidth(18);
-        $sheet->getColumnDimension('G')->setWidth(10);
-        $sheet->getColumnDimension('H')->setWidth(15);
-        $sheet->getColumnDimension('I')->setWidth(18);
+        $sheet->getColumnDimension('A')->setWidth(7);   // No
+        $sheet->getColumnDimension('B')->setWidth(18);  // Tanggal
+        $sheet->getColumnDimension('C')->setWidth(20);  // Invoice
+        $sheet->getColumnDimension('D')->setWidth(14);  // Kanal
+        $sheet->getColumnDimension('E')->setWidth(35);  // Nama Produk
+        $sheet->getColumnDimension('F')->setWidth(18);  // SKU
+        $sheet->getColumnDimension('G')->setWidth(18);  // Kategori
+        $sheet->getColumnDimension('H')->setWidth(14);  // Tipe Barang
+        $sheet->getColumnDimension('I')->setWidth(10);  // Qty
+        $sheet->getColumnDimension('J')->setWidth(15);  // Harga Jual
+        $sheet->getColumnDimension('K')->setWidth(18);  // Subtotal
+        $sheet->getColumnDimension('L')->setWidth(15);  // HPP Pokok
+        $sheet->getColumnDimension('M')->setWidth(18);  // Total HPP
+        $sheet->getColumnDimension('N')->setWidth(18);  // Profit
+        $sheet->getColumnDimension('O')->setWidth(14);  // Margin %
 
         $filename = 'Detail_Produk_Terjual_' . date('Y-m-d_His') . '.xlsx';
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
