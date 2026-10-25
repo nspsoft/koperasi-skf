@@ -20,7 +20,7 @@
 
     <!-- Filter -->
     <div class="glass-card-solid p-6 mb-6">
-        <form method="GET" action="{{ route('reports.transactions') }}" id="reportFilterForm" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
+        <form method="GET" action="{{ route('reports.transactions') }}" id="reportFilterForm" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 items-end">
             <input type="hidden" name="chart_period" id="chartPeriodInput" value="{{ request('chart_period', $chartPeriod ?? 'daily') }}">
              <div>
                 <label class="form-label">Tanggal Mulai</label>
@@ -36,6 +36,14 @@
                     <option value="">Semua Tipe</option>
                     <option value="pos" {{ request('type') == 'pos' ? 'selected' : '' }}>POS (Kasir)</option>
                     <option value="online" {{ request('type') == 'online' ? 'selected' : '' }}>Online Shop</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Jenis Produk</label>
+                <select name="product_type" class="form-input">
+                    <option value="">Semua Produk</option>
+                    <option value="regular" {{ request('product_type', $productType ?? '') == 'regular' ? 'selected' : '' }}>Milik Koperasi</option>
+                    <option value="consignment" {{ request('product_type', $productType ?? '') == 'consignment' ? 'selected' : '' }}>Konsinyasi (Titipan)</option>
                 </select>
             </div>
             <div>
@@ -108,6 +116,135 @@
         </div>
     </div>
 
+    <!-- Breakdown Comparisons: Channel (POS vs Online) & Product Type (Consignment vs Regular) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- 1. Channel Comparison (POS vs Online) -->
+        <div class="glass-card-solid p-6 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white">Kanal Penjualan (Kasir vs Online)</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Distribusi omzet kasir fisik (POS) dan toko online</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                @php $totalChannel = $posSales + $onlineSales; @endphp
+                <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3 overflow-hidden flex my-4">
+                    <div class="bg-emerald-500 h-full transition-all duration-500" style="width: {{ $posPercentage }}%" title="Kasir POS: {{ number_format($posPercentage, 1) }}%"></div>
+                    <div class="bg-blue-500 h-full transition-all duration-500" style="width: {{ $onlinePercentage }}%" title="Online Shop: {{ number_format($onlinePercentage, 1) }}%"></div>
+                </div>
+
+                <!-- Sub-cards -->
+                <div class="grid grid-cols-2 gap-3 mt-4">
+                    <!-- POS -->
+                    <div class="p-3.5 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Kasir (POS)
+                            </span>
+                            <span class="text-xs font-bold text-emerald-700 dark:text-emerald-400">{{ number_format($posPercentage, 1) }}%</span>
+                        </div>
+                        <p class="text-lg font-bold text-gray-900 dark:text-white">Rp {{ number_format($posSales, 0, ',', '.') }}</p>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{{ number_format($posTrxCount) }} transaksi selesai</p>
+                    </div>
+
+                    <!-- Online Shop -->
+                    <div class="p-3.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-blue-500"></span> Online Shop
+                            </span>
+                            <span class="text-xs font-bold text-blue-700 dark:text-blue-400">{{ number_format($onlinePercentage, 1) }}%</span>
+                        </div>
+                        <p class="text-lg font-bold text-gray-900 dark:text-white">Rp {{ number_format($onlineSales, 0, ',', '.') }}</p>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{{ number_format($onlineTrxCount) }} transaksi selesai</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Product Ownership Comparison (Consignment vs Regular) -->
+        <div class="glass-card-solid p-6 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white">Barang Toko vs Konsinyasi</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Perbandingan produk milik koperasi vs barang titipan</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                @php $totalProduct = $regularSales + $consignmentSales; @endphp
+                <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3 overflow-hidden flex my-4">
+                    <div class="bg-indigo-500 h-full transition-all duration-500" style="width: {{ $regularPercentage }}%" title="Barang Toko: {{ number_format($regularPercentage, 1) }}%"></div>
+                    <div class="bg-amber-500 h-full transition-all duration-500" style="width: {{ $consignmentPercentage }}%" title="Konsinyasi: {{ number_format($consignmentPercentage, 1) }}%"></div>
+                </div>
+
+                <!-- Sub-cards -->
+                <div class="grid grid-cols-2 gap-3 mt-4">
+                    <!-- Regular / Store -->
+                    <div class="p-3.5 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-semibold text-indigo-800 dark:text-indigo-300 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-indigo-500"></span> Milik Koperasi
+                            </span>
+                            <span class="text-xs font-bold text-indigo-700 dark:text-indigo-400">{{ number_format($regularPercentage, 1) }}%</span>
+                        </div>
+                        <p class="text-lg font-bold text-gray-900 dark:text-white">Rp {{ number_format($regularSales, 0, ',', '.') }}</p>
+                        <div class="mt-2 pt-2 border-t border-indigo-100/80 dark:border-indigo-900/40 text-[11px] space-y-0.5">
+                            <div class="flex justify-between text-gray-500 dark:text-gray-400">
+                                <span>HPP Pokok:</span>
+                                <span>Rp {{ number_format($regularCogs, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="flex justify-between font-semibold text-emerald-600 dark:text-emerald-400">
+                                <span>Laba Toko:</span>
+                                <span>Rp {{ number_format($regularMargin, 0, ',', '.') }} ({{ number_format($regularMarginPercent, 1) }}%)</span>
+                            </div>
+                            <div class="text-[10px] text-gray-400 pt-0.5">{{ number_format($regularQty) }} item terjual</div>
+                        </div>
+                    </div>
+
+                    <!-- Consignment -->
+                    <div class="p-3.5 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-amber-500"></span> Konsinyasi (Titipan)
+                            </span>
+                            <span class="text-xs font-bold text-amber-700 dark:text-amber-400">{{ number_format($consignmentPercentage, 1) }}%</span>
+                        </div>
+                        <p class="text-lg font-bold text-gray-900 dark:text-white">Rp {{ number_format($consignmentSales, 0, ',', '.') }}</p>
+                        <div class="mt-2 pt-2 border-t border-amber-100/80 dark:border-amber-900/40 text-[11px] space-y-0.5">
+                            <div class="flex justify-between text-gray-500 dark:text-gray-400">
+                                <span>Hak Supplier:</span>
+                                <span>Rp {{ number_format($consignmentPayable, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="flex justify-between font-semibold text-emerald-600 dark:text-emerald-400">
+                                <span>Laba Koperasi:</span>
+                                <span>Rp {{ number_format($consignmentMargin, 0, ',', '.') }} ({{ number_format($consignmentMarginPercent, 1) }}%)</span>
+                            </div>
+                            <div class="text-[10px] text-gray-400 pt-0.5">{{ number_format($consignmentQty) }} item terjual</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <!-- Payment Method Distribution -->
         <div class="glass-card-solid p-6">
@@ -155,7 +292,20 @@
                         <tr class="border-b border-gray-100 dark:border-gray-700/50">
                             <td class="py-2 px-2 text-gray-500">{{ $index + 1 }}</td>
                             <td class="py-2 px-2 font-mono text-xs">{{ $product->code }}</td>
-                            <td class="py-2 px-2 font-medium text-gray-900 dark:text-white">{{ $product->name }}</td>
+                            <td class="py-2 px-2 font-medium text-gray-900 dark:text-white">
+                                <div class="flex items-center gap-2">
+                                    <span class="truncate max-w-[180px] sm:max-w-xs" title="{{ $product->name }}">{{ $product->name }}</span>
+                                    @if($product->is_consignment)
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex-shrink-0">
+                                        Konsinyasi
+                                    </span>
+                                    @else
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 flex-shrink-0">
+                                        Toko
+                                    </span>
+                                    @endif
+                                </div>
+                            </td>
                             <td class="py-2 px-2 text-right">{{ number_format($product->total_qty) }}</td>
                             <td class="py-2 px-2 text-right font-medium">Rp {{ number_format($product->total_sales, 0, ',', '.') }}</td>
                         </tr>

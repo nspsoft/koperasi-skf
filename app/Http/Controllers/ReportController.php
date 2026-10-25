@@ -590,6 +590,7 @@ class ReportController extends Controller
         $endDate = $request->end_date ? Carbon::parse($request->end_date) : Carbon::now()->endOfDay();
         $type = $request->type; // pos, online, or all
         $status = $request->status;
+        $productType = $request->product_type; // all, consignment, regular
         $chartPeriod = $request->get('chart_period', 'daily');
 
         // Base Query
@@ -601,11 +602,33 @@ class ReportController extends Controller
         if ($status) {
             $query->where('status', $status);
         }
+        if ($productType === 'consignment') {
+            $query->whereHas('items.product', fn($q) => $q->where('is_consignment', true));
+        } elseif ($productType === 'regular') {
+            $query->whereHas('items.product', fn($q) => $q->where('is_consignment', false));
+        }
 
         // 1. Summary Stats
         $salesQuery = (clone $query)->whereIn('status', ['completed', 'paid', 'delivered', 'credit']);
         $totalSales = $salesQuery->sum('total_amount');
         $totalTransactions = $salesQuery->count();
+
+        // If filtering by product type, calculate totalSales from matching items
+        if ($productType === 'consignment' || $productType === 'regular') {
+            $isConsignment = $productType === 'consignment';
+            $itemsSalesQuery = DB::table('transaction_items')
+                ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+                ->join('products', 'transaction_items.product_id', '=', 'products.id')
+                ->whereBetween('transactions.created_at', [$startDate, $endDate])
+                ->whereIn('transactions.status', ['completed', 'paid', 'delivered', 'credit'])
+                ->where('products.is_consignment', $isConsignment);
+
+            if ($type) {
+                $itemsSalesQuery->where('transactions.type', $type);
+            }
+            $totalSales = (float) $itemsSalesQuery->sum('transaction_items.subtotal');
+        }
+
         $averageTransaction = $totalTransactions > 0 ? $totalSales / $totalTransactions : 0;
 
         // Total COGS and Margin Calculation
@@ -618,10 +641,81 @@ class ReportController extends Controller
         if ($type) {
             $cogsQuery->where('transactions.type', $type);
         }
+        if ($productType === 'consignment') {
+            $cogsQuery->where('products.is_consignment', true);
+        } elseif ($productType === 'regular') {
+            $cogsQuery->where('products.is_consignment', false);
+        }
 
-        $totalCogs = (float) $cogsQuery->sum(DB::raw('transaction_items.quantity * (CASE WHEN products.conversion_factor > 0 THEN products.cost / products.conversion_factor ELSE products.cost END)'));
+        $totalCogs = (float) $cogsQuery->sum(DB::raw('transaction_items.quantity * (CASE 
+            WHEN products.is_consignment = 1 THEN COALESCE(products.consignment_price, products.cost, 0)
+            WHEN products.conversion_factor > 0 THEN products.cost / products.conversion_factor 
+            ELSE products.cost 
+        END)'));
         $totalMargin = $totalSales - $totalCogs;
         $marginPercentage = $totalSales > 0 ? ($totalMargin / $totalSales) * 100 : 0;
+
+        // Channel Breakdown (POS vs Online)
+        $channelStats = DB::table('transactions')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->whereIn('status', ['completed', 'paid', 'delivered', 'credit'])
+            ->select('type', DB::raw('COUNT(*) as total_trx'), DB::raw('SUM(total_amount) as total_sales'))
+            ->groupBy('type')
+            ->get()
+            ->keyBy('type');
+
+        $posSales = (float) ($channelStats->get('pos')->total_sales ?? 0);
+        $posTrxCount = (int) ($channelStats->get('pos')->total_trx ?? 0);
+        $onlineSales = (float) ($channelStats->get('online')->total_sales ?? 0);
+        $onlineTrxCount = (int) ($channelStats->get('online')->total_trx ?? 0);
+        $channelTotalSales = $posSales + $onlineSales;
+        $posPercentage = $channelTotalSales > 0 ? ($posSales / $channelTotalSales) * 100 : 0;
+        $onlinePercentage = $channelTotalSales > 0 ? ($onlineSales / $channelTotalSales) * 100 : 0;
+
+        // Consignment vs Regular Products breakdown
+        $productTypeStatsQuery = DB::table('transaction_items')
+            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_items.product_id', '=', 'products.id')
+            ->whereBetween('transactions.created_at', [$startDate, $endDate])
+            ->whereIn('transactions.status', ['completed', 'paid', 'delivered', 'credit']);
+
+        if ($type) {
+            $productTypeStatsQuery->where('transactions.type', $type);
+        }
+
+        $productTypeStats = (clone $productTypeStatsQuery)
+            ->select(
+                'products.is_consignment',
+                DB::raw('SUM(transaction_items.subtotal) as total_sales'),
+                DB::raw('SUM(transaction_items.quantity) as total_qty'),
+                DB::raw('SUM(CASE 
+                    WHEN products.is_consignment = 1 THEN transaction_items.quantity * COALESCE(products.consignment_price, products.cost, 0)
+                    WHEN products.conversion_factor > 0 THEN transaction_items.quantity * (products.cost / products.conversion_factor)
+                    ELSE transaction_items.quantity * products.cost 
+                END) as total_cogs')
+            )
+            ->groupBy('products.is_consignment')
+            ->get()
+            ->keyBy('is_consignment');
+
+        $regularRow = $productTypeStats->get(0);
+        $consignmentRow = $productTypeStats->get(1);
+
+        $regularSales = (float) ($regularRow->total_sales ?? 0);
+        $regularQty = (float) ($regularRow->total_qty ?? 0);
+        $regularCogs = (float) ($regularRow->total_cogs ?? 0);
+        $regularMargin = $regularSales - $regularCogs;
+        $regularMarginPercent = $regularSales > 0 ? ($regularMargin / $regularSales) * 100 : 0;
+
+        $consignmentSales = (float) ($consignmentRow->total_sales ?? 0);
+        $consignmentQty = (float) ($consignmentRow->total_qty ?? 0);
+        $consignmentPayable = (float) ($consignmentRow->total_cogs ?? 0); // Hak pemilik konsinyasi
+        $consignmentMargin = $consignmentSales - $consignmentPayable; // Keuntungan koperasi dari konsinyasi
+        $consignmentMarginPercent = $consignmentSales > 0 ? ($consignmentMargin / $consignmentSales) * 100 : 0;
+
+        $productTotalSales = $regularSales + $consignmentSales;
+        $regularPercentage = $productTotalSales > 0 ? ($regularSales / $productTotalSales) * 100 : 0;
+        $consignmentPercentage = $productTotalSales > 0 ? ($consignmentSales / $productTotalSales) * 100 : 0;
         
         // Pending/Processing Orders
         $pendingOrders = (clone $query)->whereIn('status', ['pending', 'processing'])->count();
@@ -702,15 +796,26 @@ class ReportController extends Controller
             ->paginate(20);
 
         // 5. Top Selling Products
-        $topProducts = DB::table('transaction_items')
+        $topProductsQuery = DB::table('transaction_items')
             ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
             ->join('products', 'transaction_items.product_id', '=', 'products.id')
             ->whereBetween('transactions.created_at', [$startDate, $endDate])
-            ->whereIn('transactions.status', ['completed', 'paid', 'delivered', 'credit'])
-            ->select('products.name', 'products.code', 
+            ->whereIn('transactions.status', ['completed', 'paid', 'delivered', 'credit']);
+
+        if ($type) {
+            $topProductsQuery->where('transactions.type', $type);
+        }
+        if ($productType === 'consignment') {
+            $topProductsQuery->where('products.is_consignment', true);
+        } elseif ($productType === 'regular') {
+            $topProductsQuery->where('products.is_consignment', false);
+        }
+
+        $topProducts = $topProductsQuery
+            ->select('products.name', 'products.code', 'products.is_consignment',
                 DB::raw('sum(transaction_items.quantity) as total_qty'),
                 DB::raw('sum(transaction_items.subtotal) as total_sales'))
-            ->groupBy('products.id', 'products.name', 'products.code')
+            ->groupBy('products.id', 'products.name', 'products.code', 'products.is_consignment')
             ->orderByDesc('total_qty')
             ->limit(10)
             ->get();
@@ -719,7 +824,11 @@ class ReportController extends Controller
             'totalSales', 'totalTransactions', 'averageTransaction', 'pendingOrders',
             'totalMargin', 'marginPercentage', 'chartPeriod', 'chartData',
             'byPaymentMethod', 'dailySales', 'transactions', 'topProducts',
-            'startDate', 'endDate', 'type', 'status'
+            'startDate', 'endDate', 'type', 'status', 'productType',
+            'posSales', 'posTrxCount', 'posPercentage',
+            'onlineSales', 'onlineTrxCount', 'onlinePercentage',
+            'regularSales', 'regularQty', 'regularCogs', 'regularMargin', 'regularMarginPercent', 'regularPercentage',
+            'consignmentSales', 'consignmentQty', 'consignmentPayable', 'consignmentMargin', 'consignmentMarginPercent', 'consignmentPercentage'
         ));
     }
 
