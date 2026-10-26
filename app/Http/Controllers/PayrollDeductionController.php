@@ -10,6 +10,7 @@ use App\Models\Setting;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -94,9 +95,16 @@ class PayrollDeductionController extends Controller
             ->pluck(DB::raw('SUM(total_amount - paid_amount) as total_amount'), 'user_id');
 
         // 3. Pre-fetch External Deductions (Toko AMIGO) for this period
-        $amigoDeductions = PayrollExternalDeduction::where('period', $period)
-            ->where('source', 'amigo')
-            ->get();
+        $amigoDeductions = collect([]);
+        try {
+            if (Schema::hasTable('payroll_external_deductions')) {
+                $amigoDeductions = PayrollExternalDeduction::where('period', $period)
+                    ->where('source', 'amigo')
+                    ->get();
+            }
+        } catch (\Throwable $e) {
+            \Log::warning("payroll_external_deductions table check failed: " . $e->getMessage());
+        }
 
         // Map normalized employee_id => amount
         $amigoMap = [];
@@ -220,6 +228,10 @@ class PayrollDeductionController extends Controller
 
         $period = $request->period;
         $file = $request->file('file');
+
+        if (!Schema::hasTable('payroll_external_deductions')) {
+            return redirect()->back()->with('error', 'Tabel database payroll_external_deductions belum aktif. Silakan buka /run-migrate?key=skf123 terlebih dahulu untuk menjalankan migrasi.');
+        }
 
         try {
             $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getRealPath());
