@@ -326,6 +326,21 @@
                 <div x-show="memberData && Math.max(0, cartTotalAmount - (discountAmount || 0)) > (memberData?.credit_available || 0)" class="mt-2 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-600 dark:text-red-400">
                     {{ __('messages.pos.insufficient_credit') }} {{ __('messages.pos.available') }}: <span x-text="formatRupiah(memberData?.credit_available || 0)"></span>
                 </div>
+                <!-- Optional Tenor Selection -->
+                <div class="mt-2.5 pt-2 border-t border-orange-200 dark:border-orange-800/60">
+                    <label class="block text-xs font-semibold text-orange-800 dark:text-orange-300 mb-1">Tenor Cicilan:</label>
+                    <select x-model="creditTenor" class="form-input !py-1 text-xs w-full bg-white dark:bg-gray-800 border-orange-300 dark:border-orange-700 text-gray-800 dark:text-gray-200">
+                        <option value="">1 Bulan (Tempo Standar)</option>
+                        <option value="2">2 Bulan</option>
+                        <option value="3">3 Bulan</option>
+                        <option value="6">6 Bulan</option>
+                        <option value="12">12 Bulan</option>
+                    </select>
+                    <div x-show="creditTenor && creditTenor > 1" class="text-[11px] text-orange-700 dark:text-orange-400 mt-1 flex justify-between">
+                        <span>Angsuran per bulan:</span>
+                        <span class="font-bold" x-text="formatRupiah(Math.round(Math.max(0, cartTotalAmount - (discountAmount || 0)) / (creditTenor || 1)))"></span>
+                    </div>
+                </div>
             </div>
 
             <!-- Saldo Warning -->
@@ -338,6 +353,45 @@
                     {{ __('messages.pos.balance_note') }}
                 </div>
             </div>
+
+            <!-- Backdate Control (Admin & Pengurus Only) -->
+            @if(in_array(auth()->user()->role, ['admin', 'pengurus']))
+            <div class="border border-amber-200 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl p-3 text-xs space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer font-semibold text-amber-900 dark:text-amber-200 select-none">
+                        <input type="checkbox" x-model="isBackdate" 
+                               class="rounded border-amber-300 text-amber-600 focus:ring-amber-500 size-4">
+                        <span>🗓️ Transaksi Susulan (Backdate)</span>
+                    </label>
+                    <span x-show="isBackdate" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
+                        Admin / Pengurus
+                    </span>
+                </div>
+
+                <div x-show="isBackdate" x-transition class="space-y-2 pt-1 border-t border-amber-200/60 dark:border-amber-800/40">
+                    <div>
+                        <label class="block text-[11px] font-medium text-amber-800 dark:text-amber-300 mb-1">
+                            Tanggal Transaksi Riil <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="date" x-model="backdateDate" 
+                               max="{{ now()->toDateString() }}" 
+                               min="{{ now()->subDays(60)->toDateString() }}"
+                               class="form-input !py-1.5 text-xs bg-white dark:bg-gray-800 w-full border-amber-300 dark:border-amber-700 text-gray-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-amber-800 dark:text-amber-300 mb-1">
+                            No. Nota Fisik / Alasan Backdate <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="text" x-model="backdateReason" 
+                               placeholder="Contoh: Nota Manual #1029 / Keterlambatan input" 
+                               class="form-input !py-1.5 text-xs bg-white dark:bg-gray-800 w-full border-amber-300 dark:border-amber-700 text-gray-900 dark:text-white">
+                    </div>
+                    <p class="text-[10px] text-amber-700 dark:text-amber-400 leading-tight">
+                        ⚠️ Tanggal transaksi & jurnal pembukuan akan dicatat pada tanggal ini dan terekam di <strong>Audit Log</strong>.
+                    </p>
+                </div>
+            </div>
+            @endif
 
             <!-- Pay Button -->
             <button @click="processPayment()" 
@@ -557,6 +611,10 @@ document.addEventListener('alpine:init', () => {
         paymentMethod: 'cash',
         paidAmount: 0,
         discountAmount: 0,
+        creditTenor: '',
+        isBackdate: false,
+        backdateDate: '{{ now()->toDateString() }}',
+        backdateReason: '',
         processing: false,
         processedImageId: null,
 
@@ -925,6 +983,18 @@ document.addEventListener('alpine:init', () => {
             const discount = parseFloat(this.discountAmount || 0);
             const total = Math.max(0, this.cartTotalAmount - discount);
 
+            // Backdate validation
+            if (this.isBackdate) {
+                if (!this.backdateDate) {
+                    alert('Silakan tentukan tanggal transaksi backdate.');
+                    return;
+                }
+                if (!this.backdateReason || this.backdateReason.trim().length < 5) {
+                    alert('Nomor nota fisik / alasan transaksi backdate wajib diisi (minimal 5 karakter).');
+                    return;
+                }
+            }
+
             // If method is QRIS and not yet confirmed, show the modal first
             if (this.paymentMethod === 'qris' && !isQrisConfirmed) {
                 this.showQris();
@@ -948,7 +1018,10 @@ document.addEventListener('alpine:init', () => {
                     paid_amount: paid,
                     discount: discount,
                     buyer_type: this.buyerType,
-                    member_id: this.buyerType === 'member' ? this.memberData?.id : null
+                    member_id: this.buyerType === 'member' ? this.memberData?.id : null,
+                    credit_tenor_months: this.paymentMethod === 'kredit' && this.creditTenor ? parseInt(this.creditTenor) : null,
+                    transaction_date: this.isBackdate ? this.backdateDate : null,
+                    backdate_reason: this.isBackdate ? this.backdateReason : null,
                 })
             })
             .then(r => r.json())
@@ -958,7 +1031,7 @@ document.addEventListener('alpine:init', () => {
                     Alpine.store('receipt').data = {
                         id: data.transaction_id,
                         invoice: data.invoice,
-                        date: new Date().toLocaleString('id-ID'),
+                        date: data.transaction_date || new Date().toLocaleString('id-ID'),
                         cashier: '{{ auth()->user()->name }}',
                         buyer: this.buyerType === 'member' ? this.memberData?.name : '{{ __('messages.pos.general') }}',
                         method: this.paymentMethod,
@@ -973,6 +1046,10 @@ document.addEventListener('alpine:init', () => {
                     this.cart = [];
                     this.paidAmount = 0;
                     this.discountAmount = 0;
+                    this.creditTenor = '';
+                    this.isBackdate = false;
+                    this.backdateDate = '{{ now()->toDateString() }}';
+                    this.backdateReason = '';
                     this.memberId = '';
                     this.memberData = null;
                     this.memberMatches = [];

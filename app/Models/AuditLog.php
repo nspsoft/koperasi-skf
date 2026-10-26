@@ -93,6 +93,7 @@ class AuditLog extends Model
             'logout' => 'secondary',
             'approve' => 'success',
             'reject' => 'danger',
+            'backdate_transaction', 'backdate_manual_journal' => 'warning',
             default => 'secondary',
         };
     }

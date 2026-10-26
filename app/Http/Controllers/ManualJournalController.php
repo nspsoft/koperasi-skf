@@ -55,14 +55,35 @@ class ManualJournalController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'transaction_date' => 'required|date',
+            'transaction_date' => 'required|date|before_or_equal:today',
             'description' => 'required|string',
             'lines' => 'required|array|min:2',
             'lines.*.account_code' => 'required|exists:accounts,code',
             'lines.*.debit' => 'nullable|numeric|min:0',
             'lines.*.credit' => 'nullable|numeric|min:0',
             'lines.*.description' => 'nullable|string',
+        ], [
+            'transaction_date.before_or_equal' => 'Tanggal transaksi tidak boleh melebihi hari ini.',
         ]);
+
+        $parsedDate = \Carbon\Carbon::parse($request->transaction_date)->startOfDay();
+        $today = now()->startOfDay();
+        $isBackdate = $parsedDate->lt($today);
+
+        if ($isBackdate) {
+            $user = auth()->user();
+            if (!$user || !in_array($user->role, ['admin', 'pengurus'])) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Akses ditolak: Hanya Admin dan Pengurus yang berwenang menginput Jurnal Manual bertanggal lampau (backdate).');
+            }
+
+            if ($parsedDate->lt(now()->subDays(60)->startOfDay())) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Tanggal jurnal manual maksimal 60 hari ke belakang.');
+            }
+        }
 
         $totalDebit = 0;
         $totalCredit = 0;
@@ -132,6 +153,25 @@ class ManualJournalController extends Controller
                 ]);
             }
 
+            if ($isBackdate) {
+                \App\Models\AuditLog::log(
+                    'backdate_manual_journal',
+                    "Jurnal Manual Backdate ({$journal->journal_number}) senilai Rp " . number_format($totalDebit, 0, ',', '.') . 
+                    " untuk tanggal {$parsedDate->format('d/m/Y')} diinput oleh " . auth()->user()->name . 
+                    ". Ket: {$request->description}",
+                    $journal,
+                    null,
+                    [
+                        'journal_number' => $journal->journal_number,
+                        'transaction_date' => $parsedDate->toDateString(),
+                        'system_input_date' => now()->toDateTimeString(),
+                        'total_debit' => $totalDebit,
+                        'total_credit' => $totalCredit,
+                        'description' => $request->description,
+                    ]
+                );
+            }
+
             DB::commit();
 
             return redirect()->route('journals.index')
@@ -190,14 +230,35 @@ class ManualJournalController extends Controller
         }
 
         $request->validate([
-            'transaction_date' => 'required|date',
+            'transaction_date' => 'required|date|before_or_equal:today',
             'description' => 'required|string',
             'lines' => 'required|array|min:2',
             'lines.*.account_code' => 'required|exists:accounts,code',
             'lines.*.debit' => 'nullable|numeric|min:0',
             'lines.*.credit' => 'nullable|numeric|min:0',
             'lines.*.description' => 'nullable|string',
+        ], [
+            'transaction_date.before_or_equal' => 'Tanggal transaksi tidak boleh melebihi hari ini.',
         ]);
+
+        $parsedDate = \Carbon\Carbon::parse($request->transaction_date)->startOfDay();
+        $today = now()->startOfDay();
+        $isBackdate = $parsedDate->lt($today);
+
+        if ($isBackdate) {
+            $user = auth()->user();
+            if (!$user || !in_array($user->role, ['admin', 'pengurus'])) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Akses ditolak: Hanya Admin dan Pengurus yang berwenang menginput Jurnal Manual bertanggal lampau (backdate).');
+            }
+
+            if ($parsedDate->lt(now()->subDays(60)->startOfDay())) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Tanggal jurnal manual maksimal 60 hari ke belakang.');
+            }
+        }
 
         $totalDebit = 0;
         $totalCredit = 0;
@@ -255,6 +316,25 @@ class ManualJournalController extends Controller
                     'credit' => $entry['credit'],
                     'description' => $entry['description']
                 ]);
+            }
+
+            if ($isBackdate) {
+                \App\Models\AuditLog::log(
+                    'backdate_manual_journal',
+                    "Jurnal Manual Backdate ({$journal->journal_number}) senilai Rp " . number_format($totalDebit, 0, ',', '.') . 
+                    " untuk tanggal {$parsedDate->format('d/m/Y')} diinput oleh " . auth()->user()->name . 
+                    ". Ket: {$request->description}",
+                    $journal,
+                    null,
+                    [
+                        'journal_number' => $journal->journal_number,
+                        'transaction_date' => $parsedDate->toDateString(),
+                        'system_input_date' => now()->toDateTimeString(),
+                        'total_debit' => $totalDebit,
+                        'total_credit' => $totalCredit,
+                        'description' => $request->description,
+                    ]
+                );
             }
 
             DB::commit();

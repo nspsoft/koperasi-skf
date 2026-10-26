@@ -177,7 +177,6 @@
                             <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Bayar saat ambil pesanan</span>
                         </label>
                     </div>
-                 </div>
 
                     <div x-show="selectedMethod === 'kredit'" x-transition class="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
                         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Tenor Kredit</label>

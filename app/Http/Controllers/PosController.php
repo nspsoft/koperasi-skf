@@ -33,10 +33,50 @@ class PosController extends Controller
             'payment_method' => 'required|string',
             'paid_amount' => 'required|numeric|min:0',
             'discount' => 'nullable|numeric|min:0',
+            'transaction_date' => 'nullable|date',
+            'backdate_reason' => 'nullable|string',
         ]);
 
+        $isBackdate = false;
+        $transactionDate = now();
+        $backdateReason = null;
+
+        if ($request->filled('transaction_date')) {
+            $parsedDate = \Carbon\Carbon::parse($request->transaction_date)->startOfDay();
+            $today = now()->startOfDay();
+
+            if ($parsedDate->lt($today)) {
+                $user = auth()->user();
+                if (!$user || !in_array($user->role, ['admin', 'pengurus'])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Akses ditolak: Hanya Admin dan Pengurus yang berwenang melakukan transaksi backdate.'
+                    ], 403);
+                }
+
+                $request->validate([
+                    'transaction_date' => 'required|date|before_or_equal:today|after_or_equal:' . now()->subDays(60)->toDateString(),
+                    'backdate_reason' => 'required|string|min:5|max:255',
+                ], [
+                    'transaction_date.before_or_equal' => 'Tanggal transaksi tidak boleh melebihi hari ini.',
+                    'transaction_date.after_or_equal' => 'Transaksi backdate maksimal 60 hari ke belakang.',
+                    'backdate_reason.required' => 'Nomor nota fisik atau alasan transaksi backdate wajib diisi.',
+                    'backdate_reason.min' => 'Alasan / Nomor nota fisik minimal 5 karakter.',
+                ]);
+
+                $isBackdate = true;
+                $backdateReason = trim($request->backdate_reason);
+                $transactionDate = \Carbon\Carbon::parse($request->transaction_date)->setTimeFrom(now());
+            } elseif ($parsedDate->gt($today)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tanggal transaksi tidak boleh di masa depan.'
+                ], 422);
+            }
+        }
+
         try {
-            return \DB::transaction(function () use ($request) {
+            return \DB::transaction(function () use ($request, $isBackdate, $transactionDate, $backdateReason) {
                 // Calculate Totals
                 $total_amount = 0;
                 $items_data = [];
@@ -106,9 +146,25 @@ class PosController extends Controller
                     $change_amount = 0;
                 }
 
+                // Build notes
+                $noteParts = [];
+                if ($discount > 0) {
+                    $noteParts[] = "[DISKON MANUAL: Rp " . number_format($discount, 0, ',', '.') . "]";
+                }
+                if ($isBackdate) {
+                    $noteParts[] = "[BACKDATE: " . $transactionDate->format('d/m/Y') . " | Ref: " . $backdateReason . "]";
+                }
+                if ($request->filled('notes')) {
+                    $noteParts[] = trim($request->notes);
+                }
+                $finalNotes = !empty($noteParts) ? implode(' ', $noteParts) : null;
+
+                $creditTenor = ($request->payment_method === 'kredit' && $request->filled('credit_tenor_months')) ? (int) $request->credit_tenor_months : null;
+                $creditInstallmentAmount = ($creditTenor && $creditTenor > 0) ? round($total_amount / $creditTenor, 2) : null;
+
                 // Create Transaction
-                $transaction = Transaction::create([
-                    'invoice_number' => 'TRX-' . date('Ymd') . '-' . strtoupper(\Str::random(4)),
+                $transaction = new Transaction([
+                    'invoice_number' => 'TRX-' . $transactionDate->format('Ymd') . '-' . strtoupper(\Str::random(4)),
                     'user_id' => $member ? $member->user_id : null,
                     'type' => 'offline',
                     'status' => $status,
@@ -117,8 +173,18 @@ class PosController extends Controller
                     'total_amount' => $total_amount,
                     'paid_amount' => $paid_amount,
                     'change_amount' => $change_amount,
-                    'notes' => $discount > 0 ? "[DISKON MANUAL: Rp " . number_format($discount, 0, ',', '.') . "]" : null,
+                    'notes' => $finalNotes,
+                    'credit_tenor_months' => $creditTenor,
+                    'credit_installment_amount' => $creditInstallmentAmount,
                 ]);
+                $transaction->created_at = $transactionDate;
+                $transaction->updated_at = now();
+                $transaction->save();
+
+                // Schedule Credit Installments if Tenor > 0
+                if ($creditTenor && $creditTenor > 0) {
+                    \App\Services\CreditInstallmentService::createSchedule($transaction);
+                }
 
                 // Create Items & Deduct Stock
                 foreach ($items_data as $data) {
@@ -140,7 +206,7 @@ class PosController extends Controller
                         'type' => 'sukarela',
                         'transaction_type' => 'withdrawal',
                         'amount' => $total_amount, // Positive absolute value for consistency
-                        'transaction_date' => now(),
+                        'transaction_date' => $isBackdate ? $transactionDate : now(),
                         'description' => 'Pembayaran Belanja: ' . $transaction->invoice_number,
                         'created_by' => auth()->id(),
                     ]);
@@ -152,6 +218,27 @@ class PosController extends Controller
                 // Auto-journal Sale (reload items for COGS calculation)
                 $transaction->load('items.product');
                 \App\Services\JournalService::journalSale($transaction);
+
+                // Audit Log for Backdate
+                if ($isBackdate) {
+                    \App\Models\AuditLog::log(
+                        'backdate_transaction',
+                        "Transaksi POS Backdate ({$transaction->invoice_number}) senilai Rp " . number_format($total_amount, 0, ',', '.') . 
+                        " untuk tanggal {$transactionDate->format('d/m/Y')} diinput oleh " . auth()->user()->name . 
+                        ". Ref/Alasan: {$backdateReason}",
+                        $transaction,
+                        null,
+                        [
+                            'invoice_number' => $transaction->invoice_number,
+                            'transaction_date' => $transactionDate->toDateString(),
+                            'system_input_date' => now()->toDateTimeString(),
+                            'total_amount' => $total_amount,
+                            'payment_method' => $request->payment_method,
+                            'buyer' => $member ? ($member->name ?? $member->user->name ?? 'Anggota') : 'Umum',
+                            'reason' => $backdateReason,
+                        ]
+                    );
+                }
 
                 // Award Points for member transactions
                 if ($member && in_array($status, ['paid', 'completed', 'credit'])) { // 'completed' is used for paid POS
@@ -177,6 +264,8 @@ class PosController extends Controller
                     'transaction_id' => $transaction->id,
                     'change' => $change_amount,
                     'is_credit' => $request->payment_method === 'kredit',
+                    'is_backdate' => $isBackdate,
+                    'transaction_date' => $transactionDate->format('d/m/Y H:i'),
                     'points_earned' => $earnedPoints ?? 0
                 ]);
             });

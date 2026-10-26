@@ -32,7 +32,7 @@
                 <select name="action" class="form-input">
                     <option value="">Semua Aksi</option>
                     @foreach($actions as $action)
-                    <option value="{{ $action }}" {{ request('action') == $action ? 'selected' : '' }}>{{ ucfirst($action) }}</option>
+                    <option value="{{ $action }}" {{ request('action') == $action ? 'selected' : '' }}>{{ ucwords(str_replace('_', ' ', $action)) }}</option>
                     @endforeach
                 </select>
             </div>
@@ -78,7 +78,7 @@
                             </div>
                         </td>
                         <td>
-                            <span class="badge badge-{{ $log->action_color }}">{{ ucfirst($log->action) }}</span>
+                            <span class="badge badge-{{ $log->action_color }}">{{ ucwords(str_replace('_', ' ', $log->action)) }}</span>
                         </td>
                         <td class="max-w-xs">
                             <p class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ $log->description ?? '-' }}</p>
