@@ -335,6 +335,10 @@
                     {{ __('messages.sidebar.all_reports') }}
                 </a>
                 @if(auth()->user()->hasAdminAccess())
+                <a href="{{ route('reports.payroll-deductions.index') }}" class="{{ request()->routeIs('reports.payroll-deductions.*') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
+                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('reports.payroll-deductions.*') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
+                    💼 Potong Gaji (Payroll)
+                </a>
                 <a href="{{ route('reports.financial-health') }}" class="{{ request()->routeIs('reports.financial-health') ? 'text-primary-600 dark:text-primary-400 font-medium' : 'text-gray-500 dark:text-gray-400' }} flex items-center gap-2 p-2 text-sm rounded-lg hover:text-primary-600 transition-colors">
                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('reports.financial-health') ? 'bg-primary-600' : 'bg-gray-400' }}"></span>
                     📊 Kesehatan Keuangan

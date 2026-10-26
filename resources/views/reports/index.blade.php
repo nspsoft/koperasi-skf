@@ -89,6 +89,19 @@
                     <p class="text-sm text-gray-500 dark:text-gray-400">Ringkasan piutang kredit per bulan</p>
                 </div>
             </a>
+
+            <!-- Rekap Potong Gaji (Payroll) -->
+            <a href="{{ route('reports.payroll-deductions.index') }}" class="group block">
+                <div class="glass-card-solid p-6 h-full hover:border-rose-400 dark:hover:border-rose-600 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                    <div class="w-12 h-12 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Rekap Potong Gaji (Payroll)</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Rekapitulasi resmi potongan gaji koperasi & AMIGO ke HRD Payroll PT SPINDO</p>
+                </div>
+            </a>
         @else
             <a href="{{ route('shop.history') }}" class="group block">
                 <div class="glass-card-solid p-6 h-full hover:border-purple-400 dark:hover:border-purple-600 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">

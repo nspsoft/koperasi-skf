@@ -19,6 +19,7 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\MemberAspirationController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\PayrollDeductionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingController::class, 'index'])->name('landing');
@@ -307,6 +308,9 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
     Route::get('reports/transactions', [ReportController::class, 'transactions'])->name('reports.transactions');
     Route::get('reports/credit-receivables', [ReportController::class, 'creditReceivables'])->name('reports.credit-receivables');
     Route::get('reports/financial-health', [App\Http\Controllers\FinancialHealthController::class, 'index'])->name('reports.financial-health');
+    Route::get('reports/payroll-deductions', [PayrollDeductionController::class, 'index'])->name('reports.payroll-deductions.index');
+    Route::post('reports/payroll-deductions/import-amigo', [PayrollDeductionController::class, 'importAmigo'])->name('reports.payroll-deductions.import-amigo');
+    Route::get('reports/payroll-deductions/export-excel', [PayrollDeductionController::class, 'exportExcel'])->name('reports.payroll-deductions.export-excel');
 
     // Accounting Reports
     Route::get('journals/tutorial', [ManualJournalController::class, 'tutorial'])->name('journals.tutorial');
