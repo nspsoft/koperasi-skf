@@ -41,13 +41,60 @@ class ProductController extends Controller
 
         // Filter by consignment
         if ($request->has('is_consignment') && $request->is_consignment !== '') {
-            $query->where('is_consignment', $request->is_consignment);
+            $query->where('is_consignment', (bool) $request->is_consignment);
         }
 
-        $products = $query->latest()->paginate(15)->withQueryString();
+        // Sorting
+        $rawSort = $request->get('sort', 'latest');
+        $direction = strtolower($request->get('direction', 'desc'));
+
+        if ($rawSort === 'margin_desc') {
+            $sortBy = 'margin';
+            $direction = 'desc';
+        } elseif ($rawSort === 'margin_asc') {
+            $sortBy = 'margin';
+            $direction = 'asc';
+        } elseif ($rawSort === 'name_asc') {
+            $sortBy = 'name';
+            $direction = 'asc';
+        } elseif ($rawSort === 'stock_desc') {
+            $sortBy = 'stock';
+            $direction = 'desc';
+        } elseif ($rawSort === 'stock_asc') {
+            $sortBy = 'stock';
+            $direction = 'asc';
+        } else {
+            $sortBy = $rawSort;
+            if (!in_array($direction, ['asc', 'desc'])) {
+                $direction = 'desc';
+            }
+        }
+
+        if ($sortBy === 'margin' || $sortBy === 'margin_percent') {
+            $costPerUnitSql = "(CASE 
+                WHEN products.is_consignment = 1 THEN COALESCE(products.consignment_price, products.cost, 0)
+                WHEN products.conversion_factor > 0 THEN products.cost / products.conversion_factor 
+                ELSE products.cost 
+            END)";
+            $marginPercentSql = "(CASE 
+                WHEN {$costPerUnitSql} > 0 THEN ((products.price - {$costPerUnitSql}) / {$costPerUnitSql}) * 100 
+                ELSE 0 
+            END)";
+            $query->orderByRaw("{$marginPercentSql} {$direction}");
+        } elseif ($sortBy === 'price') {
+            $query->orderBy('price', $direction);
+        } elseif ($sortBy === 'stock') {
+            $query->orderBy('stock', $direction);
+        } elseif ($sortBy === 'name') {
+            $query->orderBy('name', $direction);
+        } else {
+            $query->latest('id');
+        }
+
+        $products = $query->paginate(15)->withQueryString();
         $categories = \App\Models\Category::all();
 
-        return view('commerce.products.index', compact('products', 'categories'));
+        return view('commerce.products.index', compact('products', 'categories', 'sortBy', 'direction'));
     }
 
     /**

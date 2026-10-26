@@ -43,7 +43,7 @@
                 </div>
                 <input type="text" name="search" class="form-input pl-10 w-64" placeholder="{{ __('messages.products_page.search_placeholder') }}" value="{{ request('search') }}">
             </div>
-            <select name="category_id" class="form-input w-48" onchange="this.form.submit()">
+            <select name="category_id" class="form-input w-44" onchange="this.form.submit()">
                 <option value="">{{ __('messages.products_page.all_categories') }}</option>
                 @foreach($categories as $category)
                     <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
@@ -51,8 +51,26 @@
                     </option>
                 @endforeach
             </select>
-            @if(request('search') || request('category_id'))
-                <a href="{{ route('products.index') }}" class="text-sm text-gray-500 hover:text-red-500">
+
+            {{-- Product Type (Konsinyasi / Toko) Filter --}}
+            <select name="is_consignment" class="form-input w-44" onchange="this.form.submit()">
+                <option value="">Semua Jenis</option>
+                <option value="0" {{ request('is_consignment') === '0' ? 'selected' : '' }}>Toko (Milik Koperasi)</option>
+                <option value="1" {{ request('is_consignment') === '1' ? 'selected' : '' }}>Konsinyasi (Titipan)</option>
+            </select>
+
+            {{-- Sorting Dropdown --}}
+            <select name="sort" class="form-input w-48" onchange="this.form.submit()">
+                <option value="latest" {{ request('sort') == 'latest' || !request('sort') ? 'selected' : '' }}>Urutan: Terbaru</option>
+                <option value="margin_desc" {{ (request('sort') === 'margin' && request('direction', 'desc') === 'desc') || request('sort') === 'margin_desc' ? 'selected' : '' }}>Margin Tertinggi (↓)</option>
+                <option value="margin_asc" {{ (request('sort') === 'margin' && request('direction') === 'asc') || request('sort') === 'margin_asc' ? 'selected' : '' }}>Margin Terendah (↑)</option>
+                <option value="name_asc" {{ request('sort') === 'name_asc' || (request('sort') === 'name' && request('direction') === 'asc') ? 'selected' : '' }}>Nama (A - Z)</option>
+                <option value="stock_desc" {{ request('sort') === 'stock_desc' || (request('sort') === 'stock' && request('direction') === 'desc') ? 'selected' : '' }}>Stok Terbanyak</option>
+                <option value="stock_asc" {{ request('sort') === 'stock_asc' || (request('sort') === 'stock' && request('direction') === 'asc') ? 'selected' : '' }}>Stok Sedikit</option>
+            </select>
+
+            @if(request('search') || request('category_id') || (request()->has('is_consignment') && request('is_consignment') !== '') || (request('sort') && request('sort') !== 'latest'))
+                <a href="{{ route('products.index') }}" class="text-sm text-gray-500 hover:text-red-500 ml-1">
                     {{ __('messages.products_page.reset_filter') }}
                 </a>
             @endif
@@ -70,10 +88,33 @@
                         <th class="w-16">{{ __('messages.products_page.image') }}</th>
                         <th>{{ __('messages.products_page.code_name') }}</th>
                         <th>{{ __('messages.products_page.category') }}</th>
+                        <th>Jenis</th>
                         <th>{{ __('messages.products_page.stock') }}</th>
                         <th>{{ __('messages.products_page.unit') }}</th>
                         <th>{{ __('messages.products_page.selling_price') }}</th>
-                        <th>{{ __('messages.products_page.margin') }}</th>
+                        <th>
+                            @php
+                                $isMarginSort = (request('sort') === 'margin' || request('sort') === 'margin_desc' || request('sort') === 'margin_asc');
+                                $currentDir = (request('sort') === 'margin_asc' || (request('sort') === 'margin' && request('direction') === 'asc')) ? 'asc' : 'desc';
+                                $nextDir = ($isMarginSort && $currentDir === 'desc') ? 'asc' : 'desc';
+                            @endphp
+                            <a href="{{ request()->fullUrlWithQuery(['sort' => 'margin', 'direction' => $nextDir]) }}" 
+                               class="group inline-flex items-center gap-1.5 hover:text-primary transition-colors {{ $isMarginSort ? 'text-primary font-bold' : '' }}" 
+                               title="Klik untuk mengurutkan berdasarkan Margin (%)">
+                                <span>{{ __('messages.products_page.margin') }}</span>
+                                <span class="flex flex-col text-[11px] leading-none">
+                                    @if($isMarginSort)
+                                        @if($currentDir === 'asc')
+                                            <svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                                        @else
+                                            <svg class="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                        @endif
+                                    @else
+                                        <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
+                                    @endif
+                                </span>
+                            </a>
+                        </th>
                         <th class="text-right">{{ __('messages.actions') }}</th>
                     </tr>
                 </thead>
@@ -96,6 +137,22 @@
                         </td>
                         <td>
                             <span class="badge badge-gray">{{ $product->category->name }}</span>
+                        </td>
+                        <td>
+                            @if($product->is_consignment)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                    Konsinyasi
+                                </span>
+                                @if($product->consignor)
+                                    <div class="text-[10px] text-gray-500 mt-0.5 truncate max-w-[120px]" title="{{ $product->consignor->name ?? '' }}">
+                                        {{ $product->consignor->name ?? '' }}
+                                    </div>
+                                @endif
+                            @else
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                    Toko
+                                </span>
+                            @endif
                         </td>
                         <td>
                             <span class="badge {{ $product->stock < 5 ? 'badge-danger' : 'badge-success' }}">
@@ -141,12 +198,14 @@
                         </td>
                         <td>
                             @php
-                                $costPerUnit = $product->cost / ($product->conversion_factor ?: 1);
+                                $costPerUnit = $product->is_consignment 
+                                    ? ($product->consignment_price ?: $product->cost)
+                                    : ($product->conversion_factor > 0 ? ($product->cost / $product->conversion_factor) : $product->cost);
                                 $marginRp = $product->price - $costPerUnit;
                                 $actualMarginPercent = $costPerUnit > 0 ? (($product->price - $costPerUnit) / $costPerUnit) * 100 : 0;
                             @endphp
                             <div class="text-center">
-                                <span class="badge badge-success">{{ number_format($actualMarginPercent, 1) }}%</span>
+                                <span class="badge {{ $actualMarginPercent < 0 ? 'badge-danger' : 'badge-success' }}">{{ number_format($actualMarginPercent, 1) }}%</span>
                                 <div class="text-xs text-gray-500 mt-1">Rp {{ number_format($marginRp, 0, ',', '.') }}</div>
                             </div>
                         </td>
@@ -169,7 +228,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="text-center py-8 text-gray-500">Tidak ada produk ditemukan</td>
+                        <td colspan="10" class="text-center py-8 text-gray-500">Tidak ada produk ditemukan</td>
                     </tr>
                     @endforelse
                 </tbody>
