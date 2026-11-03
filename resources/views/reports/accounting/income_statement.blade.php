@@ -6,7 +6,7 @@
 <style>
     @page {
         size: A4 landscape;
-        margin: 8mm 10mm;
+        margin: 6mm 8mm;
     }
     @media print {
         /* Sembunyikan elemen navigasi dan kontrol saat cetak */
@@ -42,9 +42,39 @@
             border: none !important;
             box-shadow: none !important;
             background: white !important;
-        }
-        #viewComparative * {
             color: #0f172a !important;
+        }
+        .overflow-x-auto {
+            overflow: visible !important;
+            width: 100% !important;
+        }
+        .table-comparative {
+            width: 100% !important;
+            max-width: 100% !important;
+            table-layout: fixed !important;
+            border-collapse: collapse !important;
+        }
+        .table-comparative th,
+        .table-comparative td {
+            font-size: 7.5pt !important;
+            line-height: 1.15 !important;
+            padding: 2.5px 2px !important;
+            border-color: #334155 !important;
+            color: #0f172a !important;
+            overflow: hidden !important;
+            text-overflow: clip !important;
+            white-space: nowrap !important;
+        }
+        .table-comparative th {
+            background-color: #f1f5f9 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .table-comparative td:first-child,
+        .table-comparative td.col-uraian-td,
+        .table-comparative td[colspan] {
+            white-space: normal !important;
+            word-break: break-word !important;
         }
         .print-border-dark {
             border-color: #0f172a !important;
@@ -58,24 +88,44 @@
             print-color-adjust: exact !important;
         }
         .print-shu-monthly {
-            background-color: #0f172a !important;
+            background-color: #e2e8f0 !important; /* Soft slate-gray with high-contrast text */
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
-        .print-shu-monthly td, .print-shu-monthly span {
-            color: #ffffff !important;
-        }
-        .print-shu-monthly td.text-amber-300 {
-            color: #fcd34d !important;
+        .print-shu-monthly td {
+            color: #0f172a !important;
+            font-weight: 800 !important;
+            border-top: 2px solid #0f172a !important;
+            border-bottom: 1px solid #0f172a !important;
         }
         .print-shu-ytd {
-            background-color: #fef3c7 !important;
+            background-color: #fef3c7 !important; /* Warm gold/amber */
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
-        .print-shu-ytd td, .print-shu-ytd span {
+        .print-shu-ytd td {
             color: #78350f !important;
+            font-weight: 800 !important;
+            border-bottom: 2px solid #0f172a !important;
         }
+    }
+
+    /* Screen Styles for Table Rows */
+    .table-comparative tr.row-shu-monthly td {
+        background-color: #e2e8f0;
+        color: #0f172a;
+    }
+    .dark .table-comparative tr.row-shu-monthly td {
+        background-color: #1e293b;
+        color: #f8fafc;
+    }
+    .table-comparative tr.row-shu-ytd td {
+        background-color: #fef3c7;
+        color: #78350f;
+    }
+    .dark .table-comparative tr.row-shu-ytd td {
+        background-color: #451a03;
+        color: #fde68a;
     }
 </style>
 
@@ -195,17 +245,31 @@
         </div>
 
         <!-- TABEL KOMPARATIF DINAMIS -->
+        @php
+            $mCount = count($monthlyComparative);
+            $uraianWidth = $mCount > 6 ? 22 : 32;
+            $totalWidth = $mCount > 6 ? 9 : 14;
+            $remainingWidth = 100 - $uraianWidth - $totalWidth;
+            $monthWidth = $mCount > 0 ? round($remainingWidth / $mCount, 2) : 0;
+        @endphp
         <div class="overflow-x-auto">
-            <table class="w-full text-[10px] border-collapse border border-slate-800 dark:border-gray-700 font-sans leading-tight">
+            <table class="table-comparative w-full text-[10px] border-collapse border border-slate-800 dark:border-gray-700 font-sans leading-tight">
+                <colgroup>
+                    <col style="width: {{ $uraianWidth }}%;">
+                    @foreach($monthlyComparative as $mKey => $mRow)
+                        <col style="width: {{ $monthWidth }}%;">
+                    @endforeach
+                    <col style="width: {{ $totalWidth }}%;">
+                </colgroup>
                 <thead>
                     <tr class="bg-slate-100 dark:bg-gray-800 text-slate-900 dark:text-white font-extrabold border-b border-slate-800 dark:border-gray-700 text-center">
-                        <th class="border border-slate-800 dark:border-gray-700 py-2 px-2 text-left min-w-[200px]">URAIAN / REKENING</th>
+                        <th class="border border-slate-800 dark:border-gray-700 py-1.5 px-2 text-left">URAIAN / REKENING</th>
                         @foreach($monthlyComparative as $mKey => $mRow)
-                            <th class="border border-slate-800 dark:border-gray-700 py-2 px-1 min-w-[70px]">
+                            <th class="border border-slate-800 dark:border-gray-700 py-1.5 px-0.5 text-center">
                                 {{ $mRow['short'] }}
                             </th>
                         @endforeach
-                        <th class="border border-slate-800 dark:border-gray-700 py-2 px-2 min-w-[100px] bg-slate-200 dark:bg-gray-700 text-slate-950 dark:text-white font-black">
+                        <th class="border border-slate-800 dark:border-gray-700 py-1.5 px-1.5 text-right bg-slate-200 dark:bg-gray-700 text-slate-950 dark:text-white font-black">
                             TOTAL
                         </th>
                     </tr>
@@ -402,37 +466,37 @@
                     </tr>
 
                     <!-- V. SISA HASIL USAHA (SHU) BULANAN -->
-                    <tr class="bg-slate-900 text-white font-extrabold border-t-2 border-slate-900 text-[11px] print-shu-monthly">
-                        <td class="border border-slate-800 py-2 px-2 uppercase font-black text-amber-300">
+                    <tr class="row-shu-monthly font-extrabold border-t-2 border-b border-slate-900 dark:border-gray-600 text-[10.5px] print-shu-monthly">
+                        <td class="col-uraian-td border border-slate-800 dark:border-gray-700 py-1.5 px-2 uppercase font-black text-slate-900 dark:text-amber-300">
                             ✦ SISA HASIL USAHA (SHU) BULANAN
                         </td>
                         @foreach($monthlyComparative as $mKey => $mRow)
-                            <td class="border border-slate-800 py-2 px-1 text-right font-mono {{ $mRow['net_income'] >= 0 ? 'text-amber-300' : 'text-rose-300' }}">
+                            <td class="border border-slate-800 dark:border-gray-700 py-1.5 px-1 text-right font-mono {{ $mRow['net_income'] >= 0 ? 'text-slate-950 dark:text-amber-300 font-bold' : 'text-rose-700 dark:text-rose-400 font-bold' }}">
                                 {{ $mRow['net_income'] != 0 ? number_format($mRow['net_income'], 0, ',', '.') : '-' }}
                             </td>
                         @endforeach
                         @php
                             $grandSHU = (($pertokoanGrossProfit + $totOtherRev) - $totOpExp) - $totNonOpExp;
                         @endphp
-                        <td class="border border-slate-800 py-2 px-2 text-right font-mono font-black bg-slate-800 text-amber-300 text-xs">
+                        <td class="border border-slate-800 dark:border-gray-700 py-1.5 px-1.5 text-right font-mono font-black bg-slate-300 dark:bg-gray-700 text-slate-950 dark:text-amber-300 text-[11px]">
                             {{ number_format($grandSHU, 0, ',', '.') }}
                         </td>
                     </tr>
 
                     <!-- VI. AKUMULASI SHU BERJALAN (KUMULATIF YTD) -->
-                    <tr class="bg-amber-400 text-slate-950 font-extrabold border-t border-slate-800 text-[11px] print-shu-ytd">
-                        <td class="border border-slate-800 py-2 px-2 uppercase font-black text-slate-950">
+                    <tr class="row-shu-ytd font-extrabold border-b-2 border-slate-900 dark:border-gray-600 text-[10.5px] print-shu-ytd">
+                        <td class="col-uraian-td border border-slate-800 dark:border-gray-700 py-1.5 px-2 uppercase font-black text-amber-950 dark:text-amber-300">
                             ★ AKUMULASI SHU BERJALAN (KUMULATIF YTD)
                         </td>
                         @foreach($monthlyComparative as $mKey => $mRow)
-                            <td class="border border-slate-800 py-2 px-1 text-right font-mono text-slate-950 font-bold">
+                            <td class="border border-slate-800 dark:border-gray-700 py-1.5 px-1 text-right font-mono text-amber-950 dark:text-amber-200 font-bold">
                                 {{ $mRow['cumulative_net_income'] != 0 ? number_format($mRow['cumulative_net_income'], 0, ',', '.') : '-' }}
                             </td>
                         @endforeach
                         @php
                             $lastMonthCumulative = !empty($monthlyComparative) ? end($monthlyComparative)['cumulative_net_income'] : $grandSHU;
                         @endphp
-                        <td class="border border-slate-800 py-2 px-2 text-right font-mono font-black bg-amber-500 text-slate-950 text-xs">
+                        <td class="border border-slate-800 dark:border-gray-700 py-1.5 px-1.5 text-right font-mono font-black bg-amber-200 dark:bg-amber-900/60 text-amber-950 dark:text-amber-200 text-[11px]">
                             {{ number_format($lastMonthCumulative, 0, ',', '.') }}
                         </td>
                     </tr>
