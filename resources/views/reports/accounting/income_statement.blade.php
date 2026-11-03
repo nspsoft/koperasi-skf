@@ -1,145 +1,543 @@
 @extends('layouts.app')
 
-@section('title', 'Laporan Laba Rugi')
+@section('title', 'Laporan Laba Rugi Komparatif')
 
 @section('content')
-    <div class="page-header">
+<style>
+    @page {
+        size: A4 landscape;
+        margin: 8mm 10mm;
+    }
+    @media print {
+        /* Sembunyikan elemen navigasi dan kontrol saat cetak */
+        .no-print,
+        .page-header,
+        nav,
+        aside,
+        header,
+        footer,
+        #sidebar,
+        #topnav,
+        #filterCard,
+        #tabControls,
+        #viewSummary,
+        .ai-audit-section,
+        .btn,
+        form {
+            display: none !important;
+        }
+        body, html, main {
+            background: white !important;
+            color: #0f172a !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+        }
+        #viewComparative {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: white !important;
+        }
+        #viewComparative * {
+            color: #0f172a !important;
+        }
+        .print-border-dark {
+            border-color: #0f172a !important;
+        }
+        .text-rose-600, .text-rose-700, .text-red-600 {
+            color: #b91c1c !important;
+        }
+        .bg-slate-100, .bg-slate-200, .bg-blue-50, .bg-purple-50, .bg-emerald-50 {
+            background-color: #f1f5f9 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+    }
+</style>
+
+    <!-- Page Header (Screen Only) -->
+    <div class="page-header no-print">
         <div>
             <h1 class="page-title">Laporan Laba Rugi (Income Statement)</h1>
-            <p class="page-subtitle">Periode {{ $startDate->translatedFormat('d F Y') }} - {{ $endDate->translatedFormat('d F Y') }}</p>
+            <p class="page-subtitle">
+                Periode {{ $startDate->translatedFormat('d F Y') }} - {{ $endDate->translatedFormat('d F Y') }}
+                @if($isMultiMonth)
+                    <span class="ml-2 px-2 py-0.5 rounded text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300">
+                        {{ count($monthlyComparative) }} Bulan Terpilih (Mode Komparatif)
+                    </span>
+                @endif
+            </p>
         </div>
-        <div>
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="printReport()" class="btn btn-primary bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                <span>Cetak Landscape / PDF</span>
+            </button>
             <a href="{{ route('reports.index') }}" class="btn btn-outline">Kembali ke Laporan</a>
         </div>
     </div>
 
-    <!-- Filter Date -->
-    <div class="glass-card p-6 mb-6">
-        <form action="{{ route('reports.income-statement') }}" method="GET" class="flex flex-col md:flex-row gap-4 items-end">
-             <div class="w-full md:w-1/4">
-                <label class="form-label">Dari Tanggal</label>
-                <input type="date" name="start_date" class="form-input" value="{{ $startDate->format('Y-m-d') }}">
+    <!-- Filter Date & View Controls (Screen Only) -->
+    <div id="filterCard" class="glass-card p-5 mb-6 no-print">
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+            <form id="filterForm" action="{{ route('reports.income-statement') }}" method="GET" class="flex flex-wrap items-end gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Dari Tanggal</label>
+                    <input type="date" name="start_date" id="inputStartDate" class="form-input text-xs" value="{{ $startDate->format('Y-m-d') }}">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Sampai Tanggal</label>
+                    <input type="date" name="end_date" id="inputEndDate" class="form-input text-xs" value="{{ $endDate->format('Y-m-d') }}">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary text-xs">Tampilkan</button>
+                </div>
+
+                <!-- Date Presets -->
+                <div class="flex items-center gap-1.5 ml-0 sm:ml-2">
+                    <button type="button" onclick="setPreset('this_month')" class="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 transition">
+                        Bulan Ini
+                    </button>
+                    <button type="button" onclick="setPreset('year_2026')" class="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 transition font-bold">
+                        Tahun 2026 (12 Bulan)
+                    </button>
+                </div>
+            </form>
+
+            <!-- Mode Switcher Tabs -->
+            <div id="tabControls" class="flex items-center bg-gray-100 dark:bg-gray-800/80 p-1 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-semibold">
+                <button type="button" id="tabBtnComp" onclick="switchViewMode('comparative')" class="px-3.5 py-2 rounded-lg transition shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-bold flex items-center gap-1.5">
+                    <span>📊</span> Tabel Komparatif Landscape
+                </button>
+                <button type="button" id="tabBtnSumm" onclick="switchViewMode('summary')" class="px-3.5 py-2 rounded-lg transition text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1.5">
+                    <span>📋</span> Ringkasan Vertikal
+                </button>
             </div>
-            <div class="w-full md:w-1/4">
-                <label class="form-label">Sampai Tanggal</label>
-                <input type="date" name="end_date" class="form-input" value="{{ $endDate->format('Y-m-d') }}">
-            </div>
-            <div class="w-full md:w-auto">
-                <button type="submit" class="btn btn-primary w-full">Tampilkan</button>
-            </div>
-        </form>
+        </div>
     </div>
 
-    <div class="max-w-4xl mx-auto">
+    <!-- ============================================================== -->
+    <!-- VIEW 1: TABEL KOMPARATIF LANDSCAPE (SCREEN & PRINT READY) -->
+    <!-- ============================================================== -->
+    <div id="viewComparative" class="printable-report bg-white dark:bg-gray-900 p-4 sm:p-6 lg:p-8 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm mb-8">
+        
+        <!-- KOP RESMI HORISONTAL KOPERASI (LOGO KIRI - TEKS TENGAH - QR KANAN) -->
+        <div class="border-b-2 border-slate-900 dark:border-gray-700 pb-3 mb-3">
+            <div class="flex items-center justify-between gap-4">
+                
+                <!-- LOGO KOPERASI (KIRI) -->
+                <div class="flex-shrink-0 w-24 flex items-center justify-start">
+                    <img src="{{ $logoUrl }}" alt="Logo Koperasi SKF" class="h-16 w-auto object-contain">
+                </div>
+
+                <!-- TEKS KOP SURAT (TENGAH) -->
+                <div class="text-center flex-grow">
+                    <h2 class="text-sm sm:text-base font-extrabold uppercase tracking-wider text-slate-900 dark:text-white leading-tight">
+                        KOPERASI KONSUMEN KARYAWAN PT STEEL PIPE INDUSTRY OF INDONESIA, Tbk
+                    </h2>
+                    <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-gray-200 mt-0.5">
+                        SPINDO KARAWANG FACTORY (KOPKAR SKF)
+                    </h3>
+                    <p class="text-[10px] text-slate-600 dark:text-gray-400 mt-1">
+                        Badan Hukum No: 518/02/BH/PAD/KUKM/XII/2010 | NPWP: 03.111.905.8-408.000
+                    </p>
+                    <p class="text-[9px] text-slate-500 dark:text-gray-400">
+                        Jl. Mitra Raya II Blok F-1, Kawasan Industri Mitra Karawang (KIM), Parungmulya, Karawang - Jawa Barat
+                    </p>
+                </div>
+
+                <!-- QR CODE VALIDASI DIGITAL (KANAN) -->
+                <div class="flex-shrink-0 w-28 flex flex-col items-center justify-center p-1.5 bg-slate-50 dark:bg-gray-800 rounded border border-slate-200 dark:border-gray-700">
+                    <div class="w-14 h-14 flex items-center justify-center">
+                        {!! $qrCodeSvg !!}
+                    </div>
+                    <span class="text-[8px] font-mono font-bold text-slate-700 dark:text-gray-300 tracking-tighter uppercase mt-1">DOKUMEN SAH</span>
+                    <span class="text-[7px] text-slate-400 dark:text-gray-500 font-mono">IS-SKF-{{ $startDate->format('Y') }}</span>
+                </div>
+
+            </div>
+
+            <!-- BAR JUDUL DOKUMEN & PERIODE -->
+            <div class="border-t border-slate-900 dark:border-gray-700 mt-2.5 pt-1.5 flex justify-between items-center text-xs font-bold text-slate-800 dark:text-gray-200 uppercase">
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 bg-slate-900 text-white rounded text-[10px] font-mono">FORMAL ACC-04</span>
+                    <span>LAPORAN LABA RUGI KOMPARATIF BULANAN (INCOME STATEMENT)</span>
+                </div>
+                <div class="text-right text-[10px] lowercase text-slate-600 dark:text-gray-400 font-medium font-sans">
+                    Periode: {{ $startDate->translatedFormat('d M Y') }} s/d {{ $endDate->translatedFormat('d M Y') }} 
+                    <span class="text-slate-400 dark:text-gray-500 font-normal">| Dinyatakan dalam Rupiah (IDR)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABEL KOMPARATIF DINAMIS -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-[10px] border-collapse border border-slate-800 dark:border-gray-700 font-sans leading-tight">
+                <thead>
+                    <tr class="bg-slate-100 dark:bg-gray-800 text-slate-900 dark:text-white font-extrabold border-b border-slate-800 dark:border-gray-700 text-center">
+                        <th class="border border-slate-800 dark:border-gray-700 py-2 px-2 text-left min-w-[200px]">URAIAN / REKENING</th>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <th class="border border-slate-800 dark:border-gray-700 py-2 px-1 min-w-[70px]">
+                                {{ $mRow['short'] }}
+                            </th>
+                        @endforeach
+                        <th class="border border-slate-800 dark:border-gray-700 py-2 px-2 min-w-[100px] bg-slate-200 dark:bg-gray-700 text-slate-950 dark:text-white font-black">
+                            TOTAL
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-300 dark:divide-gray-700">
+
+                    <!-- I. UNIT USAHA PERTOKOAN -->
+                    <tr class="bg-slate-100/90 dark:bg-gray-800/80 font-bold text-slate-900 dark:text-white">
+                        <td colspan="{{ count($monthlyComparative) + 2 }}" class="border border-slate-800 dark:border-gray-700 py-1.5 px-2 uppercase tracking-wide bg-blue-50/70 dark:bg-blue-950/30 text-blue-950 dark:text-blue-200">
+                            I. UNIT USAHA PERTOKOAN (MART & KONSINYASI)
+                        </td>
+                    </tr>
+
+                    <!-- SUB A: TOKO / MART -->
+                    <tr class="font-semibold text-slate-800 dark:text-gray-200 bg-slate-50/50 dark:bg-gray-800/30">
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 pl-4" colspan="{{ count($monthlyComparative) + 2 }}">
+                            A. Unit Toko / Mart (Barang Dagangan Sendiri)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 pl-6 text-slate-700 dark:text-gray-300">1. Penjualan Mart (4102-M)</td>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <td class="border border-slate-800 dark:border-gray-700 py-1 px-1 text-right font-mono {{ $mRow['mart_sales'] > 0 ? 'text-slate-800 dark:text-gray-200' : 'text-slate-400 dark:text-gray-600' }}">
+                                {{ $mRow['mart_sales'] > 0 ? number_format($mRow['mart_sales'], 0, ',', '.') : '-' }}
+                            </td>
+                        @endforeach
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 text-right font-mono font-bold bg-slate-100 dark:bg-gray-800 text-slate-950 dark:text-white">
+                            {{ number_format($martSales, 0, ',', '.') }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 pl-6 text-slate-700 dark:text-gray-300">2. HPP Mart (5201-M)</td>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <td class="border border-slate-800 dark:border-gray-700 py-1 px-1 text-right font-mono text-rose-700 dark:text-rose-400">
+                                {{ $mRow['mart_cogs'] > 0 ? '(' . number_format($mRow['mart_cogs'], 0, ',', '.') . ')' : '-' }}
+                            </td>
+                        @endforeach
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 text-right font-mono font-bold text-rose-800 dark:text-rose-400 bg-slate-100 dark:bg-gray-800">
+                            ({{ number_format($martCogs, 0, ',', '.') }})
+                        </td>
+                    </tr>
+                    <tr class="font-bold bg-blue-50/50 dark:bg-blue-950/20 text-blue-950 dark:text-blue-300">
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 pl-6 italic">
+                            Laba Kotor Mart (GPM {{ number_format($martGpm, 1) }}%)
+                        </td>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <td class="border border-slate-800 dark:border-gray-700 py-1 px-1 text-right font-mono">
+                                {{ $mRow['mart_profit'] != 0 ? number_format($mRow['mart_profit'], 0, ',', '.') : '-' }}
+                            </td>
+                        @endforeach
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 text-right font-mono font-black bg-blue-100 dark:bg-blue-900/40 text-blue-950 dark:text-blue-200">
+                            {{ number_format($martGrossProfit, 0, ',', '.') }}
+                        </td>
+                    </tr>
+
+                    <!-- SUB B: KONSINYASI -->
+                    <tr class="font-semibold text-slate-800 dark:text-gray-200 bg-slate-50/50 dark:bg-gray-800/30">
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 pl-4 pt-1.5" colspan="{{ count($monthlyComparative) + 2 }}">
+                            B. Unit Konsinyasi (Barang Titipan Pihak Ketiga)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 pl-6 text-slate-700 dark:text-gray-300">1. Penjualan Konsinyasi (4102-K)</td>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <td class="border border-slate-800 dark:border-gray-700 py-1 px-1 text-right font-mono {{ $mRow['cng_sales'] > 0 ? 'text-slate-800 dark:text-gray-200' : 'text-slate-400 dark:text-gray-600' }}">
+                                {{ $mRow['cng_sales'] > 0 ? number_format($mRow['cng_sales'], 0, ',', '.') : '-' }}
+                            </td>
+                        @endforeach
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 text-right font-mono font-bold bg-slate-100 dark:bg-gray-800 text-slate-950 dark:text-white">
+                            {{ number_format($cngSales, 0, ',', '.') }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 pl-6 text-slate-700 dark:text-gray-300">2. HPP / Bagi Hasil Mitra (5201-K)</td>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <td class="border border-slate-800 dark:border-gray-700 py-1 px-1 text-right font-mono text-rose-700 dark:text-rose-400">
+                                {{ $mRow['cng_cogs'] > 0 ? '(' . number_format($mRow['cng_cogs'], 0, ',', '.') . ')' : '-' }}
+                            </td>
+                        @endforeach
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 text-right font-mono font-bold text-rose-800 dark:text-rose-400 bg-slate-100 dark:bg-gray-800">
+                            ({{ number_format($cngCogs, 0, ',', '.') }})
+                        </td>
+                    </tr>
+                    <tr class="font-bold bg-purple-50/50 dark:bg-purple-950/20 text-purple-950 dark:text-purple-300">
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 pl-6 italic">
+                            Laba Bersih Konsinyasi (Margin {{ number_format($cngMargin, 1) }}%)
+                        </td>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <td class="border border-slate-800 dark:border-gray-700 py-1 px-1 text-right font-mono">
+                                {{ $mRow['cng_profit'] != 0 ? number_format($mRow['cng_profit'], 0, ',', '.') : '-' }}
+                            </td>
+                        @endforeach
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 text-right font-mono font-black bg-purple-100 dark:bg-purple-900/40 text-purple-950 dark:text-purple-200">
+                            {{ number_format($cngGrossProfit, 0, ',', '.') }}
+                        </td>
+                    </tr>
+
+                    <!-- TOTAL LABA KOTOR PERTOKOAN -->
+                    <tr class="font-extrabold bg-emerald-100/90 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-300 border-t-2 border-slate-800 dark:border-gray-700">
+                        <td class="border border-slate-800 dark:border-gray-700 py-1.5 px-2">JUMLAH LABA KOTOR PERTOKOAN (A + B)</td>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <td class="border border-slate-800 dark:border-gray-700 py-1.5 px-1 text-right font-mono">
+                                {{ $mRow['pertokoan_profit'] != 0 ? number_format($mRow['pertokoan_profit'], 0, ',', '.') : '-' }}
+                            </td>
+                        @endforeach
+                        <td class="border border-slate-800 dark:border-gray-700 py-1.5 px-2 text-right font-mono font-black bg-emerald-200 dark:bg-emerald-900/60 text-emerald-950 dark:text-emerald-200 text-[11px]">
+                            {{ number_format($pertokoanGrossProfit, 0, ',', '.') }}
+                        </td>
+                    </tr>
+
+                    <!-- II. PENDAPATAN JASA -->
+                    <tr class="bg-slate-100/80 dark:bg-gray-800/80 font-bold text-slate-900 dark:text-white">
+                        <td colspan="{{ count($monthlyComparative) + 2 }}" class="border border-slate-800 dark:border-gray-700 py-1.5 px-2 uppercase tracking-wide">
+                            II. PENDAPATAN JASA & LAINNYA
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 pl-6 text-slate-700 dark:text-gray-300">1. Pendapatan Jasa & Bunga Pinjaman</td>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <td class="border border-slate-800 dark:border-gray-700 py-1 px-1 text-right font-mono">
+                                {{ $mRow['other_revenues'] > 0 ? number_format($mRow['other_revenues'], 0, ',', '.') : '-' }}
+                            </td>
+                        @endforeach
+                        @php
+                            $totOtherRev = array_sum(array_column($monthlyComparative, 'other_revenues'));
+                        @endphp
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 text-right font-mono font-bold bg-slate-100 dark:bg-gray-800">
+                            {{ number_format($totOtherRev, 0, ',', '.') }}
+                        </td>
+                    </tr>
+                    <tr class="font-bold bg-slate-50 dark:bg-gray-800/50">
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2">TOTAL LABA KOTOR + PENDAPATAN JASA</td>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <td class="border border-slate-800 dark:border-gray-700 py-1 px-1 text-right font-mono">
+                                {{ $mRow['gross_plus_other'] != 0 ? number_format($mRow['gross_plus_other'], 0, ',', '.') : '-' }}
+                            </td>
+                        @endforeach
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 text-right font-mono font-black bg-slate-200 dark:bg-gray-700">
+                            {{ number_format($pertokoanGrossProfit + $totOtherRev, 0, ',', '.') }}
+                        </td>
+                    </tr>
+
+                    <!-- III. BEBAN OPERASIONAL -->
+                    <tr class="bg-slate-100/80 dark:bg-gray-800/80 font-bold text-slate-900 dark:text-white">
+                        <td colspan="{{ count($monthlyComparative) + 2 }}" class="border border-slate-800 dark:border-gray-700 py-1.5 px-2 uppercase tracking-wide">
+                            III. BEBAN OPERASIONAL & UMUM
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 pl-6 text-slate-700 dark:text-gray-300">1. Total Beban Operasional (5101-5104)</td>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <td class="border border-slate-800 dark:border-gray-700 py-1 px-1 text-right font-mono text-rose-700 dark:text-rose-400">
+                                {{ $mRow['op_expenses'] > 0 ? '(' . number_format($mRow['op_expenses'], 0, ',', '.') . ')' : '-' }}
+                            </td>
+                        @endforeach
+                        @php
+                            $totOpExp = array_sum(array_column($monthlyComparative, 'op_expenses'));
+                        @endphp
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 text-right font-mono font-bold text-rose-800 dark:text-rose-400 bg-slate-100 dark:bg-gray-800">
+                            ({{ number_format($totOpExp, 0, ',', '.') }})
+                        </td>
+                    </tr>
+                    <tr class="font-bold bg-blue-50/60 dark:bg-blue-950/20 text-blue-950 dark:text-blue-300">
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2">LABA OPERASIONAL (OPERATING INCOME)</td>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <td class="border border-slate-800 dark:border-gray-700 py-1 px-1 text-right font-mono">
+                                {{ $mRow['operating_profit'] != 0 ? number_format($mRow['operating_profit'], 0, ',', '.') : '-' }}
+                            </td>
+                        @endforeach
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 text-right font-mono font-black bg-blue-100 dark:bg-blue-900/40 text-blue-950 dark:text-blue-200">
+                            {{ number_format(($pertokoanGrossProfit + $totOtherRev) - $totOpExp, 0, ',', '.') }}
+                        </td>
+                    </tr>
+
+                    <!-- IV. BEBAN NON-OPERASIONAL -->
+                    <tr class="bg-slate-100/80 dark:bg-gray-800/80 font-bold text-slate-900 dark:text-white">
+                        <td colspan="{{ count($monthlyComparative) + 2 }}" class="border border-slate-800 dark:border-gray-700 py-1.5 px-2 uppercase tracking-wide">
+                            IV. BEBAN NON-OPERASIONAL (LAIN-LAIN)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 pl-6 text-slate-700 dark:text-gray-300">1. Biaya Lain-lain (5901)</td>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <td class="border border-slate-800 dark:border-gray-700 py-1 px-1 text-right font-mono text-rose-700 dark:text-rose-400">
+                                {{ $mRow['non_op_expenses'] > 0 ? '(' . number_format($mRow['non_op_expenses'], 0, ',', '.') . ')' : '-' }}
+                            </td>
+                        @endforeach
+                        @php
+                            $totNonOpExp = array_sum(array_column($monthlyComparative, 'non_op_expenses'));
+                        @endphp
+                        <td class="border border-slate-800 dark:border-gray-700 py-1 px-2 text-right font-mono font-bold text-rose-800 dark:text-rose-400 bg-slate-100 dark:bg-gray-800">
+                            ({{ number_format($totNonOpExp, 0, ',', '.') }})
+                        </td>
+                    </tr>
+
+                    <!-- V. SISA HASIL USAHA (SHU BERJALAN) -->
+                    <tr class="bg-slate-900 text-white font-extrabold border-t-2 border-slate-900 text-[11px]">
+                        <td class="border border-slate-800 py-2 px-2 uppercase font-black text-amber-300">
+                            ✦ SISA HASIL USAHA (SHU BERJALAN)
+                        </td>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <td class="border border-slate-800 py-2 px-1 text-right font-mono {{ $mRow['net_income'] >= 0 ? 'text-amber-300' : 'text-rose-300' }}">
+                                {{ $mRow['net_income'] != 0 ? number_format($mRow['net_income'], 0, ',', '.') : '-' }}
+                            </td>
+                        @endforeach
+                        @php
+                            $grandSHU = (($pertokoanGrossProfit + $totOtherRev) - $totOpExp) - $totNonOpExp;
+                        @endphp
+                        <td class="border border-slate-800 py-2 px-2 text-right font-mono font-black bg-amber-400 text-slate-950 text-xs">
+                            {{ number_format($grandSHU, 0, ',', '.') }}
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <!-- BLOK 3 TANDA TANGAN RESMI PENGURUS (LANDSCAPE FORMAT) -->
+        <div class="mt-8 text-xs font-sans">
+            <div class="flex justify-end text-slate-700 dark:text-gray-400 mb-4 text-[11px]">
+                Karawang, {{ $endDate->translatedFormat('d F Y') }}
+            </div>
+            <div class="grid grid-cols-3 gap-6 text-center">
+                <div>
+                    <p class="font-semibold text-slate-700 dark:text-gray-300">Dibuat Oleh,</p>
+                    <p class="text-[10px] text-slate-500 dark:text-gray-400">Bendahara Koperasi</p>
+                    <div class="h-14"></div>
+                    <p class="font-bold text-slate-900 dark:text-white uppercase underline text-[11px]">CITRAWATI</p>
+                </div>
+                <div>
+                    <p class="font-semibold text-slate-700 dark:text-gray-300">Diperiksa Oleh,</p>
+                    <p class="text-[10px] text-slate-500 dark:text-gray-400">Badan Pengawas Koperasi</p>
+                    <div class="h-14"></div>
+                    <p class="font-bold text-slate-900 dark:text-white uppercase underline text-[11px]">( ............................................ )</p>
+                </div>
+                <div>
+                    <p class="font-semibold text-slate-700 dark:text-gray-300">Mengetahui & Menyetujui,</p>
+                    <p class="text-[10px] text-slate-500 dark:text-gray-400">Ketua Koperasi Konsumen Karyawan</p>
+                    <div class="h-14"></div>
+                    <p class="font-bold text-slate-900 dark:text-white uppercase underline text-[11px]">NGAFIF USMAN</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- VIEW 2: RINGKASAN VERTIKAL (CARD VIEW DENGAN PEMISAHAN MART VS KONSINYASI) -->
+    <!-- ============================================================== -->
+    <div id="viewSummary" class="max-w-4xl mx-auto hidden no-print">
         <div class="glass-card p-8">
             @php
-                // Grouping revenues dynamically
-                $salesRevenueAccounts = $revenues->filter(function($acc) {
-                    return $acc->code == '4102' || str_contains(strtolower($acc->name), 'penjualan') || str_contains(strtolower($acc->name), 'jual');
-                });
-                $salesRevenue = $salesRevenueAccounts->sum('period_balance');
-
-                $otherRevenueAccounts = $revenues->filter(function($acc) use ($salesRevenueAccounts) {
-                    return !$salesRevenueAccounts->contains('id', $acc->id);
+                $otherRevenueAccounts = $revenues->filter(function($acc) {
+                    return $acc->code != '4102' && !str_contains(strtolower($acc->name), 'penjualan') && !str_contains(strtolower($acc->name), 'jual');
                 });
                 $otherRevenue = $otherRevenueAccounts->sum('period_balance');
-
-                // Grouping expenses dynamically
-                $hppAccounts = $expenses->filter(function($acc) {
-                    return $acc->code == '5201' || str_contains(strtolower($acc->name), 'hpp') || str_contains(strtolower($acc->name), 'harga pokok');
-                });
-                $hpp = $hppAccounts->sum('period_balance');
 
                 $nonOpExpenseAccounts = $expenses->filter(function($acc) {
                     return str_starts_with($acc->code, '59') || str_contains(strtolower($acc->name), 'lain-lain') || str_contains(strtolower($acc->name), 'non-operasional');
                 });
                 $nonOpExpense = $nonOpExpenseAccounts->sum('period_balance');
 
-                $opExpenseAccounts = $expenses->filter(function($acc) use ($hppAccounts, $nonOpExpenseAccounts) {
-                    return !$hppAccounts->contains('id', $acc->id) && !$nonOpExpenseAccounts->contains('id', $acc->id);
+                $opExpenseAccounts = $expenses->filter(function($acc) use ($nonOpExpenseAccounts) {
+                    return $acc->code != '5201' && !str_contains(strtolower($acc->name), 'hpp') && !str_contains(strtolower($acc->name), 'harga pokok') && !$nonOpExpenseAccounts->contains('id', $acc->id);
                 });
                 $opExpense = $opExpenseAccounts->sum('period_balance');
 
-                // Multi-Step Calculations
-                $grossProfit = $salesRevenue - $hpp;
+                $grossProfit = $pertokoanGrossProfit;
                 $totalGrossAndOther = $grossProfit + $otherRevenue;
                 $operatingProfit = $totalGrossAndOther - $opExpense;
-                
-                // Safety GPM Margin Calculation
-                $gpm = $salesRevenue > 0 ? ($grossProfit / $salesRevenue) * 100 : 0;
-                $opMargin = ($salesRevenue + $otherRevenue) > 0 ? ($operatingProfit / ($salesRevenue + $otherRevenue)) * 100 : 0;
+                $netIncomeCalc = $operatingProfit - $nonOpExpense;
+                $opMargin = ($pertokoanSales + $otherRevenue) > 0 ? ($operatingProfit / ($pertokoanSales + $otherRevenue)) * 100 : 0;
             @endphp
 
-            <!-- SECTION 1: PENDAPATAN PENJUALAN & HPP (MART) -->
+            <!-- SECTION 1: PEMISAHAN PERTOKOAN (MART VS KONSINYASI) -->
             <div class="mb-6">
                 <div class="flex justify-between items-center bg-gray-50 dark:bg-gray-800/40 px-4 py-2.5 rounded-lg border border-gray-100 dark:border-gray-700/80 mb-3">
-                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">I. Unit Usaha Pertokoan (Mart / Dagang)</h3>
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 tracking-wider uppercase">I. Unit Usaha Pertokoan (Mart & Konsinyasi)</h3>
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300">
+                        Pemisahan Transparan
+                    </span>
                 </div>
 
-                <table class="w-full text-sm">
-                    <tbody>
-                        <!-- Sales Revenues -->
-                        <tr class="font-semibold text-gray-800 dark:text-gray-200">
-                            <td class="py-1.5 pl-2" colspan="2">Pendapatan Penjualan Mart</td>
-                        </tr>
-                        @foreach($salesRevenueAccounts as $account)
-                            @if($account->period_balance != 0)
-                                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 text-xs text-gray-600 dark:text-gray-400">
-                                    <td class="py-1.5 pl-6">
-                                        <span class="font-mono text-gray-400 dark:text-gray-600 mr-2">{{ $account->code }}</span>
-                                        {{ $account->name }}
-                                    </td>
-                                    <td class="text-right pr-2 font-mono text-gray-700 dark:text-gray-300">
-                                        Rp {{ number_format($account->period_balance, 0, ',', '.') }}
-                                    </td>
-                                </tr>
-                            @endif
-                        @endforeach
-                        <tr class="border-t border-dashed border-gray-200 dark:border-gray-700 text-xs font-semibold">
-                            <td class="py-2 pl-6 text-gray-500">Total Pendapatan Penjualan Mart</td>
-                            <td class="text-right pr-2 py-2 font-mono text-gray-700 dark:text-gray-350">
-                                Rp {{ number_format($salesRevenue, 0, ',', '.') }}
-                            </td>
-                        </tr>
+                <!-- SUBSECTION A: TOKO / MART -->
+                <div class="mb-4 bg-slate-50/50 dark:bg-gray-800/20 p-4 rounded-xl border border-slate-200/70 dark:border-gray-700/60">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-blue-900 dark:text-blue-300 uppercase tracking-wide flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded bg-blue-600"></span> A. Unit Toko / Mart (Produk Sendiri Koperasi)
+                        </span>
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
+                            GPM: {{ number_format($martGpm, 2) }}%
+                        </span>
+                    </div>
+                    <table class="w-full text-xs">
+                        <tbody>
+                            <tr class="text-gray-600 dark:text-gray-400">
+                                <td class="py-1 pl-4">1. Pendapatan Penjualan Mart</td>
+                                <td class="py-1 pr-2 text-right font-mono text-gray-800 dark:text-gray-200">Rp {{ number_format($martSales, 0, ',', '.') }}</td>
+                            </tr>
+                            <tr class="text-gray-600 dark:text-gray-400">
+                                <td class="py-1 pl-4">2. Harga Pokok Penjualan (HPP) Mart</td>
+                                <td class="py-1 pr-2 text-right font-mono text-rose-600 dark:text-rose-400">(Rp {{ number_format($martCogs, 0, ',', '.') }})</td>
+                            </tr>
+                            <tr class="font-bold border-t border-dashed border-gray-200 dark:border-gray-700 text-blue-900 dark:text-blue-300">
+                                <td class="py-1.5 pl-4">Laba Kotor Mart</td>
+                                <td class="py-1.5 pr-2 text-right font-mono">Rp {{ number_format($martGrossProfit, 0, ',', '.') }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-                        <!-- Cost of Goods Sold (HPP) -->
-                        <tr class="font-semibold text-gray-850 dark:text-gray-200 mt-2">
-                            <td class="py-1.5 pl-2 pt-4" colspan="2">Harga Pokok Penjualan (HPP)</td>
-                        </tr>
-                        @foreach($hppAccounts as $account)
-                            @if($account->period_balance != 0)
-                                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 text-xs text-gray-600 dark:text-gray-400">
-                                    <td class="py-1.5 pl-6">
-                                        <span class="font-mono text-gray-400 dark:text-gray-600 mr-2">{{ $account->code }}</span>
-                                        {{ $account->name }}
-                                    </td>
-                                    <td class="text-right pr-2 font-mono text-red-600 dark:text-red-400">
-                                        (Rp {{ number_format($account->period_balance, 0, ',', '.') }})
-                                    </td>
-                                </tr>
-                            @endif
-                        @endforeach
-                        <tr class="border-t border-dashed border-gray-200 dark:border-gray-700 text-xs font-semibold">
-                            <td class="py-2 pl-6 text-gray-500">Total Harga Pokok Penjualan</td>
-                            <td class="text-right pr-2 py-2 font-mono text-red-600 dark:text-red-450">
-                                (Rp {{ number_format($hpp, 0, ',', '.') }})
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <!-- SUBSECTION B: KONSINYASI -->
+                <div class="mb-4 bg-slate-50/50 dark:bg-gray-800/20 p-4 rounded-xl border border-slate-200/70 dark:border-gray-700/60">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-purple-900 dark:text-purple-300 uppercase tracking-wide flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded bg-purple-600"></span> B. Unit Konsinyasi (Barang Titipan Mitra)
+                        </span>
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300">
+                            Margin: {{ number_format($cngMargin, 2) }}%
+                        </span>
+                    </div>
+                    <table class="w-full text-xs">
+                        <tbody>
+                            <tr class="text-gray-600 dark:text-gray-400">
+                                <td class="py-1 pl-4">1. Pendapatan Penjualan Konsinyasi</td>
+                                <td class="py-1 pr-2 text-right font-mono text-gray-800 dark:text-gray-200">Rp {{ number_format($cngSales, 0, ',', '.') }}</td>
+                            </tr>
+                            <tr class="text-gray-600 dark:text-gray-400">
+                                <td class="py-1 pl-4">2. HPP / Bagi Hasil Pemilik Konsinyasi</td>
+                                <td class="py-1 pr-2 text-right font-mono text-rose-600 dark:text-rose-400">(Rp {{ number_format($cngCogs, 0, ',', '.') }})</td>
+                            </tr>
+                            <tr class="font-bold border-t border-dashed border-gray-200 dark:border-gray-700 text-purple-900 dark:text-purple-300">
+                                <td class="py-1.5 pl-4">Laba Bersih Konsinyasi (Komisi Koperasi)</td>
+                                <td class="py-1.5 pr-2 text-right font-mono">Rp {{ number_format($cngGrossProfit, 0, ',', '.') }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-                <!-- GROSS PROFIT CARD -->
-                <div class="mt-4 p-4 rounded-xl bg-gradient-to-r from-emerald-500/5 to-teal-500/5 dark:from-emerald-500/10 dark:to-teal-500/10 border border-emerald-500/10 dark:border-emerald-500/20 flex justify-between items-center">
+                <!-- GROSS PROFIT TOTAL CARD -->
+                <div class="p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 flex justify-between items-center">
                     <div>
-                        <span class="text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">Laba Kotor Penjualan (Gross Profit)</span>
-                        <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Pendapatan Penjualan Mart - HPP</div>
+                        <span class="text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">JUMLAH LABA KOTOR PENJUALAN PERTOKOAN</span>
+                        <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Laba Kotor Mart + Laba Bersih Konsinyasi</div>
                     </div>
                     <div class="text-right flex items-center gap-3">
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-350">
-                            GPM: {{ number_format($gpm, 2) }}%
+                            GPM Gabungan: {{ number_format($pertokoanGpm, 2) }}%
                         </span>
                         <span class="font-mono text-base font-extrabold text-emerald-700 dark:text-emerald-400">
-                            Rp {{ number_format($grossProfit, 0, ',', '.') }}
+                            Rp {{ number_format($pertokoanGrossProfit, 0, ',', '.') }}
                         </span>
                     </div>
                 </div>
@@ -270,7 +668,6 @@
             <div class="border-t-2 border-double border-gray-300 dark:border-gray-700 pt-6">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-6 rounded-2xl shadow-md border relative overflow-hidden"
                      style="background: linear-gradient(135deg, #0f172a, #1e1b4b) !important; color: white !important; border-color: #1e1b4b !important;">
-                    <!-- Subtle Glow effect -->
                     <div class="absolute -right-10 -bottom-10 w-24 h-24 bg-indigo-500/10 blur-2xl rounded-full"></div>
                     
                     <div class="relative z-10">
@@ -280,15 +677,18 @@
                         <p class="text-xs mt-1" style="color: rgba(255, 255, 255, 0.7) !important;">Laba Operasional - Beban Non-Operasional</p>
                     </div>
                     <div class="text-right relative z-10 mt-3 sm:mt-0">
-                        <span class="block text-3xl font-black font-mono tracking-tight" style="color: {{ $netIncome >= 0 ? '#f59e0b' : '#ef4444' }} !important;">
-                            Rp {{ number_format($netIncome, 0, ',', '.') }}
+                        <span class="block text-3xl font-black font-mono tracking-tight" style="color: {{ $netIncomeCalc >= 0 ? '#f59e0b' : '#ef4444' }} !important;">
+                            Rp {{ number_format($netIncomeCalc, 0, ',', '.') }}
                         </span>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- AI Financial Audit Assistant Card -->
+    <!-- AI Financial Audit Assistant Card Wrapper -->
+    <div id="aiAnalysisWrapper" class="ai-audit-section max-w-4xl mx-auto">
+<!-- AI Financial Audit Assistant Card -->
         <div class="glass-card p-6 mt-6 border border-amber-500/20 shadow-lg shadow-amber-500/5 relative overflow-hidden">
             <!-- Sparkle Ambient Background -->
             <div class="absolute -right-16 -top-16 w-32 h-32 bg-amber-500/10 blur-3xl rounded-full"></div>
@@ -399,7 +799,7 @@
                                 </div>
                                 <div>
                                     <span class="font-semibold text-gray-600 dark:text-gray-400">Dicetak Oleh:</span> 
-                                    <span class="text-gray-850 dark:text-gray-300">{{ auth()->user()->name }}</span>
+                                    <span class="text-gray-850 dark:text-gray-300">{{ auth()->user()->name ?? 'Administrator' }}</span>
                                 </div>
                                 <div>
                                     <span class="font-semibold text-gray-600 dark:text-gray-400">Tanggal Terbit:</span> 
@@ -1088,7 +1488,7 @@ LABA BERSIH / SHU BERJALAN: Rp {{ number_format($netIncome, 0, ',', '.') }}`;
                                 <tr style="border: none; background: none;">
                                     <td style="border: none; padding: 2px 0;">Dicetak Oleh</td>
                                     <td style="border: none; padding: 2px 0;">:</td>
-                                    <td style="border: none; padding: 2px 0;">{{ auth()->user()->name }}</td>
+                                    <td style="border: none; padding: 2px 0;">{{ auth()->user()->name ?? 'Administrator' }}</td>
                                 </tr>
                                 <tr style="border: none; background: none;">
                                     <td style="border: none; padding: 2px 0;">Status Dokumen</td>
@@ -1236,6 +1636,56 @@ LABA BERSIH / SHU BERJALAN: Rp {{ number_format($netIncome, 0, ',', '.') }}`;
                 });
             }
         });
+            // View Mode Switcher
+        window.switchViewMode = function(mode) {
+            const comp = document.getElementById('viewComparative');
+            const summ = document.getElementById('viewSummary');
+            const btnComp = document.getElementById('tabBtnComp');
+            const btnSumm = document.getElementById('tabBtnSumm');
+
+            if (mode === 'comparative') {
+                comp.classList.remove('hidden');
+                summ.classList.add('hidden');
+                btnComp.className = 'px-3.5 py-2 rounded-lg transition shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-bold flex items-center gap-1.5';
+                btnSumm.className = 'px-3.5 py-2 rounded-lg transition text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1.5';
+            } else {
+                summ.classList.remove('hidden');
+                comp.classList.add('hidden');
+                btnSumm.className = 'px-3.5 py-2 rounded-lg transition shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-bold flex items-center gap-1.5';
+                btnComp.className = 'px-3.5 py-2 rounded-lg transition text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white flex items-center gap-1.5';
+            }
+        };
+
+        // Preset Date Filter
+        window.setPreset = function(preset) {
+            const startInput = document.getElementById('inputStartDate');
+            const endInput = document.getElementById('inputEndDate');
+            const form = document.getElementById('filterForm');
+
+            const now = new Date();
+            const year = now.getFullYear();
+
+            if (preset === 'this_month') {
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+                startInput.value = `${year}-${month}-01`;
+                endInput.value = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+            } else if (preset === 'year_2026') {
+                startInput.value = '2026-01-01';
+                endInput.value = '2026-12-31';
+            }
+            form.submit();
+        };
+
+        // Print Report
+        window.printReport = function() {
+            // Ensure comparative view is visible for printing
+            window.switchViewMode('comparative');
+            setTimeout(() => {
+                window.print();
+            }, 150);
+        };
+
     </script>
     @endpush
 @endsection

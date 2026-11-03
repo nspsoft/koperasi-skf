@@ -19,7 +19,10 @@ use App\Exports\LoansExport;
 use App\Models\Account;
 use App\Models\JournalEntryLine;
 use App\Models\JournalEntry;
+use App\Models\Setting;
 use App\Services\JournalService;
+use Carbon\CarbonPeriod;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class ReportController extends Controller
 {
@@ -370,9 +373,191 @@ class ReportController extends Controller
         $totalExpense = $expenses->sum('period_balance');
         $netIncome = $totalRevenue - $totalExpense;
 
+        // 1. Pemisahan Unit Usaha Pertokoan: Toko/Mart vs Konsinyasi untuk Periode Terpilih
+        $overallProductStats = DB::table('transaction_items')
+            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_items.product_id', '=', 'products.id')
+            ->whereBetween('transactions.created_at', [$startDate, $endDate])
+            ->whereIn('transactions.status', ['completed', 'paid', 'delivered', 'credit'])
+            ->select(
+                'products.is_consignment',
+                DB::raw('SUM(transaction_items.subtotal) as total_sales'),
+                DB::raw('SUM(transaction_items.quantity) as total_qty'),
+                DB::raw('SUM(CASE 
+                    WHEN products.is_consignment = 1 THEN transaction_items.quantity * COALESCE(products.consignment_price, products.cost, 0)
+                    WHEN products.conversion_factor > 0 THEN transaction_items.quantity * (products.cost / products.conversion_factor)
+                    ELSE transaction_items.quantity * products.cost 
+                END) as total_cogs')
+            )
+            ->groupBy('products.is_consignment')
+            ->get()
+            ->keyBy('is_consignment');
+
+        $regular = $overallProductStats->get(0);
+        $consignment = $overallProductStats->get(1);
+
+        $martSales = (float) ($regular->total_sales ?? 0);
+        $martCogs = (float) ($regular->total_cogs ?? 0);
+        $martGrossProfit = $martSales - $martCogs;
+        $martGpm = $martSales > 0 ? ($martGrossProfit / $martSales) * 100 : 0;
+
+        $cngSales = (float) ($consignment->total_sales ?? 0);
+        $cngCogs = (float) ($consignment->total_cogs ?? 0);
+        $cngGrossProfit = $cngSales - $cngCogs;
+        $cngMargin = $cngSales > 0 ? ($cngGrossProfit / $cngSales) * 100 : 0;
+
+        $pertokoanSales = $martSales + $cngSales;
+        $pertokoanCogs = $martCogs + $cngCogs;
+        $pertokoanGrossProfit = $martGrossProfit + $cngGrossProfit;
+        $pertokoanGpm = $pertokoanSales > 0 ? ($pertokoanGrossProfit / $pertokoanSales) * 100 : 0;
+
+        // 2. Matriks Komparatif Bulanan (Monthly Comparative Statement)
+        $monthsPeriod = CarbonPeriod::create($startDate->copy()->startOfMonth(), '1 month', $endDate->copy()->startOfMonth());
+        $isMultiMonth = $monthsPeriod->count() > 1;
+
+        // Batch query data produk bulanan
+        $monthlyProducts = DB::table('transaction_items')
+            ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
+            ->join('products', 'transaction_items.product_id', '=', 'products.id')
+            ->whereBetween('transactions.created_at', [$startDate->copy()->startOfMonth(), $endDate->copy()->endOfMonth()])
+            ->whereIn('transactions.status', ['completed', 'paid', 'delivered', 'credit'])
+            ->select(
+                DB::raw("DATE_FORMAT(transactions.created_at, '%Y-%m') as month_key"),
+                'products.is_consignment',
+                DB::raw('SUM(transaction_items.subtotal) as total_sales'),
+                DB::raw('SUM(CASE 
+                    WHEN products.is_consignment = 1 THEN transaction_items.quantity * COALESCE(products.consignment_price, products.cost, 0)
+                    WHEN products.conversion_factor > 0 THEN transaction_items.quantity * (products.cost / products.conversion_factor)
+                    ELSE transaction_items.quantity * products.cost 
+                END) as total_cogs')
+            )
+            ->groupBy('month_key', 'products.is_consignment')
+            ->get()
+            ->groupBy('month_key');
+
+        // Batch query data jurnal akun bulanan
+        $monthlyJournals = DB::table('journal_entry_lines')
+            ->join('journal_entries', 'journal_entry_lines.journal_entry_id', '=', 'journal_entries.id')
+            ->join('accounts', 'journal_entry_lines.account_id', '=', 'accounts.id')
+            ->where('journal_entries.status', 'posted')
+            ->whereBetween('journal_entries.transaction_date', [$startDate->copy()->startOfMonth(), $endDate->copy()->endOfMonth()])
+            ->where(function($q) {
+                $q->where('accounts.code', 'like', '4%')->orWhere('accounts.code', 'like', '5%');
+            })
+            ->select(
+                DB::raw("DATE_FORMAT(journal_entries.transaction_date, '%Y-%m') as month_key"),
+                'accounts.code',
+                'accounts.name',
+                'accounts.type',
+                DB::raw('SUM(CASE WHEN accounts.type = "revenue" THEN journal_entry_lines.credit - journal_entry_lines.debit ELSE journal_entry_lines.debit - journal_entry_lines.credit END) as balance')
+            )
+            ->groupBy('month_key', 'accounts.code', 'accounts.name', 'accounts.type')
+            ->get()
+            ->groupBy('month_key');
+
+        $monthlyComparative = [];
+        foreach ($monthsPeriod as $mDate) {
+            $mKey = $mDate->format('Y-m');
+            $mLabel = $mDate->translatedFormat('F Y');
+            $mShort = strtoupper($mDate->translatedFormat('M'));
+
+            $mProdGroup = $monthlyProducts->get($mKey, collect([]))->keyBy('is_consignment');
+            $mRegular = $mProdGroup->get(0);
+            $mConsign = $mProdGroup->get(1);
+
+            $mMartSales = (float) ($mRegular->total_sales ?? 0);
+            $mMartCogs = (float) ($mRegular->total_cogs ?? 0);
+            $mMartProfit = $mMartSales - $mMartCogs;
+
+            $mCngSales = (float) ($mConsign->total_sales ?? 0);
+            $mCngCogs = (float) ($mConsign->total_cogs ?? 0);
+            $mCngProfit = $mCngSales - $mCngCogs;
+
+            $mPertokoanProfit = $mMartProfit + $mCngProfit;
+
+            $mJnlGroup = $monthlyJournals->get($mKey, collect([]))->keyBy('code');
+
+            // Pendapatan Lain (4101 Bunga & 4103 Jasa Lainnya)
+            $mOtherRevenues = 0;
+            foreach ($mJnlGroup as $code => $accRow) {
+                if (str_starts_with($code, '4') && $code !== '4102') {
+                    $mOtherRevenues += (float) $accRow->balance;
+                }
+            }
+
+            $mGrossPlusOther = $mPertokoanProfit + $mOtherRevenues;
+
+            // Beban Operasional (51xx)
+            $mTotalOpExpenses = 0;
+            foreach ($mJnlGroup as $code => $accRow) {
+                if (str_starts_with($code, '51')) {
+                    $mTotalOpExpenses += (float) $accRow->balance;
+                }
+            }
+
+            $mOperatingProfit = $mGrossPlusOther - $mTotalOpExpenses;
+
+            // Beban Non-Operasional (59xx)
+            $mTotalNonOpExpenses = 0;
+            foreach ($mJnlGroup as $code => $accRow) {
+                if (str_starts_with($code, '59')) {
+                    $mTotalNonOpExpenses += (float) $accRow->balance;
+                }
+            }
+
+            $mNetIncome = $mOperatingProfit - $mTotalNonOpExpenses;
+
+            $monthlyComparative[$mKey] = [
+                'key' => $mKey,
+                'label' => $mLabel,
+                'short' => $mShort,
+                'mart_sales' => $mMartSales,
+                'mart_cogs' => $mMartCogs,
+                'mart_profit' => $mMartProfit,
+                'cng_sales' => $mCngSales,
+                'cng_cogs' => $mCngCogs,
+                'cng_profit' => $mCngProfit,
+                'pertokoan_profit' => $mPertokoanProfit,
+                'other_revenues' => $mOtherRevenues,
+                'gross_plus_other' => $mGrossPlusOther,
+                'op_expenses' => $mTotalOpExpenses,
+                'operating_profit' => $mOperatingProfit,
+                'non_op_expenses' => $mTotalNonOpExpenses,
+                'net_income' => $mNetIncome,
+            ];
+        }
+
+        // 3. Generate QR Code untuk Dokumen Resmi
+        $verifyUrl = route('reports.income-statement', [
+            'start_date' => $startDate->format('Y-m-d'),
+            'end_date' => $endDate->format('Y-m-d'),
+        ]);
+
+        $qrCodeSvg = '';
+        try {
+            if (class_exists(QrCode::class)) {
+                $qrCodeSvg = QrCode::size(70)->margin(1)->generate($verifyUrl);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning("QR Code generation error: " . $e->getMessage());
+        }
+
+        // 4. Logo Koperasi
+        $logoUrl = asset('icons/logo-original.png');
+        if (!file_exists(public_path('icons/logo-original.png'))) {
+            $settingLogo = Setting::get('coop_logo');
+            if ($settingLogo && file_exists(public_path('storage/' . $settingLogo))) {
+                $logoUrl = asset('storage/' . $settingLogo);
+            }
+        }
+
         return view('reports.accounting.income_statement', compact(
             'revenues', 'expenses', 'totalRevenue', 'totalExpense', 'netIncome',
-            'startDate', 'endDate'
+            'startDate', 'endDate',
+            'martSales', 'martCogs', 'martGrossProfit', 'martGpm',
+            'cngSales', 'cngCogs', 'cngGrossProfit', 'cngMargin',
+            'pertokoanSales', 'pertokoanCogs', 'pertokoanGrossProfit', 'pertokoanGpm',
+            'monthlyComparative', 'isMultiMonth', 'qrCodeSvg', 'logoUrl'
         ));
     }
 
