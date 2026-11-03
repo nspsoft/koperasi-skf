@@ -414,12 +414,13 @@ class ReportController extends Controller
         // 2. Matriks Komparatif Bulanan (Monthly Comparative Statement)
         $monthsPeriod = CarbonPeriod::create($startDate->copy()->startOfMonth(), '1 month', $endDate->copy()->startOfMonth());
         $isMultiMonth = $monthsPeriod->count() > 1;
+        $startOfYear = $startDate->copy()->startOfYear();
 
-        // Batch query data produk bulanan
+        // Batch query data produk bulanan (ditarik dari awal tahun buku agar akumulasi YTD akurat)
         $monthlyProducts = DB::table('transaction_items')
             ->join('transactions', 'transaction_items.transaction_id', '=', 'transactions.id')
             ->join('products', 'transaction_items.product_id', '=', 'products.id')
-            ->whereBetween('transactions.created_at', [$startDate->copy()->startOfMonth(), $endDate->copy()->endOfMonth()])
+            ->whereBetween('transactions.created_at', [$startOfYear, $endDate->copy()->endOfMonth()])
             ->whereIn('transactions.status', ['completed', 'paid', 'delivered', 'credit'])
             ->select(
                 DB::raw("DATE_FORMAT(transactions.created_at, '%Y-%m') as month_key"),
@@ -435,12 +436,12 @@ class ReportController extends Controller
             ->get()
             ->groupBy('month_key');
 
-        // Batch query data jurnal akun bulanan
+        // Batch query data jurnal akun bulanan (ditarik dari awal tahun buku)
         $monthlyJournals = DB::table('journal_entry_lines')
             ->join('journal_entries', 'journal_entry_lines.journal_entry_id', '=', 'journal_entries.id')
             ->join('accounts', 'journal_entry_lines.account_id', '=', 'accounts.id')
             ->where('journal_entries.status', 'posted')
-            ->whereBetween('journal_entries.transaction_date', [$startDate->copy()->startOfMonth(), $endDate->copy()->endOfMonth()])
+            ->whereBetween('journal_entries.transaction_date', [$startOfYear, $endDate->copy()->endOfMonth()])
             ->where(function($q) {
                 $q->where('accounts.code', 'like', '4%')->orWhere('accounts.code', 'like', '5%');
             })
@@ -455,62 +456,55 @@ class ReportController extends Controller
             ->get()
             ->groupBy('month_key');
 
-        $monthlyComparative = [];
-        foreach ($monthsPeriod as $mDate) {
-            $mKey = $mDate->format('Y-m');
-            $mLabel = $mDate->translatedFormat('F Y');
-            $mShort = strtoupper($mDate->translatedFormat('M'));
+        // Hitung data bulanan dan akumulasi berjalan (YTD) dari awal tahun buku
+        $fullTimeline = CarbonPeriod::create($startOfYear, '1 month', $endDate->copy()->startOfMonth());
+        $ytdCumulative = 0;
+        $allMonthsData = [];
 
-            $mProdGroup = $monthlyProducts->get($mKey, collect([]))->keyBy('is_consignment');
-            $mRegular = $mProdGroup->get(0);
-            $mConsign = $mProdGroup->get(1);
+        foreach ($fullTimeline as $tDate) {
+            $tKey = $tDate->format('Y-m');
 
-            $mMartSales = (float) ($mRegular->total_sales ?? 0);
-            $mMartCogs = (float) ($mRegular->total_cogs ?? 0);
+            $prodGroup = $monthlyProducts->get($tKey, collect([]))->keyBy('is_consignment');
+            $reg = $prodGroup->get(0);
+            $cng = $prodGroup->get(1);
+
+            $mMartSales = (float) ($reg->total_sales ?? 0);
+            $mMartCogs = (float) ($reg->total_cogs ?? 0);
             $mMartProfit = $mMartSales - $mMartCogs;
 
-            $mCngSales = (float) ($mConsign->total_sales ?? 0);
-            $mCngCogs = (float) ($mConsign->total_cogs ?? 0);
+            $mCngSales = (float) ($cng->total_sales ?? 0);
+            $mCngCogs = (float) ($cng->total_cogs ?? 0);
             $mCngProfit = $mCngSales - $mCngCogs;
 
             $mPertokoanProfit = $mMartProfit + $mCngProfit;
 
-            $mJnlGroup = $monthlyJournals->get($mKey, collect([]))->keyBy('code');
+            $jnlGroup = $monthlyJournals->get($tKey, collect([]));
 
-            // Pendapatan Lain (4101 Bunga & 4103 Jasa Lainnya)
             $mOtherRevenues = 0;
-            foreach ($mJnlGroup as $code => $accRow) {
-                if (str_starts_with($code, '4') && $code !== '4102') {
-                    $mOtherRevenues += (float) $accRow->balance;
-                }
-            }
-
-            $mGrossPlusOther = $mPertokoanProfit + $mOtherRevenues;
-
-            // Beban Operasional (51xx)
             $mTotalOpExpenses = 0;
-            foreach ($mJnlGroup as $code => $accRow) {
-                if (str_starts_with($code, '51')) {
-                    $mTotalOpExpenses += (float) $accRow->balance;
-                }
-            }
-
-            $mOperatingProfit = $mGrossPlusOther - $mTotalOpExpenses;
-
-            // Beban Non-Operasional (59xx)
             $mTotalNonOpExpenses = 0;
-            foreach ($mJnlGroup as $code => $accRow) {
-                if (str_starts_with($code, '59')) {
+
+            foreach ($jnlGroup as $accRow) {
+                $c = (string) $accRow->code;
+                // Pendapatan Lain (4101 Bunga & 4103 Jasa Lainnya - kecualikan 4102 Penjualan Toko)
+                if (str_starts_with($c, '4') && $c !== '4102') {
+                    $mOtherRevenues += (float) $accRow->balance;
+                } elseif (str_starts_with($c, '51')) {
+                    $mTotalOpExpenses += (float) $accRow->balance;
+                } elseif (str_starts_with($c, '59')) {
                     $mTotalNonOpExpenses += (float) $accRow->balance;
                 }
             }
 
+            $mGrossPlusOther = $mPertokoanProfit + $mOtherRevenues;
+            $mOperatingProfit = $mGrossPlusOther - $mTotalOpExpenses;
             $mNetIncome = $mOperatingProfit - $mTotalNonOpExpenses;
+            $ytdCumulative += $mNetIncome;
 
-            $monthlyComparative[$mKey] = [
-                'key' => $mKey,
-                'label' => $mLabel,
-                'short' => $mShort,
+            $allMonthsData[$tKey] = [
+                'key' => $tKey,
+                'label' => $tDate->translatedFormat('F Y'),
+                'short' => strtoupper($tDate->translatedFormat('M')),
                 'mart_sales' => $mMartSales,
                 'mart_cogs' => $mMartCogs,
                 'mart_profit' => $mMartProfit,
@@ -524,7 +518,17 @@ class ReportController extends Controller
                 'operating_profit' => $mOperatingProfit,
                 'non_op_expenses' => $mTotalNonOpExpenses,
                 'net_income' => $mNetIncome,
+                'cumulative_net_income' => $ytdCumulative,
             ];
+        }
+
+        // Ambil hanya bulan-bulan dalam periode yang diminta user
+        $monthlyComparative = [];
+        foreach ($monthsPeriod as $mDate) {
+            $mKey = $mDate->format('Y-m');
+            if (isset($allMonthsData[$mKey])) {
+                $monthlyComparative[$mKey] = $allMonthsData[$mKey];
+            }
         }
 
         // 3. Generate QR Code untuk Dokumen Resmi

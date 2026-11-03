@@ -57,6 +57,25 @@
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
+        .print-shu-monthly {
+            background-color: #0f172a !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .print-shu-monthly td, .print-shu-monthly span {
+            color: #ffffff !important;
+        }
+        .print-shu-monthly td.text-amber-300 {
+            color: #fcd34d !important;
+        }
+        .print-shu-ytd {
+            background-color: #fef3c7 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .print-shu-ytd td, .print-shu-ytd span {
+            color: #78350f !important;
+        }
     }
 </style>
 
@@ -382,10 +401,10 @@
                         </td>
                     </tr>
 
-                    <!-- V. SISA HASIL USAHA (SHU BERJALAN) -->
-                    <tr class="bg-slate-900 text-white font-extrabold border-t-2 border-slate-900 text-[11px]">
+                    <!-- V. SISA HASIL USAHA (SHU) BULANAN -->
+                    <tr class="bg-slate-900 text-white font-extrabold border-t-2 border-slate-900 text-[11px] print-shu-monthly">
                         <td class="border border-slate-800 py-2 px-2 uppercase font-black text-amber-300">
-                            ✦ SISA HASIL USAHA (SHU BERJALAN)
+                            ✦ SISA HASIL USAHA (SHU) BULANAN
                         </td>
                         @foreach($monthlyComparative as $mKey => $mRow)
                             <td class="border border-slate-800 py-2 px-1 text-right font-mono {{ $mRow['net_income'] >= 0 ? 'text-amber-300' : 'text-rose-300' }}">
@@ -395,8 +414,26 @@
                         @php
                             $grandSHU = (($pertokoanGrossProfit + $totOtherRev) - $totOpExp) - $totNonOpExp;
                         @endphp
-                        <td class="border border-slate-800 py-2 px-2 text-right font-mono font-black bg-amber-400 text-slate-950 text-xs">
+                        <td class="border border-slate-800 py-2 px-2 text-right font-mono font-black bg-slate-800 text-amber-300 text-xs">
                             {{ number_format($grandSHU, 0, ',', '.') }}
+                        </td>
+                    </tr>
+
+                    <!-- VI. AKUMULASI SHU BERJALAN (KUMULATIF YTD) -->
+                    <tr class="bg-amber-400 text-slate-950 font-extrabold border-t border-slate-800 text-[11px] print-shu-ytd">
+                        <td class="border border-slate-800 py-2 px-2 uppercase font-black text-slate-950">
+                            ★ AKUMULASI SHU BERJALAN (KUMULATIF YTD)
+                        </td>
+                        @foreach($monthlyComparative as $mKey => $mRow)
+                            <td class="border border-slate-800 py-2 px-1 text-right font-mono text-slate-950 font-bold">
+                                {{ $mRow['cumulative_net_income'] != 0 ? number_format($mRow['cumulative_net_income'], 0, ',', '.') : '-' }}
+                            </td>
+                        @endforeach
+                        @php
+                            $lastMonthCumulative = !empty($monthlyComparative) ? end($monthlyComparative)['cumulative_net_income'] : $grandSHU;
+                        @endphp
+                        <td class="border border-slate-800 py-2 px-2 text-right font-mono font-black bg-amber-500 text-slate-950 text-xs">
+                            {{ number_format($lastMonthCumulative, 0, ',', '.') }}
                         </td>
                     </tr>
 
