@@ -598,16 +598,7 @@
     @push('scripts')
     <script>
         // Cache filtered unpaid items for instant bulk pay
-        window.filteredUnpaidCredits = @json(isset($unpaidCreditsForBulk) ? $unpaidCreditsForBulk->map(function($t) {
-            return [
-                'id' => $t->id,
-                'invoice' => $t->invoice_number,
-                'date' => $t->created_at->format('d/m/Y H:i'),
-                'member' => $t->user->name ?? '-',
-                'member_id' => $t->user->member->member_id ?? '-',
-                'amount' => max(0, (float)$t->total_amount - (float)$t->paid_amount)
-            ];
-        }) : []);
+        window.filteredUnpaidCredits = @json($unpaidCreditsForBulkJson ?? []);
 
         function openPaymentModal(id, invoice, amount, member) {
             document.getElementById('paymentForm').action = '/pos/credits/' + id + '/pay';

@@ -705,6 +705,17 @@ class PosController extends Controller
             }
         }
 
+        $unpaidCreditsForBulkJson = $unpaidCreditsForBulk->map(function($t) {
+            return [
+                'id' => $t->id,
+                'invoice' => $t->invoice_number,
+                'date' => $t->created_at->format('d/m/Y H:i'),
+                'member' => $t->user->name ?? '-',
+                'member_id' => $t->user->member->member_id ?? '-',
+                'amount' => max(0, (float)$t->total_amount - (float)$t->paid_amount)
+            ];
+        })->values()->toArray();
+
         $isFiltered = $request->filled('member_search') || $request->filled('search') || $request->filled('member_id') || $request->filled('from_date') || $request->filled('to_date') || ($request->filled('status') && $request->status !== '');
 
         // Get members list for autocomplete suggestions
@@ -722,7 +733,8 @@ class PosController extends Controller
             'members',
             'isFiltered',
             'unpaidCreditsForBulk',
-            'bulkMember'
+            'bulkMember',
+            'unpaidCreditsForBulkJson'
         ));
     }
 
