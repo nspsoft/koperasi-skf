@@ -478,6 +478,8 @@ return [
         'total_unpaid' => 'Total Belum Lunas',
         'total_paid' => 'Total Sudah Lunas',
         'filter_title' => 'Filter Laporan',
+        'filter_member' => 'Nama / ID Member',
+        'placeholder_member' => 'Cari nama atau ID member...',
         'dari_tanggal' => 'Dari Tanggal',
         'sampai_tanggal' => 'Sampai Tanggal',
         'invoice' => 'Invoice',

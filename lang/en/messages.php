@@ -481,6 +481,8 @@ return [
         'total_unpaid' => 'Total Unpaid',
         'total_paid' => 'Total Paid Off',
         'filter_title' => 'Filter Report',
+        'filter_member' => 'Member Name / ID',
+        'placeholder_member' => 'Search member name or ID...',
         'dari_tanggal' => 'From Date',
         'sampai_tanggal' => 'To Date',
         'invoice' => 'Invoice',

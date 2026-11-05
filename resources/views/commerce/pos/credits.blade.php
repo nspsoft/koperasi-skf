@@ -68,6 +68,30 @@
     <!-- Filters -->
     <div class="glass-card-solid p-4 mb-6">
         <form method="GET" class="flex flex-wrap gap-4 items-end">
+            <div class="min-w-[220px] flex-1">
+                <label class="form-label text-sm">{{ __('messages.credit_report.filter_member') ?? 'Nama / ID Member' }}</label>
+                <div class="relative">
+                    <input type="text" name="member_search" list="members-list" 
+                           value="{{ request('member_search', request('search')) }}" 
+                           placeholder="{{ __('messages.credit_report.placeholder_member') ?? 'Cari nama atau ID member...' }}" 
+                           class="form-input py-2 pl-9 pr-8 w-full" autocomplete="off">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">👤</span>
+                    @if(request('member_search') || request('search'))
+                        <a href="{{ request()->fullUrlWithQuery(['member_search' => null, 'search' => null, 'page' => 1]) }}" 
+                           class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" 
+                           title="Hapus filter member">
+                            ✕
+                        </a>
+                    @endif
+                </div>
+                @if(isset($members) && $members->isNotEmpty())
+                <datalist id="members-list">
+                    @foreach($members as $m)
+                        <option value="{{ $m->name }}">{{ $m->name }} ({{ $m->member->member_id ?? '-' }})</option>
+                    @endforeach
+                </datalist>
+                @endif
+            </div>
             <div class="min-w-[150px]">
                 <label class="form-label text-sm">{{ __('messages.credit_report.status') }}</label>
                 <select name="status" class="form-input py-2 w-full">

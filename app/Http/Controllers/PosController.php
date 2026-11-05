@@ -634,28 +634,44 @@ class PosController extends Controller
             ->latest();
 
         // Filter by status
-        if ($request->status) {
-            $query->where('status', $request->status);
+        if ($request->filled('status')) {
+            if ($request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
         } else {
             // Default show all unpaid credits (credit, processing, ready, delivered)
             // Anything that is NOT completed
             $query->where('status', '!=', 'completed');
         }
 
-        // Filter by member
-        if ($request->member_id) {
+        // Filter by member ID
+        if ($request->filled('member_id')) {
             $query->where('user_id', $request->member_id);
         }
 
+        // Filter by member name or ID search
+        if ($request->filled('member_search') || $request->filled('search')) {
+            $searchTerm = trim($request->member_search ?? $request->search);
+            $query->whereHas('user', function ($uq) use ($searchTerm) {
+                $uq->where('name', 'like', "%{$searchTerm}%")
+                   ->orWhere('email', 'like', "%{$searchTerm}%")
+                   ->orWhereHas('member', function ($mq) use ($searchTerm) {
+                       $mq->where('member_id', 'like', "%{$searchTerm}%")
+                          ->orWhere('employee_id', 'like', "%{$searchTerm}%")
+                          ->orWhere('id_amigo', 'like', "%{$searchTerm}%");
+                   });
+            });
+        }
+
         // Filter by date range
-        if ($request->from_date) {
+        if ($request->filled('from_date')) {
             $query->whereDate('created_at', '>=', $request->from_date);
         }
-        if ($request->to_date) {
+        if ($request->filled('to_date')) {
             $query->whereDate('created_at', '<=', $request->to_date);
         }
 
-        $credits = $query->paginate(20);
+        $credits = $query->paginate(20)->withQueryString();
 
         // Summary
         $totalPending = Transaction::where('payment_method', 'kredit')
@@ -670,7 +686,14 @@ class PosController extends Controller
             ->whereNotIn('status', ['completed', 'cancelled'])
             ->count();
 
-        return view('commerce.pos.credits', compact('credits', 'totalPending', 'totalPaid', 'pendingCount'));
+        // Get members list for autocomplete suggestions
+        $members = User::whereHas('member')
+            ->select('id', 'name')
+            ->with(['member:id,user_id,member_id'])
+            ->orderBy('name')
+            ->get();
+
+        return view('commerce.pos.credits', compact('credits', 'totalPending', 'totalPaid', 'pendingCount', 'members'));
     }
 
     /**
