@@ -6,6 +6,9 @@ use App\Models\Member;
 use App\Models\Loan;
 use App\Models\CreditInstallment;
 use App\Models\PayrollExternalDeduction;
+use App\Models\Transaction;
+use App\Models\AuditLog;
+use App\Services\JournalService;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -678,5 +681,220 @@ class PayrollDeductionController extends Controller
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Cache-Control' => 'max-age=0',
         ]);
+    }
+
+    /**
+     * Get member's credit transactions breakdown for the cut-off period.
+     */
+    public function getMemberCredits(Request $request)
+    {
+        $request->validate([
+            'member_id' => 'required|integer|exists:members,id',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date',
+        ]);
+
+        $member = Member::with('user')->findOrFail($request->member_id);
+        $userId = $member->user_id;
+
+        if (!$userId) {
+            return response()->json([
+                'success' => true,
+                'member' => [
+                    'id' => $member->id,
+                    'name' => $member->user->name ?? '-',
+                    'member_id' => $member->member_id,
+                    'employee_id' => $member->employee_id ?: '-',
+                    'department' => $member->department ?: '-',
+                    'position' => $member->position ?: '-',
+                ],
+                'transactions' => [],
+                'total_cutoff' => 0,
+                'total_unpaid' => 0,
+            ]);
+        }
+
+        $startDate = $request->start_date;
+        $endDate = $request->end_date;
+
+        // 1. Transaction IDs with installments falling within cut-off
+        $installmentTrxIds = CreditInstallment::join('transactions', 'credit_installments.transaction_id', '=', 'transactions.id')
+            ->where('transactions.user_id', $userId)
+            ->whereBetween('credit_installments.due_date', [$startDate, $endDate])
+            ->whereNotIn('credit_installments.status', ['cancelled'])
+            ->pluck('credit_installments.transaction_id')
+            ->toArray();
+
+        // 2. Direct credit transactions falling within cut-off (without installments)
+        $directTrxIds = DB::table('transactions')
+            ->where('payment_method', 'kredit')
+            ->where('user_id', $userId)
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->whereNotIn('status', ['cancelled'])
+            ->whereNotExists(function($q) {
+                $q->select(DB::raw(1))
+                    ->from('credit_installments')
+                    ->whereColumn('credit_installments.transaction_id', 'transactions.id');
+            })
+            ->pluck('id')
+            ->toArray();
+
+        $allTrxIds = array_unique(array_merge($installmentTrxIds, $directTrxIds));
+
+        $transactions = Transaction::whereIn('id', $allTrxIds)
+            ->with(['items.product', 'cashier', 'creditInstallments'])
+            ->latest()
+            ->get()
+            ->map(function($trx) use ($startDate, $endDate) {
+                $remaining = max(0, (float)$trx->total_amount - (float)$trx->paid_amount);
+                
+                // Cut-off installments
+                $cutoffInstallments = $trx->creditInstallments->filter(function($inst) use ($startDate, $endDate) {
+                    return $inst->due_date >= $startDate && $inst->due_date <= $endDate && $inst->status !== 'cancelled';
+                });
+                
+                $cutoffAmount = $cutoffInstallments->isNotEmpty() 
+                    ? (float)$cutoffInstallments->sum('amount') 
+                    : (float)$trx->total_amount;
+
+                $isFullyPaid = in_array($trx->status, ['completed']) || $remaining <= 0;
+
+                $itemsSummary = $trx->items->map(function($i) {
+                    $name = $i->product->name ?? 'Produk';
+                    return "{$name} ({$i->quantity})";
+                })->take(3)->implode(', ');
+                
+                if ($trx->items->count() > 3) {
+                    $itemsSummary .= ' +' . ($trx->items->count() - 3) . ' lainnya';
+                }
+
+                return [
+                    'id' => $trx->id,
+                    'invoice_number' => $trx->invoice_number,
+                    'date' => $trx->created_at->format('d/m/Y H:i'),
+                    'total_amount' => (float)$trx->total_amount,
+                    'paid_amount' => (float)$trx->paid_amount,
+                    'remaining' => $remaining,
+                    'cutoff_amount' => $cutoffAmount,
+                    'status' => $trx->status,
+                    'is_paid' => $isFullyPaid,
+                    'items_count' => $trx->items->count(),
+                    'items_summary' => $itemsSummary ?: '-',
+                    'cashier_name' => $trx->cashier->name ?? '-',
+                ];
+            });
+
+        $totalCutoff = $transactions->sum('cutoff_amount');
+        $totalUnpaid = $transactions->where('is_paid', false)->sum('remaining');
+
+        return response()->json([
+            'success' => true,
+            'member' => [
+                'id' => $member->id,
+                'name' => $member->user->name ?? '-',
+                'member_id' => $member->member_id,
+                'employee_id' => $member->employee_id ?: '-',
+                'department' => $member->department ?: '-',
+                'position' => $member->position ?: '-',
+            ],
+            'transactions' => $transactions->values(),
+            'total_cutoff' => $totalCutoff,
+            'total_unpaid' => $totalUnpaid,
+            'unpaid_count' => $transactions->where('is_paid', false)->count(),
+        ]);
+    }
+
+    /**
+     * Settle member's store credit transactions via payroll deduction.
+     */
+    public function payMemberCredits(Request $request)
+    {
+        $request->validate([
+            'member_id' => 'required|integer|exists:members,id',
+            'transaction_ids' => 'required|array|min:1',
+            'transaction_ids.*' => 'required|integer|exists:transactions,id',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $member = Member::with('user')->findOrFail($request->member_id);
+
+        try {
+            $result = DB::transaction(function () use ($request, $member) {
+                $transactions = Transaction::whereIn('id', $request->transaction_ids)
+                    ->where('payment_method', 'kredit')
+                    ->whereNotIn('status', ['completed', 'cancelled'])
+                    ->lockForUpdate()
+                    ->get();
+
+                if ($transactions->isEmpty()) {
+                    throw new \Exception('Tidak ada tagihan yang perlu dilunasi atau sudah lunas.');
+                }
+
+                $totalSettled = 0;
+                $countSettled = 0;
+
+                foreach ($transactions as $transaction) {
+                    $remaining = max(0, (float)$transaction->total_amount - (float)$transaction->paid_amount);
+                    if ($remaining <= 0) {
+                        continue;
+                    }
+
+                    // Update installments if exist
+                    $installments = $transaction->creditInstallments()
+                        ->whereNotIn('status', ['paid'])
+                        ->orderBy('due_date')
+                        ->get();
+
+                    if ($installments->isNotEmpty()) {
+                        foreach ($installments as $installment) {
+                            $installment->update([
+                                'status' => 'paid',
+                                'paid_at' => now(),
+                                'payment_method' => 'payroll',
+                                'notes' => $request->notes ?: 'Pelunasan Potong Gaji (Payroll)',
+                            ]);
+                        }
+                    }
+
+                    $transaction->update([
+                        'status' => 'completed',
+                        'paid_amount' => $transaction->total_amount,
+                        'notes' => 'Pelunasan via POTONG GAJI / PAYROLL' . 
+                                   ($request->notes ? ' - ' . $request->notes : '') . 
+                                   ' pada ' . now()->format('d/m/Y H:i') . 
+                                   ' oleh ' . auth()->user()->name,
+                    ]);
+
+                    // Generate journal entry (Debit Bank 1102, Credit Piutang Dagang 1202)
+                    JournalService::journalTransactionCreditPayment($transaction, $remaining, 'payroll');
+
+                    $totalSettled += $remaining;
+                    $countSettled++;
+                }
+
+                AuditLog::log(
+                    'payroll_credit_payment',
+                    "Pelunasan kredit belanja toko {$countSettled} nota senilai Rp " . number_format($totalSettled, 0, ',', '.') . " via POTONG GAJI untuk {$member->user->name} ({$member->member_id})",
+                    $member
+                );
+
+                return [
+                    'count' => $countSettled,
+                    'total' => $totalSettled
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "Berhasil memproses pelunasan potong gaji untuk {$member->user->name} senilai Rp " . number_format($result['total'], 0, ',', '.') . " ({$result['count']} nota)!",
+                'data' => $result
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memproses pelunasan: ' . $e->getMessage()
+            ], 422);
+        }
     }
 }

@@ -629,30 +629,17 @@ class PosController extends Controller
      */
     public function credits(Request $request)
     {
-        $query = Transaction::with(['items.product', 'user.member', 'cashier'])
-            ->where('payment_method', 'kredit')
-            ->latest();
-
-        // Filter by status
-        if ($request->filled('status')) {
-            if ($request->status !== 'all') {
-                $query->where('status', $request->status);
-            }
-        } else {
-            // Default show all unpaid credits (credit, processing, ready, delivered)
-            // Anything that is NOT completed
-            $query->where('status', '!=', 'completed');
-        }
+        $baseCreditQuery = Transaction::where('payment_method', 'kredit');
 
         // Filter by member ID
         if ($request->filled('member_id')) {
-            $query->where('user_id', $request->member_id);
+            $baseCreditQuery->where('user_id', $request->member_id);
         }
 
         // Filter by member name or ID search
         if ($request->filled('member_search') || $request->filled('search')) {
             $searchTerm = trim($request->member_search ?? $request->search);
-            $query->whereHas('user', function ($uq) use ($searchTerm) {
+            $baseCreditQuery->whereHas('user', function ($uq) use ($searchTerm) {
                 $uq->where('name', 'like', "%{$searchTerm}%")
                    ->orWhere('email', 'like', "%{$searchTerm}%")
                    ->orWhereHas('member', function ($mq) use ($searchTerm) {
@@ -665,35 +652,78 @@ class PosController extends Controller
 
         // Filter by date range
         if ($request->filled('from_date')) {
-            $query->whereDate('created_at', '>=', $request->from_date);
+            $baseCreditQuery->whereDate('created_at', '>=', $request->from_date);
         }
         if ($request->filled('to_date')) {
-            $query->whereDate('created_at', '<=', $request->to_date);
+            $baseCreditQuery->whereDate('created_at', '<=', $request->to_date);
+        }
+
+        // Calculate filtered summary totals
+        if ($request->status === 'completed') {
+            $pendingCount = 0;
+            $totalPending = 0;
+            $totalPaid = (clone $baseCreditQuery)->where('status', 'completed')->sum('total_amount');
+        } elseif ($request->status === 'all') {
+            $pendingCount = (clone $baseCreditQuery)->whereNotIn('status', ['completed', 'cancelled'])->count();
+            $totalPending = (clone $baseCreditQuery)->whereNotIn('status', ['completed', 'cancelled'])->sum(\DB::raw('total_amount - paid_amount'));
+            $totalPaid = (clone $baseCreditQuery)->where('status', 'completed')->sum('total_amount');
+        } else {
+            // Default: unpaid
+            $pendingCount = (clone $baseCreditQuery)->whereNotIn('status', ['completed', 'cancelled'])->count();
+            $totalPending = (clone $baseCreditQuery)->whereNotIn('status', ['completed', 'cancelled'])->sum(\DB::raw('total_amount - paid_amount'));
+            $totalPaid = (clone $baseCreditQuery)->where('status', 'completed')->sum('total_amount');
+        }
+
+        // Query for table with status applied
+        $query = (clone $baseCreditQuery)
+            ->with(['items.product', 'user.member', 'cashier'])
+            ->latest();
+
+        if ($request->filled('status')) {
+            if ($request->status !== 'all') {
+                $query->where('status', $request->status);
+            }
+        } else {
+            $query->where('status', '!=', 'completed');
         }
 
         $credits = $query->paginate(20)->withQueryString();
 
-        // Summary
-        $totalPending = Transaction::where('payment_method', 'kredit')
+        // Get unpaid credits matching current filter for bulk payment
+        $unpaidCreditsForBulk = (clone $baseCreditQuery)
             ->whereNotIn('status', ['completed', 'cancelled'])
-            ->sum(\DB::raw('total_amount - paid_amount'));
-        
-        $totalPaid = Transaction::where('payment_method', 'kredit')
-            ->where('status', 'completed')
-            ->sum('total_amount');
+            ->with(['user.member', 'items.product'])
+            ->latest()
+            ->get();
 
-        $pendingCount = Transaction::where('payment_method', 'kredit')
-            ->whereNotIn('status', ['completed', 'cancelled'])
-            ->count();
+        // Check if all unpaid credits belong to one member
+        $bulkMember = null;
+        if ($unpaidCreditsForBulk->isNotEmpty()) {
+            $distinctUsers = $unpaidCreditsForBulk->pluck('user_id')->unique();
+            if ($distinctUsers->count() === 1 && $unpaidCreditsForBulk->first()->user) {
+                $bulkMember = $unpaidCreditsForBulk->first()->user;
+            }
+        }
+
+        $isFiltered = $request->filled('member_search') || $request->filled('search') || $request->filled('member_id') || $request->filled('from_date') || $request->filled('to_date') || ($request->filled('status') && $request->status !== '');
 
         // Get members list for autocomplete suggestions
         $members = User::whereHas('member')
             ->select('id', 'name')
-            ->with(['member:id,user_id,member_id'])
+            ->with(['member:id,user_id,member_id,employee_id'])
             ->orderBy('name')
             ->get();
 
-        return view('commerce.pos.credits', compact('credits', 'totalPending', 'totalPaid', 'pendingCount', 'members'));
+        return view('commerce.pos.credits', compact(
+            'credits', 
+            'totalPending', 
+            'totalPaid', 
+            'pendingCount', 
+            'members',
+            'isFiltered',
+            'unpaidCreditsForBulk',
+            'bulkMember'
+        ));
     }
 
     /**
@@ -702,7 +732,7 @@ class PosController extends Controller
     public function payCredit(Request $request, Transaction $transaction)
     {
         $request->validate([
-            'payment_method' => 'required|in:cash,transfer,saldo',
+            'payment_method' => 'required|in:cash,transfer,saldo,payroll',
             'amount' => 'nullable|numeric|min:1',
             'notes' => 'nullable|string|max:500',
         ]);
@@ -798,6 +828,154 @@ class PosController extends Controller
 
         } catch (\Exception $e) {
             return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Process bulk credit payment
+     */
+    public function bulkPayCredits(Request $request)
+    {
+        $request->validate([
+            'transaction_ids' => 'required|array|min:1',
+            'transaction_ids.*' => 'required|integer|exists:transactions,id',
+            'payment_method' => 'required|in:payroll,cash,transfer,saldo',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $result = \DB::transaction(function () use ($request) {
+                $transactions = Transaction::whereIn('id', $request->transaction_ids)
+                    ->where('payment_method', 'kredit')
+                    ->whereNotIn('status', ['completed', 'cancelled'])
+                    ->lockForUpdate()
+                    ->get();
+
+                if ($transactions->isEmpty()) {
+                    throw new \Exception('Tidak ada tagihan kredit belum lunas yang dipilih.');
+                }
+
+                $totalSettled = 0;
+                $countSettled = 0;
+                $memberNames = [];
+
+                // If paying with saldo, verify balances first
+                if ($request->payment_method === 'saldo') {
+                    $byUser = $transactions->groupBy('user_id');
+                    foreach ($byUser as $userId => $userTrxs) {
+                        $user = $userTrxs->first()->user;
+                        $member = $user?->member;
+                        if (!$member) {
+                            throw new \Exception("Data member tidak ditemukan untuk transaksi ini.");
+                        }
+                        $userNeed = $userTrxs->sum(function($t) {
+                            return max(0, (float)$t->total_amount - (float)$t->paid_amount);
+                        });
+                        $balance = \App\Models\Saving::where('member_id', $member->id)
+                            ->where('type', 'sukarela')
+                            ->sum('amount');
+                        if ($balance < $userNeed) {
+                            throw new \Exception("Saldo Simpanan Sukarela {$member->name} tidak mencukupi (Tersedia: Rp " . number_format($balance, 0, ',', '.') . ", Dibutuhkan: Rp " . number_format($userNeed, 0, ',', '.') . ")");
+                        }
+                    }
+                }
+
+                $methodLabel = match($request->payment_method) {
+                    'payroll' => 'POTONG GAJI / PAYROLL',
+                    'transfer' => 'TRANSFER BANK',
+                    'saldo' => 'SALDO SUKARELA',
+                    default => 'TUNAI'
+                };
+
+                foreach ($transactions as $transaction) {
+                    $remaining = max(0, (float)$transaction->total_amount - (float)$transaction->paid_amount);
+                    if ($remaining <= 0) {
+                        continue;
+                    }
+
+                    $amount = $remaining;
+
+                    // Deduct from savings if saldo
+                    if ($request->payment_method === 'saldo' && $transaction->user?->member) {
+                        $saving = \App\Models\Saving::create([
+                            'member_id' => $transaction->user->member->id,
+                            'type' => 'sukarela',
+                            'transaction_type' => 'withdrawal',
+                            'amount' => $amount,
+                            'transaction_date' => now(),
+                            'description' => 'Pelunasan kredit massal: ' . $transaction->invoice_number,
+                            'created_by' => auth()->id(),
+                        ]);
+                        \App\Services\JournalService::journalSavingWithdrawal($saving);
+                    }
+
+                    // Update all installments
+                    $installments = $transaction->creditInstallments()
+                        ->whereNotIn('status', ['paid'])
+                        ->orderBy('due_date')
+                        ->get();
+
+                    if ($installments->isNotEmpty()) {
+                        foreach ($installments as $installment) {
+                            $installment->update([
+                                'status' => 'paid',
+                                'paid_at' => now(),
+                                'payment_method' => $request->payment_method,
+                                'notes' => $request->notes ?: 'Pelunasan Massal',
+                            ]);
+                        }
+                    }
+
+                    // Update transaction
+                    $transaction->update([
+                        'status' => 'completed',
+                        'paid_amount' => $transaction->total_amount,
+                        'notes' => 'Pelunasan Massal via ' . $methodLabel . 
+                                  ($request->notes ? ' - ' . $request->notes : '') .
+                                  ' pada ' . now()->format('d/m/Y H:i') . 
+                                  ' oleh ' . auth()->user()->name,
+                    ]);
+
+                    // Generate journal entry
+                    \App\Services\JournalService::journalTransactionCreditPayment($transaction, $amount, $request->payment_method);
+
+                    $totalSettled += $amount;
+                    $countSettled++;
+                    if ($transaction->user) {
+                        $memberNames[$transaction->user->name] = true;
+                    }
+                }
+
+                \App\Models\AuditLog::log(
+                    'bulk_credit_payment',
+                    "Pelunasan kredit massal {$countSettled} nota senilai Rp " . number_format($totalSettled, 0, ',', '.') . " via {$methodLabel} (Anggota: " . implode(', ', array_keys($memberNames)) . ")",
+                    null
+                );
+
+                return [
+                    'count' => $countSettled,
+                    'total' => $totalSettled
+                ];
+            });
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Berhasil melunasi {$result['count']} tagihan senilai Rp " . number_format($result['total'], 0, ',', '.') . "!",
+                    'data' => $result
+                ]);
+            }
+
+            return redirect()->back()->with('success', "Berhasil melunasi {$result['count']} tagihan senilai Rp " . number_format($result['total'], 0, ',', '.') . "!");
+
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ], 422);
+            }
+            return redirect()->back()->with('error', 'Gagal pelunasan massal: ' . $e->getMessage());
         }
     }
 

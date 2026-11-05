@@ -242,11 +242,13 @@ class JournalService
     public static function journalTransactionCreditPayment($transaction, $amount, $paymentMethod = 'cash'): ?JournalEntry
     {
         // Determine the correct asset account based on payment method
-        $bankMethods = ['qris', 'transfer', 'va', 'saldo'];
+        $bankMethods = ['qris', 'transfer', 'va', 'saldo', 'payroll'];
         
         if (in_array($paymentMethod, $bankMethods)) {
             $assetAccount = '1102'; // Bank
-            $description = 'Bank masuk (' . strtoupper($paymentMethod) . ')';
+            $description = $paymentMethod === 'payroll' 
+                ? 'Bank masuk (POTONG GAJI / PAYROLL)' 
+                : 'Bank masuk (' . strtoupper($paymentMethod) . ')';
         } else {
             $assetAccount = '1101'; // Kas
             $description = 'Kas masuk';

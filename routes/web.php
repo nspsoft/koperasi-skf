@@ -311,6 +311,8 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
     Route::get('reports/payroll-deductions', [PayrollDeductionController::class, 'index'])->name('reports.payroll-deductions.index');
     Route::post('reports/payroll-deductions/import-amigo', [PayrollDeductionController::class, 'importAmigo'])->name('reports.payroll-deductions.import-amigo');
     Route::get('reports/payroll-deductions/export-excel', [PayrollDeductionController::class, 'exportExcel'])->name('reports.payroll-deductions.export-excel');
+    Route::get('reports/payroll-deductions/member-credits', [PayrollDeductionController::class, 'getMemberCredits'])->name('reports.payroll-deductions.member-credits');
+    Route::post('reports/payroll-deductions/pay-member-credits', [PayrollDeductionController::class, 'payMemberCredits'])->name('reports.payroll-deductions.pay-member-credits');
 
     // Accounting Reports
     Route::get('journals/tutorial', [ManualJournalController::class, 'tutorial'])->name('journals.tutorial');
@@ -514,6 +516,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
         Route::post('pos/journals/{transaction}/generate', [PosController::class, 'generateJournal'])->name('pos.journals.generate');
         Route::get('pos/credits', [PosController::class, 'credits'])->name('pos.credits');
         Route::post('pos/credits/remind-all', [PosController::class, 'remindAll'])->name('pos.credits.remind-all');
+        Route::post('pos/credits/bulk-pay', [PosController::class, 'bulkPayCredits'])->name('pos.credits.bulk-pay');
         Route::post('pos/credits/{transaction}/pay', [PosController::class, 'payCredit'])->name('pos.credits.pay');
         
         // Attendance

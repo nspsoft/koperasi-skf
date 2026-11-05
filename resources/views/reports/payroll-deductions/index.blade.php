@@ -167,7 +167,19 @@
                         <td class="py-2 px-2 text-right tabular-nums">{{ number_format($row['simpanan_wajib'], 0, ',', '.') }}</td>
                         <td class="py-2 px-2 text-right tabular-nums">{{ $row['pinjaman_angsuran'] > 0 ? number_format($row['pinjaman_angsuran'], 0, ',', '.') : '-' }}</td>
                         <td class="py-2 px-2 text-center">{{ $row['pinjaman_ke'] ?: '-' }}</td>
-                        <td class="py-2 px-2 text-right tabular-nums">{{ $row['toko_koperasi'] > 0 ? number_format($row['toko_koperasi'], 0, ',', '.') : '-' }}</td>
+                        <td class="py-2 px-2 text-right tabular-nums">
+                            @if($row['toko_koperasi'] > 0)
+                                <button type="button" 
+                                        onclick="openMemberCreditModal({{ $row['id'] }}, '{{ addslashes($row['name']) }}', '{{ $row['member_id'] }}', '{{ $row['employee_id'] }}')" 
+                                        class="inline-flex items-center gap-1 font-semibold text-primary hover:text-primary-700 hover:underline cursor-pointer group"
+                                        title="Klik untuk melihat rincian belanja & pelunasan">
+                                    <span>{{ number_format($row['toko_koperasi'], 0, ',', '.') }}</span>
+                                    <span class="text-[10px] text-primary/70 group-hover:text-primary">🔍</span>
+                                </button>
+                            @else
+                                <span class="text-gray-400">-</span>
+                            @endif
+                        </td>
                         <td class="py-2 px-2 text-right tabular-nums {{ $row['toko_amigo'] > 0 ? 'text-amber-700 dark:text-amber-400 font-semibold' : '' }}">
                             {{ $row['toko_amigo'] > 0 ? number_format($row['toko_amigo'], 0, ',', '.') : '-' }}
                         </td>
@@ -251,7 +263,19 @@
                         <td class="py-2 px-2 text-right tabular-nums">{{ number_format($row['simpanan_wajib'], 0, ',', '.') }}</td>
                         <td class="py-2 px-2 text-right tabular-nums">{{ $row['pinjaman_angsuran'] > 0 ? number_format($row['pinjaman_angsuran'], 0, ',', '.') : '-' }}</td>
                         <td class="py-2 px-2 text-center">{{ $row['pinjaman_ke'] ?: '-' }}</td>
-                        <td class="py-2 px-2 text-right tabular-nums">{{ $row['toko_koperasi'] > 0 ? number_format($row['toko_koperasi'], 0, ',', '.') : '-' }}</td>
+                        <td class="py-2 px-2 text-right tabular-nums">
+                            @if($row['toko_koperasi'] > 0)
+                                <button type="button" 
+                                        onclick="openMemberCreditModal({{ $row['id'] }}, '{{ addslashes($row['name']) }}', '{{ $row['member_id'] }}', '{{ $row['employee_id'] }}')" 
+                                        class="inline-flex items-center gap-1 font-semibold text-primary hover:text-primary-700 hover:underline cursor-pointer group"
+                                        title="Klik untuk melihat rincian belanja & pelunasan">
+                                    <span>{{ number_format($row['toko_koperasi'], 0, ',', '.') }}</span>
+                                    <span class="text-[10px] text-primary/70 group-hover:text-primary">🔍</span>
+                                </button>
+                            @else
+                                <span class="text-gray-400">-</span>
+                            @endif
+                        </td>
                         <td class="py-2 px-2 text-right tabular-nums {{ $row['toko_amigo'] > 0 ? 'text-amber-700 dark:text-amber-400 font-semibold' : '' }}">
                             {{ $row['toko_amigo'] > 0 ? number_format($row['toko_amigo'], 0, ',', '.') : '-' }}
                         </td>
@@ -357,6 +381,97 @@
         </div>
     </div>
 
+    <!-- Modal Detail Nota Belanja Toko Koperasi per Member -->
+    <div id="modalMemberCreditDetails" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden transform transition-all">
+            <!-- Header -->
+            <div class="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-start bg-gray-50/50 dark:bg-gray-900/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center text-xl flex-shrink-0">
+                        🛍️
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Rincian Belanja Toko Koperasi</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            Anggota: <span id="mcdMemberName" class="font-bold text-gray-900 dark:text-white">-</span> 
+                            (<span id="mcdMemberId">-</span> | Absen: <span id="mcdEmployeeId">-</span>)
+                        </p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeMemberCreditModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-5 sm:p-6 space-y-4 max-h-[65vh] overflow-y-auto">
+                <!-- Cut-Off Info & Total -->
+                <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400 block">Periode Cut-Off Transaksi:</span>
+                        <span class="font-semibold text-gray-900 dark:text-white">{{ \Carbon\Carbon::parse($startDate)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-gray-500 dark:text-gray-400 block">Total Potongan Cut-Off Ini:</span>
+                        <span id="mcdTotalCutoff" class="text-sm font-black font-mono text-primary">Rp 0</span>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="mcdLoading" class="py-10 text-center text-gray-400">
+                    <svg class="animate-spin h-7 w-7 mx-auto text-primary mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="text-xs">Memuat rincian transaksi belanja...</p>
+                </div>
+
+                <!-- Transactions Content Container -->
+                <div id="mcdContent" class="hidden">
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden max-h-56 overflow-y-auto">
+                        <table class="w-full text-xs">
+                            <thead class="bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 sticky top-0">
+                                <tr>
+                                    <th class="py-2 px-3 text-center">No</th>
+                                    <th class="py-2 px-3 text-left">Invoice</th>
+                                    <th class="py-2 px-3 text-left">Tanggal</th>
+                                    <th class="py-2 px-3 text-left">Barang</th>
+                                    <th class="py-2 px-3 text-right">Nominal</th>
+                                    <th class="py-2 px-3 text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mcdTableBody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="mcdEmpty" class="hidden py-8 text-center text-gray-400 text-xs">
+                    <span class="text-3xl block mb-1">🛒</span>
+                    Tidak ditemukan data nota belanja pada rentang cut-off ini.
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="p-4 sm:p-5 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex flex-wrap items-center justify-between gap-3">
+                <a id="mcdLinkCreditReport" href="#" target="_blank" class="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                    <span>🔍 Buka di Mart Credit Report</span>
+                    <span class="text-[10px]">↗</span>
+                </a>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeMemberCreditModal()" class="btn-secondary py-2 px-4 text-xs font-semibold">
+                        Tutup
+                    </button>
+                    <button type="button" id="mcdBtnPayPayroll" onclick="payMemberCreditsFromModal()" class="btn-primary py-2 px-4 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                        <span>⚡ Proses Potong Gaji (Payroll)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 @endsection
 
 @push('scripts')
@@ -380,6 +495,155 @@ window.switchDeductionTab = function(tab) {
         btnManagement.className = "px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-primary text-white shadow-sm";
         btnFactory.className = "px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800";
     }
+};
+
+let currentMcdData = null;
+
+window.openMemberCreditModal = function(memberId, memberName, memberNo, employeeId) {
+    const modal = document.getElementById('modalMemberCreditDetails');
+    const loading = document.getElementById('mcdLoading');
+    const content = document.getElementById('mcdContent');
+    const empty = document.getElementById('mcdEmpty');
+    const btnPay = document.getElementById('mcdBtnPayPayroll');
+    const linkReport = document.getElementById('mcdLinkCreditReport');
+
+    document.getElementById('mcdMemberName').textContent = memberName;
+    document.getElementById('mcdMemberId').textContent = memberNo;
+    document.getElementById('mcdEmployeeId').textContent = employeeId;
+    document.getElementById('mcdTotalCutoff').textContent = 'Rp 0';
+
+    // Deep link to /pos/credits
+    const url = new URL("{{ route('pos.credits') }}", window.location.origin);
+    url.searchParams.set('member_search', memberName);
+    url.searchParams.set('from_date', "{{ $startDate }}");
+    url.searchParams.set('to_date', "{{ $endDate }}");
+    linkReport.href = url.toString();
+
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    empty.classList.add('hidden');
+    btnPay.disabled = true;
+    modal.classList.remove('hidden');
+
+    fetch(`{{ route('reports.payroll-deductions.member-credits') }}?member_id=${memberId}&start_date={{ $startDate }}&end_date={{ $endDate }}`)
+        .then(res => res.json())
+        .then(res => {
+            loading.classList.add('hidden');
+            if (res.success && res.transactions && res.transactions.length > 0) {
+                currentMcdData = res;
+                renderMemberCredits(res);
+                content.classList.remove('hidden');
+                btnPay.disabled = res.unpaid_count === 0;
+                if (res.unpaid_count === 0) {
+                    btnPay.innerHTML = '<span>✓ Sudah Lunas</span>';
+                    btnPay.classList.remove('btn-primary');
+                    btnPay.classList.add('btn-secondary');
+                } else {
+                    btnPay.innerHTML = '<span>⚡ Proses Potong Gaji (Payroll)</span>';
+                    btnPay.classList.remove('btn-secondary');
+                    btnPay.classList.add('btn-primary');
+                }
+            } else {
+                empty.classList.remove('hidden');
+                btnPay.disabled = true;
+            }
+        })
+        .catch(err => {
+            loading.classList.add('hidden');
+            alert('Gagal memuat rincian transaksi: ' + err.message);
+        });
+};
+
+window.renderMemberCredits = function(data) {
+    const tbody = document.getElementById('mcdTableBody');
+    tbody.innerHTML = '';
+    document.getElementById('mcdTotalCutoff').textContent = 'Rp ' + Math.round(data.total_cutoff).toLocaleString('id-ID');
+
+    data.transactions.forEach((trx, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50/50 dark:hover:bg-gray-800/50';
+        
+        let statusBadge = '';
+        if (trx.is_paid) {
+            statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Lunas</span>';
+        } else {
+            statusBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Belum Lunas</span>';
+        }
+
+        tr.innerHTML = `
+            <td class="py-2 px-3 text-center text-gray-400">${idx + 1}</td>
+            <td class="py-2 px-3 font-mono font-semibold text-primary-600">${trx.invoice_number}</td>
+            <td class="py-2 px-3 text-gray-500">${trx.date}</td>
+            <td class="py-2 px-3 text-gray-700 dark:text-gray-300 max-w-[180px] truncate" title="${trx.items_summary}">${trx.items_summary}</td>
+            <td class="py-2 px-3 text-right font-mono font-bold text-gray-900 dark:text-white">Rp ${Math.round(trx.cutoff_amount).toLocaleString('id-ID')}</td>
+            <td class="py-2 px-3 text-center">${statusBadge}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+};
+
+window.closeMemberCreditModal = function() {
+    document.getElementById('modalMemberCreditDetails').classList.add('hidden');
+    currentMcdData = null;
+};
+
+window.payMemberCreditsFromModal = function() {
+    if (!currentMcdData || !currentMcdData.transactions) return;
+
+    const unpaidTrxIds = currentMcdData.transactions
+        .filter(t => !t.is_paid)
+        .map(t => t.id);
+
+    if (unpaidTrxIds.length === 0) {
+        alert('Semua tagihan untuk anggota ini sudah lunas.');
+        return;
+    }
+
+    const confirmMsg = `Konfirmasi pelunasan potong gaji (Payroll) untuk ${currentMcdData.member.name}?\n` +
+                       `Jumlah: ${unpaidTrxIds.length} nota\n` +
+                       `Total: Rp ${Math.round(currentMcdData.total_unpaid).toLocaleString('id-ID')}`;
+
+    if (!confirm(confirmMsg)) return;
+
+    const btn = document.getElementById('mcdBtnPayPayroll');
+    btn.disabled = true;
+    btn.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>Memproses...</span>
+    `;
+
+    fetch("{{ route('reports.payroll-deductions.pay-member-credits') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': "{{ csrf_token() }}",
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            member_id: currentMcdData.member.id,
+            transaction_ids: unpaidTrxIds,
+            notes: "Pelunasan Potong Gaji Periode {{ $monthLabel }}"
+        })
+    })
+    .then(res => res.json())
+    .then(res => {
+        if (res.success) {
+            alert(res.message);
+            window.location.reload();
+        } else {
+            alert('Gagal: ' + res.message);
+            btn.disabled = false;
+            btn.innerHTML = '<span>⚡ Proses Potong Gaji (Payroll)</span>';
+        }
+    })
+    .catch(err => {
+        alert('Terjadi kesalahan: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = '<span>⚡ Proses Potong Gaji (Payroll)</span>';
+    });
 };
 </script>
 @endpush
