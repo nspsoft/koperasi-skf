@@ -139,7 +139,10 @@
                         
                         <!-- Laba Rugi Berjalan (SHU) -->
                         <tr class="bg-yellow-50 dark:bg-yellow-900/10">
-                            <td class="py-2 pl-2 font-medium">Laba Rugi Tahun Berjalan (SHU)</td>
+                            <td class="py-2 pl-2 font-medium">
+                                <span class="font-mono text-gray-500 text-xs mr-2">3902</span>
+                                SHU Tahun Berjalan
+                            </td>
                             <td class="text-right pr-2 py-2 font-mono font-medium {{ $currentEarnings >= 0 ? 'text-green-600' : 'text-red-600' }}">
                                 {{ number_format($currentEarnings, 0, ',', '.') }}
                             </td>

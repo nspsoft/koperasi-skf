@@ -79,7 +79,7 @@ class PayrollDeductionController extends Controller
         // Group by user_id
         $creditInstallments = CreditInstallment::join('transactions', 'credit_installments.transaction_id', '=', 'transactions.id')
             ->whereBetween('credit_installments.due_date', [$startDate, $endDate])
-            ->whereNotIn('credit_installments.status', ['cancelled'])
+            ->whereNotIn('credit_installments.status', ['cancelled', 'paid'])
             ->whereNotIn('transactions.status', ['cancelled'])
             ->select('transactions.user_id', DB::raw('SUM(credit_installments.amount) as total_amount'))
             ->groupBy('transactions.user_id')
@@ -752,15 +752,16 @@ class PayrollDeductionController extends Controller
                 $remaining = max(0, (float)$trx->total_amount - (float)$trx->paid_amount);
                 
                 // Cut-off installments
+                $hasInstallments = $trx->creditInstallments->isNotEmpty();
                 $cutoffInstallments = $trx->creditInstallments->filter(function($inst) use ($startDate, $endDate) {
-                    return $inst->due_date >= $startDate && $inst->due_date <= $endDate && $inst->status !== 'cancelled';
+                    return $inst->due_date >= $startDate && $inst->due_date <= $endDate && !in_array($inst->status, ['cancelled', 'paid']);
                 });
                 
-                $cutoffAmount = $cutoffInstallments->isNotEmpty() 
+                $cutoffAmount = $hasInstallments 
                     ? (float)$cutoffInstallments->sum('amount') 
-                    : (float)$trx->total_amount;
+                    : $remaining;
 
-                $isFullyPaid = in_array($trx->status, ['completed']) || $remaining <= 0;
+                $isFullyPaid = in_array($trx->status, ['completed']) || $remaining <= 0 || ($hasInstallments && $cutoffAmount <= 0);
 
                 $itemsSummary = $trx->items->map(function($i) {
                     $name = $i->product->name ?? 'Produk';
@@ -769,6 +770,12 @@ class PayrollDeductionController extends Controller
                 
                 if ($trx->items->count() > 3) {
                     $itemsSummary .= ' +' . ($trx->items->count() - 3) . ' lainnya';
+                }
+
+                if ($hasInstallments && $trx->credit_tenor_months > 1) {
+                    $currentInst = $cutoffInstallments->first();
+                    $instNo = $currentInst ? $currentInst->installment_number : '-';
+                    $itemsSummary .= " [Tenor {$trx->credit_tenor_months} bln • Cicilan {$instNo}/{$trx->credit_tenor_months}]";
                 }
 
                 return [
@@ -821,8 +828,11 @@ class PayrollDeductionController extends Controller
 
         $member = Member::with('user')->findOrFail($request->member_id);
 
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
         try {
-            $result = DB::transaction(function () use ($request, $member) {
+            $result = DB::transaction(function () use ($request, $member, $startDate, $endDate) {
                 $transactions = Transaction::whereIn('id', $request->transaction_ids)
                     ->where('payment_method', 'kredit')
                     ->whereNotIn('status', ['completed', 'cancelled'])
@@ -842,37 +852,59 @@ class PayrollDeductionController extends Controller
                         continue;
                     }
 
-                    // Update installments if exist
-                    $installments = $transaction->creditInstallments()
-                        ->whereNotIn('status', ['paid'])
-                        ->orderBy('due_date')
-                        ->get();
+                    // Check if transaction has installment schedule
+                    if ($transaction->creditInstallments()->exists()) {
+                        $installmentsQuery = $transaction->creditInstallments()
+                            ->where('status', 'pending');
 
-                    if ($installments->isNotEmpty()) {
-                        foreach ($installments as $installment) {
-                            $installment->update([
-                                'status' => 'paid',
-                                'paid_at' => now(),
-                                'payment_method' => 'payroll',
-                                'notes' => $request->notes ?: 'Pelunasan Potong Gaji (Payroll)',
-                            ]);
+                        if ($startDate && $endDate) {
+                            $installmentsQuery->whereBetween('due_date', [$startDate, $endDate]);
                         }
+
+                        $installments = $installmentsQuery->orderBy('due_date')->get();
+
+                        if ($installments->isNotEmpty()) {
+                            $settledForTrx = 0;
+                            foreach ($installments as $installment) {
+                                $installment->update([
+                                    'status' => 'paid',
+                                    'paid_at' => now(),
+                                    'payment_method' => 'payroll',
+                                    'notes' => $request->notes ?: 'Pelunasan Potong Gaji (Payroll)',
+                                ]);
+                                $settledForTrx += (float) $installment->amount;
+                            }
+
+                            $newPaidAmount = min((float)$transaction->total_amount, (float)$transaction->paid_amount + $settledForTrx);
+                            $allPendingCount = $transaction->creditInstallments()->where('status', 'pending')->count();
+                            $newStatus = ($allPendingCount === 0) ? 'completed' : $transaction->status;
+
+                            $transaction->update([
+                                'paid_amount' => $newPaidAmount,
+                                'status' => $newStatus,
+                                'notes' => trim($transaction->notes . ' [POTONG GAJI: Rp ' . number_format($settledForTrx, 0, ',', '.') . ' pada ' . now()->format('d/m/Y H:i') . ' oleh ' . auth()->user()->name . ']'),
+                            ]);
+
+                            // Generate journal entry for this installment payment
+                            JournalService::journalTransactionCreditPayment($transaction, $settledForTrx, 'payroll');
+
+                            $totalSettled += $settledForTrx;
+                            $countSettled++;
+                        }
+                    } else {
+                        // Regular single tempo credit transaction
+                        $transaction->update([
+                            'status' => 'completed',
+                            'paid_amount' => $transaction->total_amount,
+                            'notes' => trim($transaction->notes . ' [POTONG GAJI LUNAS pada ' . now()->format('d/m/Y H:i') . ' oleh ' . auth()->user()->name . ']'),
+                        ]);
+
+                        // Generate journal entry (Debit Bank 1102, Credit Piutang Dagang 1202)
+                        JournalService::journalTransactionCreditPayment($transaction, $remaining, 'payroll');
+
+                        $totalSettled += $remaining;
+                        $countSettled++;
                     }
-
-                    $transaction->update([
-                        'status' => 'completed',
-                        'paid_amount' => $transaction->total_amount,
-                        'notes' => 'Pelunasan via POTONG GAJI / PAYROLL' . 
-                                   ($request->notes ? ' - ' . $request->notes : '') . 
-                                   ' pada ' . now()->format('d/m/Y H:i') . 
-                                   ' oleh ' . auth()->user()->name,
-                    ]);
-
-                    // Generate journal entry (Debit Bank 1102, Credit Piutang Dagang 1202)
-                    JournalService::journalTransactionCreditPayment($transaction, $remaining, 'payroll');
-
-                    $totalSettled += $remaining;
-                    $countSettled++;
                 }
 
                 AuditLog::log(

@@ -59,6 +59,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['account_category_id' => $equityCat->id, 'code' => '3201', 'name' => 'Cadangan Umum', 'type' => 'equity', 'sub_type' => 'reserve', 'normal_balance' => 'credit', 'description' => 'Cadangan umum koperasi'],
             ['account_category_id' => $equityCat->id, 'code' => '3202', 'name' => 'Cadangan Khusus', 'type' => 'equity', 'sub_type' => 'reserve', 'normal_balance' => 'credit', 'description' => 'Cadangan khusus'],
             ['account_category_id' => $equityCat->id, 'code' => '3901', 'name' => 'Laba Ditahan', 'type' => 'equity', 'sub_type' => 'retained_earnings', 'normal_balance' => 'credit', 'description' => 'Laba ditahan dari periode sebelumnya'],
+            ['account_category_id' => $equityCat->id, 'code' => '3902', 'name' => 'SHU Tahun Berjalan', 'type' => 'equity', 'sub_type' => 'current_year_earnings', 'normal_balance' => 'credit', 'description' => 'Sisa Hasil Usaha (SHU) tahun buku berjalan'],
 
             // PENDAPATAN (Revenue)
             ['account_category_id' => $revenueCat->id, 'code' => '4101', 'name' => 'Pendapatan Bunga Pinjaman', 'type' => 'revenue', 'sub_type' => 'operating_revenue', 'normal_balance' => 'credit', 'description' => 'Pendapatan bunga dari pinjaman anggota'],

@@ -328,18 +328,35 @@
                 </div>
                 <!-- Optional Tenor Selection -->
                 <div class="mt-2.5 pt-2 border-t border-orange-200 dark:border-orange-800/60">
-                    <label class="block text-xs font-semibold text-orange-800 dark:text-orange-300 mb-1">Tenor Cicilan:</label>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-semibold text-orange-800 dark:text-orange-300">Tenor Cicilan:</label>
+                        <template x-if="hasMultiMonthEligibleProduct">
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                🛒 Produk Mendukung Cicilan
+                            </span>
+                        </template>
+                        <template x-if="!hasMultiMonthEligibleProduct">
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                Tempo Standar
+                            </span>
+                        </template>
+                    </div>
+
                     <select x-model="creditTenor" class="form-input !py-1 text-xs w-full bg-white dark:bg-gray-800 border-orange-300 dark:border-orange-700 text-gray-800 dark:text-gray-200">
-                        <option value="">1 Bulan (Tempo Standar)</option>
-                        <option value="2">2 Bulan</option>
-                        <option value="3">3 Bulan</option>
-                        <option value="6">6 Bulan</option>
-                        <option value="12">12 Bulan</option>
+                        <option value="">1 Bulan (Tempo Standar Potong Gaji)</option>
+                        <template x-for="tenor in availableCreditTenors.filter(t => t > 1)" :key="tenor">
+                            <option :value="tenor" x-text="tenor + ' Bulan'"></option>
+                        </template>
                     </select>
+
                     <div x-show="creditTenor && creditTenor > 1" class="text-[11px] text-orange-700 dark:text-orange-400 mt-1 flex justify-between">
                         <span>Angsuran per bulan:</span>
                         <span class="font-bold" x-text="formatRupiah(Math.round(Math.max(0, cartTotalAmount - (discountAmount || 0)) / (creditTenor || 1)))"></span>
                     </div>
+
+                    <p x-show="!hasMultiMonthEligibleProduct" class="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                        *Barang di keranjang menggunakan tempo standar 1 bulan (dipotong pada gajian periode berjalan).
+                    </p>
                 </div>
             </div>
 
@@ -859,6 +876,43 @@ document.addEventListener('alpine:init', () => {
         get cartTotalQty() { return this.cart.reduce((s, i) => s + i.qty, 0); },
         get cartTotalAmount() { return this.cart.reduce((s, i) => s + (i.price * i.qty), 0); },
         get changeAmount() { return Math.max(0, this.paidAmount - Math.max(0, this.cartTotalAmount - (this.discountAmount || 0))); },
+
+        get availableCreditTenors() {
+            if (!this.cart || this.cart.length === 0) return [1];
+            const cartProductIds = this.cart.map(c => c.id);
+            const cartItems = this.products.filter(p => cartProductIds.includes(p.id));
+            
+            let allowableTenors = [];
+            let anyProductHasTenor = false;
+            
+            cartItems.forEach(p => {
+                if (p.is_credit_eligible && Array.isArray(p.credit_tenors) && p.credit_tenors.length > 0) {
+                    anyProductHasTenor = true;
+                    p.credit_tenors.forEach(t => {
+                        const val = parseInt(t);
+                        if (!isNaN(val) && !allowableTenors.includes(val)) {
+                            allowableTenors.push(val);
+                        }
+                    });
+                }
+            });
+
+            if (!anyProductHasTenor) {
+                return [1];
+            }
+
+            allowableTenors.sort((a, b) => a - b);
+            if (!allowableTenors.includes(1)) {
+                allowableTenors.unshift(1);
+            }
+            return allowableTenors;
+        },
+
+        get hasMultiMonthEligibleProduct() {
+            if (!this.cart || this.cart.length === 0) return false;
+            const cartProductIds = this.cart.map(c => c.id);
+            return this.products.some(p => cartProductIds.includes(p.id) && p.is_credit_eligible && Array.isArray(p.credit_tenors) && p.credit_tenors.some(t => parseInt(t) > 1));
+        },
 
         formatRupiah(n) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n); },
 

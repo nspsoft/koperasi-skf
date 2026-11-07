@@ -286,7 +286,7 @@
             </div>
 
             <!-- Recent Credits -->
-            <div class="glass-card-solid p-6">
+            <div class="glass-card-solid p-6" x-data="{ showInstallmentsModal: false, modalInvoice: '', modalInstallments: [] }">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Riwayat Kredit Mart</h3>
                     <div class="flex gap-3">
@@ -318,16 +318,34 @@
                                 <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $credit->created_at->format('d/m/Y') }}</td>
                                 <td class="px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-400">{{ $credit->invoice_number }}</td>
                                 <td class="px-4 py-3">
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase {{ $credit->status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700' }}">
-                                        {{ $credit->status === 'completed' ? 'LUNAS' : 'KREDIT' }}
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase {{ $credit->status === 'completed' ? 'bg-green-100 text-green-700' : ($credit->status === 'cancelled' ? 'bg-gray-100 text-gray-500' : 'bg-orange-100 text-orange-700') }}">
+                                        {{ $credit->status === 'completed' ? 'LUNAS' : ($credit->status === 'cancelled' ? 'BATAL' : 'KREDIT') }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">
-                                    @if($credit->credit_tenor_months)
-                                        {{ $credit->credit_tenor_months }} bln
-                                        <div class="text-[10px] text-gray-400">Rp {{ number_format($credit->credit_installment_amount, 0, ',', '.') }}/bln</div>
+                                <td class="px-4 py-3 text-xs">
+                                    @if($credit->credit_tenor_months && $credit->credit_tenor_months > 1)
+                                        @php
+                                            $paidCount = $credit->creditInstallments->where('status', 'paid')->count();
+                                            $totalCount = $credit->credit_tenor_months;
+                                        @endphp
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                                Tenor {{ $totalCount }} Bln
+                                            </span>
+                                            <button type="button" 
+                                                    @click="modalInvoice = '{{ $credit->invoice_number }}'; modalInstallments = {{ json_encode($credit->creditInstallments) }}; showInstallmentsModal = true;"
+                                                    title="Lihat Jadwal Angsuran" 
+                                                    class="text-primary-600 hover:text-primary-800 p-0.5 rounded hover:bg-primary-50 dark:hover:bg-primary-900/20 transition">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                            </button>
+                                        </div>
+                                        <div class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                            {{ $paidCount }}/{{ $totalCount }} lunas • Rp {{ number_format($credit->credit_installment_amount, 0, ',', '.') }}/bln
+                                        </div>
                                     @else
-                                        -
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                            Tempo 1 Bln
+                                        </span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
@@ -343,6 +361,65 @@
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Modal Jadwal Angsuran Mart -->
+                <div x-show="showInstallmentsModal" 
+                     class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm"
+                     x-cloak
+                     style="display: none;"
+                     @keydown.escape.window="showInstallmentsModal = false">
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-gray-100 dark:border-gray-700" 
+                         @click.away="showInstallmentsModal = false">
+                        <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
+                            <div>
+                                <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <span class="p-1 rounded bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    </span>
+                                    Jadwal Angsuran Cicilan Mart
+                                </h3>
+                                <p class="text-xs text-gray-500 font-mono mt-0.5" x-text="modalInvoice"></p>
+                            </div>
+                            <button @click="showInstallmentsModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                        <div class="p-4 max-h-[60vh] overflow-y-auto">
+                            <template x-if="modalInstallments.length === 0">
+                                <p class="text-xs text-gray-500 text-center py-6">Tidak ada jadwal cicilan bertahap untuk nota ini.</p>
+                            </template>
+                            <template x-if="modalInstallments.length > 0">
+                                <table class="w-full text-xs text-left">
+                                    <thead class="bg-gray-50 dark:bg-gray-900/50 text-gray-500">
+                                        <tr>
+                                            <th class="py-2 px-3 rounded-l">Bulan</th>
+                                            <th class="py-2 px-3">Jatuh Tempo</th>
+                                            <th class="py-2 px-3 text-right">Nominal</th>
+                                            <th class="py-2 px-3 text-center rounded-r">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                        <template x-for="inst in modalInstallments" :key="inst.id">
+                                            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40">
+                                                <td class="py-2.5 px-3 font-semibold text-gray-700 dark:text-gray-300" x-text="'Bulan ' + inst.installment_number"></td>
+                                                <td class="py-2.5 px-3 text-gray-500" x-text="inst.due_date ? new Date(inst.due_date).toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'}) : '-'"></td>
+                                                <td class="py-2.5 px-3 text-right font-mono font-bold text-gray-900 dark:text-white" x-text="'Rp ' + Math.round(inst.amount).toLocaleString('id-ID')"></td>
+                                                <td class="py-2.5 px-3 text-center">
+                                                    <span x-show="inst.status === 'paid'" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Lunas</span>
+                                                    <span x-show="inst.status === 'pending'" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Menunggu</span>
+                                                    <span x-show="inst.status === 'cancelled'" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">Batal</span>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </template>
+                        </div>
+                        <div class="p-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                            <button type="button" @click="showInstallmentsModal = false" class="btn-secondary !text-xs !py-1.5 !px-4">Tutup</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 

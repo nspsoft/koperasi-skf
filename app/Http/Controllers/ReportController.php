@@ -288,8 +288,11 @@ class ReportController extends Controller
         // Liabilities (2xxx)
         $liabilities = Account::where('code', 'like', '2%')->orderBy('code')->get();
         
-        // Equity (3xxx)
-        $equities = Account::where('code', 'like', '3%')->orderBy('code')->get();
+        // Equity (3xxx) - Kecualikan 3902 dari daftar master agar tidak dobel dengan baris kalkulasi dinamis SHU Berjalan
+        $equities = Account::where('code', 'like', '3%')
+            ->where('code', '!=', '3902')
+            ->orderBy('code')
+            ->get();
 
         // Collect all codes to fetch in one go
         $allCodes = array_merge(

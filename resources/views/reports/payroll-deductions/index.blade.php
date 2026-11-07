@@ -625,6 +625,8 @@ window.payMemberCreditsFromModal = function() {
         body: JSON.stringify({
             member_id: currentMcdData.member.id,
             transaction_ids: unpaidTrxIds,
+            start_date: "{{ $startDate }}",
+            end_date: "{{ $endDate }}",
             notes: "Pelunasan Potong Gaji Periode {{ $monthLabel }}"
         })
     })

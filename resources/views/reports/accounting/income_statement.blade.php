@@ -486,7 +486,7 @@
                     <!-- VI. AKUMULASI SHU BERJALAN (KUMULATIF YTD) -->
                     <tr class="row-shu-ytd font-extrabold border-b-2 border-slate-900 dark:border-gray-600 text-[10.5px] print-shu-ytd">
                         <td class="col-uraian-td border border-slate-800 dark:border-gray-700 py-1.5 px-2 uppercase font-black text-amber-950 dark:text-amber-300">
-                            ★ AKUMULASI SHU BERJALAN (KUMULATIF YTD)
+                            ★ AKUMULASI SHU BERJALAN (YTD / AKUN 3902)
                         </td>
                         @foreach($monthlyComparative as $mKey => $mRow)
                             <td class="border border-slate-800 dark:border-gray-700 py-1.5 px-1 text-right font-mono text-amber-950 dark:text-amber-200 font-bold">
@@ -773,7 +773,7 @@
                     
                     <div class="relative z-10">
                         <h2 class="text-xl font-black uppercase tracking-wider flex items-center gap-1.5" style="color: white !important;">
-                            <span>✨</span> LABA BERSIH AKHIR (SHU BERJALAN)
+                            <span>✨</span> LABA BERSIH AKHIR (SHU BERJALAN - AKUN 3902)
                         </h2>
                         <p class="text-xs mt-1" style="color: rgba(255, 255, 255, 0.7) !important;">Laba Operasional - Beban Non-Operasional</p>
                     </div>

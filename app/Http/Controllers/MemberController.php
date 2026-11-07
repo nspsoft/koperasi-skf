@@ -310,11 +310,12 @@ class MemberController extends Controller
         // Recent activities
         $recentSavings = $member->savings()->latest('transaction_date')->take(5)->get();
         $activeLoans = $member->loans()->whereIn('status', ['active', 'approved'])->get();
-        $recentCredits = \App\Models\Transaction::where('user_id', $member->user_id)
+        $recentCredits = \App\Models\Transaction::with(['creditInstallments', 'items.product'])
+            ->where('user_id', $member->user_id)
             ->where('payment_method', 'kredit')
             ->whereNotIn('status', ['cancelled'])
             ->latest()
-            ->take(5)
+            ->take(10)
             ->get();
 
         // Performance History
