@@ -217,6 +217,7 @@ return [
         'view_cart' => 'Lihat Keranjang',
         'cash' => 'Tunai',
         'qris' => 'QRIS',
+        'transfer' => 'Transfer Bank',
         'balance' => 'Saldo',
         'credit' => 'Kredit',
         'cash_amount' => 'Uang Diterima',

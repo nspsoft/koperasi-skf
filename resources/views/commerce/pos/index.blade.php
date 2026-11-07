@@ -297,6 +297,11 @@
                         class="flex-1 min-w-[70px] py-2.5 rounded-xl border font-medium text-sm transition-colors flex items-center justify-center gap-1">
                     📱 {{ __('messages.pos.qris') }}
                 </button>
+                <button @click="paymentMethod = 'transfer'" 
+                        :class="paymentMethod === 'transfer' ? 'bg-primary-600 text-white border-primary-600 font-bold' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'"
+                        class="flex-1 min-w-[70px] py-2.5 rounded-xl border font-medium text-sm transition-colors flex items-center justify-center gap-1">
+                    🏦 {{ __('messages.pos.transfer') }}
+                </button>
                 <button x-show="buyerType === 'member' && memberData" @click="paymentMethod = 'saldo'" 
                         :class="paymentMethod === 'saldo' ? 'bg-primary-600 text-white border-primary-600 font-bold' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'"
                         class="flex-1 min-w-[70px] py-2.5 rounded-xl border font-medium text-sm transition-colors flex items-center justify-center gap-1">
@@ -369,6 +374,52 @@
                 <div x-show="memberData && Math.max(0, cartTotalAmount - (discountAmount || 0)) <= (memberData?.balance || 0)" class="mt-2 text-xs text-purple-600 dark:text-purple-400">
                     {{ __('messages.pos.balance_note') }}
                 </div>
+            </div>
+
+            <!-- Transfer Bank Info -->
+            <div x-show="paymentMethod === 'transfer'" x-transition class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
+                        🏦 Transfer Bank Koperasi
+                    </span>
+                    <span class="px-2 py-0.5 text-[10px] font-bold bg-blue-200 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 rounded">
+                        {{ $bankInfo['name'] ?? 'BCA' }}
+                    </span>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-blue-100 dark:border-blue-900/50 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] text-gray-500 dark:text-gray-400">Nomor Rekening Tujuan:</p>
+                        <p class="font-mono font-bold text-sm text-gray-900 dark:text-white tracking-wider">
+                            {{ $bankInfo['account'] ?? '1092545625' }}
+                        </p>
+                        <p class="text-[10px] text-gray-600 dark:text-gray-300 font-medium">
+                            a/n {{ $bankInfo['holder'] ?? 'Koperasi PT. SPINDO - SKF' }}
+                        </p>
+                    </div>
+                    <button type="button" 
+                            @click="navigator.clipboard.writeText('{{ $bankInfo['account'] ?? '1092545625' }}'); copiedBank = true; setTimeout(() => copiedBank = false, 2000)"
+                            class="px-2.5 py-1 text-xs font-medium rounded-lg border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800 transition flex items-center gap-1">
+                        <span x-text="copiedBank ? '✓ Tersalin' : '📋 Salin'"></span>
+                    </button>
+                </div>
+
+                <div class="flex justify-between items-center text-xs pt-1 border-t border-blue-200 dark:border-blue-800">
+                    <span class="text-gray-600 dark:text-gray-400">Total Ditransfer:</span>
+                    <span class="font-bold text-sm text-blue-700 dark:text-blue-400" x-text="formatRupiah(Math.max(0, cartTotalAmount - (discountAmount || 0)))"></span>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-semibold text-gray-600 dark:text-gray-400 mb-1">
+                        Catatan / Ref Transfer (Opsional):
+                    </label>
+                    <input type="text" x-model="transferRef" placeholder="Misal: Ref 123456 / Nama Pengirim" 
+                           class="form-input !py-1 text-xs w-full bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 text-gray-800 dark:text-gray-200 rounded-lg">
+                </div>
+
+                <p class="text-[10px] text-blue-600 dark:text-blue-400 leading-tight">
+                    💡 Pastikan mutasi dana transfer telah masuk ke rekening sebelum menyelesaikan transaksi.
+                </p>
             </div>
 
             <!-- Backdate Control (Admin & Pengurus Only) -->
@@ -572,6 +623,67 @@
     </div>
 </div>
 
+<!-- Transfer Bank Modal -->
+<div x-show="$store.transfer.show" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" @click="$store.transfer.show = false"></div>
+        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md mx-auto p-6">
+            
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 shadow-inner">
+                    🏦
+                </div>
+                <h3 class="font-bold text-2xl text-gray-900 dark:text-white mb-1">Transfer Bank</h3>
+                <p class="text-gray-500 dark:text-gray-400 text-sm">Pastikan mutasi transfer telah diterima sebelum menyelesaikan transaksi</p>
+            </div>
+            
+            <div class="bg-blue-50/60 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800 space-y-3 mb-5">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-600 dark:text-gray-400">Bank Tujuan:</span>
+                    <span class="font-bold text-blue-700 dark:text-blue-300 px-2.5 py-0.5 bg-blue-100 dark:bg-blue-900/60 rounded text-xs">
+                        {{ $bankInfo['name'] ?? 'BCA' }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-600 dark:text-gray-400">Nomor Rekening:</span>
+                    <div class="flex items-center gap-2">
+                        <span class="font-mono font-bold text-base text-gray-900 dark:text-white">{{ $bankInfo['account'] ?? '1092545625' }}</span>
+                        <button type="button" @click="navigator.clipboard.writeText('{{ $bankInfo['account'] ?? '1092545625' }}'); copiedBank = true; setTimeout(() => copiedBank = false, 2000)" 
+                                class="text-xs text-blue-600 hover:text-blue-700 underline font-medium">
+                            <span x-text="copiedBank ? '✓ Tersalin' : 'Salin'"></span>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-600 dark:text-gray-400">Atas Nama:</span>
+                    <span class="font-medium text-gray-800 dark:text-gray-200 text-xs">{{ $bankInfo['holder'] ?? 'Koperasi PT. SPINDO - SKF' }}</span>
+                </div>
+                <div class="flex justify-between items-center text-sm pt-2.5 border-t border-blue-200 dark:border-blue-800">
+                    <span class="font-bold text-gray-700 dark:text-gray-300">Total Ditransfer:</span>
+                    <span class="font-extrabold text-lg text-blue-600 dark:text-blue-400" x-text="formatRupiah(Math.max(0, cartTotalAmount - (discountAmount || 0)))"></span>
+                </div>
+            </div>
+
+            <div class="mb-5 text-left">
+                <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Nomor Referensi / Catatan Transfer (Opsional):
+                </label>
+                <input type="text" x-model="transferRef" placeholder="Contoh: No. Ref BCA 123456 / Nama Pengirim" 
+                       class="form-input text-xs w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg">
+            </div>
+
+            <div class="flex gap-3">
+                <button type="button" @click="$store.transfer.show = false" class="flex-1 py-3 px-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-medium transition-colors">
+                    {{ __('messages.pos.cancel') }}
+                </button>
+                <button type="button" @click="$store.transfer.show = false; processPayment(false, true)" class="flex-1 py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-bold shadow-lg shadow-blue-200 dark:shadow-none transition-colors">
+                    {{ __('messages.pos.confirm_payment') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Scanner Modal -->
 <div x-show="isScanning" class="fixed inset-0 z-[60] overflow-y-auto" style="display: none;">
     <div class="flex items-center justify-center min-h-screen p-4">
@@ -612,6 +724,9 @@ document.addEventListener('alpine:init', () => {
     Alpine.store('qris', {
         show: false
     });
+    Alpine.store('transfer', {
+        show: false
+    });
 
     Alpine.data('posSystem', () => ({
         products: @json($products).map(p => ({...p, image_error: false})),
@@ -629,6 +744,8 @@ document.addEventListener('alpine:init', () => {
         paidAmount: 0,
         discountAmount: 0,
         creditTenor: '',
+        copiedBank: false,
+        transferRef: '',
         isBackdate: false,
         backdateDate: '{{ now()->toDateString() }}',
         backdateReason: '',
@@ -1031,7 +1148,11 @@ document.addEventListener('alpine:init', () => {
             Alpine.store('qris').show = true;
         },
 
-        processPayment(isQrisConfirmed = false) {
+        showTransfer() {
+            Alpine.store('transfer').show = true;
+        },
+
+        processPayment(isQrisConfirmed = false, isTransferConfirmed = false) {
             if (this.cart.length === 0) return;
             
             const discount = parseFloat(this.discountAmount || 0);
@@ -1055,6 +1176,12 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
+            // If method is Transfer and not yet confirmed, show the transfer modal first
+            if (this.paymentMethod === 'transfer' && !isTransferConfirmed) {
+                this.showTransfer();
+                return;
+            }
+
             this.processing = true;
 
             const cartCopy = [...this.cart];
@@ -1074,6 +1201,7 @@ document.addEventListener('alpine:init', () => {
                     buyer_type: this.buyerType,
                     member_id: this.buyerType === 'member' ? this.memberData?.id : null,
                     credit_tenor_months: this.paymentMethod === 'kredit' && this.creditTenor ? parseInt(this.creditTenor) : null,
+                    transfer_ref: this.paymentMethod === 'transfer' && this.transferRef ? this.transferRef : null,
                     transaction_date: this.isBackdate ? this.backdateDate : null,
                     backdate_reason: this.isBackdate ? this.backdateReason : null,
                 })
@@ -1101,6 +1229,7 @@ document.addEventListener('alpine:init', () => {
                     this.paidAmount = 0;
                     this.discountAmount = 0;
                     this.creditTenor = '';
+                    this.transferRef = '';
                     this.isBackdate = false;
                     this.backdateDate = '{{ now()->toDateString() }}';
                     this.backdateReason = '';

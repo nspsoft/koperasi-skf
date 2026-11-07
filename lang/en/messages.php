@@ -220,6 +220,7 @@ return [
         'view_cart' => 'View Cart',
         'cash' => 'Cash',
         'qris' => 'QRIS',
+        'transfer' => 'Bank Transfer',
         'balance' => 'Balance',
         'credit' => 'Credit',
         'cash_amount' => 'Cash Received',

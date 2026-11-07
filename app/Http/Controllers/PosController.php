@@ -20,8 +20,13 @@ class PosController extends Controller
         // For larger datasets, implement server-side search
         $products = Product::with('category')->where('is_active', true)->where('stock', '>', 0)->get();
         $qrisImage = \App\Models\Setting::where('key', 'payment_qris_image')->value('value');
+        $bankInfo = [
+            'name' => \App\Models\Setting::get('bank_name', 'BCA'),
+            'account' => \App\Models\Setting::get('bank_account', '1092545625'),
+            'holder' => \App\Models\Setting::get('bank_holder', 'Koperasi PT. SPINDO - SKF'),
+        ];
         
-        return view('commerce.pos.index', compact('products', 'qrisImage'));
+        return view('commerce.pos.index', compact('products', 'qrisImage', 'bankInfo'));
     }
 
     public function store(Request $request)
@@ -35,6 +40,7 @@ class PosController extends Controller
             'discount' => 'nullable|numeric|min:0',
             'transaction_date' => 'nullable|date',
             'backdate_reason' => 'nullable|string',
+            'transfer_ref' => 'nullable|string|max:100',
         ]);
 
         $isBackdate = false;
@@ -137,11 +143,11 @@ class PosController extends Controller
                 // Determine transaction status based on payment method
                 $status = $request->payment_method === 'kredit' ? 'credit' : 'completed';
                 
-                // For kredit/saldo, paid amount handling
+                // For kredit/saldo/cashless, paid amount handling
                 if ($request->payment_method === 'kredit') {
                     $paid_amount = 0;
                     $change_amount = 0;
-                } elseif ($request->payment_method === 'saldo') {
+                } elseif (in_array($request->payment_method, ['saldo', 'qris', 'transfer'])) {
                     $paid_amount = $total_amount;
                     $change_amount = 0;
                 }
@@ -153,6 +159,9 @@ class PosController extends Controller
                 }
                 if ($isBackdate) {
                     $noteParts[] = "[BACKDATE: " . $transactionDate->format('d/m/Y') . " | Ref: " . $backdateReason . "]";
+                }
+                if ($request->filled('transfer_ref')) {
+                    $noteParts[] = "[REF TRANSFER: " . trim($request->transfer_ref) . "]";
                 }
                 if ($request->filled('notes')) {
                     $noteParts[] = trim($request->notes);
