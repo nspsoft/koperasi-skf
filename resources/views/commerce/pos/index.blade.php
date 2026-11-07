@@ -3,14 +3,14 @@
 @section('title', __('messages.pos.title'))
 
 @section('content')
-<div class="w-full flex flex-col lg:flex-row gap-4 xl:gap-6 h-[calc(100vh-6.5rem)]" x-data="posSystem()">
+<div class="w-full flex flex-col lg:flex-row gap-3 lg:gap-4 xl:gap-6 h-full overflow-hidden" x-data="posSystem()">
     <!-- Flying Image Container -->
     <div id="flying-container" class="fixed inset-0 pointer-events-none z-[100]"></div>
     
     <!-- Left: Products Section -->
-    <div class="flex-1 flex flex-col min-w-0">
+    <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <!-- Header with Search, Actions & Category Filter -->
-        <div class="glass-card-solid p-3 sm:p-4 mb-3 sm:mb-4">
+        <div class="glass-card-solid p-2.5 sm:p-3 mb-2 sm:mb-3 shrink-0">
             <div class="flex flex-col md:flex-row gap-2 sm:gap-3 items-stretch md:items-center">
                 <!-- Search Box with Barcode Scan Support -->
                 <div class="flex-[3] relative">
@@ -70,8 +70,8 @@
         </div>
 
         <!-- Products Grid with Pagination -->
-        <div class="flex-1 overflow-hidden flex flex-col">
-            <div class="flex-1 overflow-y-auto">
+        <div class="flex-1 min-h-0 overflow-hidden flex flex-col">
+            <div class="flex-1 min-h-0 overflow-y-auto pr-1">
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     <template x-for="product in paginatedProducts" :key="product.id">
                         <div @click="addToCart(product, $event)" 
@@ -143,7 +143,7 @@
     <!-- Mobile: Fixed Bottom Sheet / Desktop: Fixed Sidebar -->
     <div 
         :class="showMobileCart ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'"
-        class="fixed inset-x-0 bottom-0 z-50 h-[85vh] bg-white dark:bg-gray-800 rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-in-out lg:translate-y-0 lg:static lg:h-auto lg:w-[380px] lg:min-w-[350px] lg:max-w-[400px] xl:w-[420px] xl:min-w-[400px] xl:max-w-[440px] lg:rounded-2xl lg:shadow-xl lg:border lg:border-gray-100 lg:dark:border-gray-700 lg:flex lg:flex-col lg:overflow-hidden flex flex-col shrink-0"
+        class="fixed inset-x-0 bottom-0 z-50 h-[85vh] bg-white dark:bg-gray-800 rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-in-out lg:translate-y-0 lg:static lg:h-full lg:max-h-full lg:w-[380px] lg:min-w-[350px] lg:max-w-[400px] xl:w-[420px] xl:min-w-[400px] xl:max-w-[440px] lg:rounded-2xl lg:shadow-xl lg:border lg:border-gray-100 lg:dark:border-gray-700 flex flex-col overflow-hidden shrink-0"
         style="will-change: transform;">
         
         <!-- Mobile Handle -->
@@ -154,29 +154,29 @@
         <div id="cart-target" class="absolute top-4 left-4 w-10 h-10 pointer-events-none z-10"></div>
         
         <!-- Cart Header -->
-        <div class="p-4 bg-primary-600 text-white">
-            <h2 class="text-lg font-bold flex items-center gap-2">
+        <div class="p-3 sm:p-4 bg-primary-600 text-white shrink-0">
+            <h2 class="text-base sm:text-lg font-bold flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                 {{ __('messages.pos.cart_title') }}
             </h2>
-            <p class="text-white/80 text-sm" x-text="new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })"></p>
+            <p class="text-white/80 text-xs" x-text="new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })"></p>
             <button @click="showMobileCart = false" class="lg:hidden absolute right-4 top-4 text-white hover:bg-white/10 p-1 rounded">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
 
         <!-- Buyer Type Selection -->
-        <div class="p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
-            <label class="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-2 block">{{ __('messages.pos.buyer_type') }}</label>
-            <div class="flex gap-2 mb-2">
+        <div class="p-2.5 sm:p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 shrink-0">
+            <label class="text-[10px] font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 block">{{ __('messages.pos.buyer_type') }}</label>
+            <div class="flex gap-2">
                 <button @click="buyerType = 'umum'; memberId = ''; memberData = null" 
                         :class="buyerType === 'umum' ? 'bg-primary-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600'"
-                        class="flex-1 py-2 rounded-lg font-medium text-sm transition-colors">
+                        class="flex-1 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-colors">
                     👤 {{ __('messages.pos.general') }}
                 </button>
                 <button @click="buyerType = 'member'" 
                         :class="buyerType === 'member' ? 'bg-primary-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600'"
-                        class="flex-1 py-2 rounded-lg font-medium text-sm transition-colors">
+                        class="flex-1 py-1.5 rounded-lg font-medium text-xs sm:text-sm transition-colors">
                     🎫 {{ __('messages.pos.member') }}
                 </button>
             </div>
@@ -258,7 +258,7 @@
         </div>
 
         <!-- Cart Items -->
-        <div class="flex-1 overflow-y-auto p-3 space-y-2 bg-white dark:bg-gray-800">
+        <div class="flex-1 min-h-0 overflow-y-auto p-2 sm:p-2.5 space-y-1.5 bg-white dark:bg-gray-800 scrollbar-thin">
             <template x-for="(item, index) in cart" :key="item.id">
                 <div class="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 p-2 rounded-lg border border-gray-200 dark:border-gray-600">
                     <div class="flex-1 min-w-0">
@@ -286,93 +286,87 @@
         </div>
 
         <!-- Payment Section -->
-        <div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 space-y-3">
-            <!-- Summary -->
-            <div class="flex justify-between text-sm">
-                <span class="text-gray-600 dark:text-gray-400">{{ __('messages.pos.total_items') }}</span>
-                <span class="font-medium text-gray-900 dark:text-white" x-text="cartTotalQty + ' pcs'"></span>
-            </div>
-            <!-- Manual Discount Input -->
-            <div class="flex items-center justify-between gap-4 py-1.5 border-t border-b border-gray-200/50 dark:border-gray-700/50">
-                <span class="text-xs font-semibold text-gray-600 dark:text-gray-400 flex items-center gap-1">
-                    🏷️ Diskon Manual (Rp)
-                </span>
-                <input type="number" x-model.number="discountAmount" @input="paidAmount = 0" 
-                       class="w-36 form-input !py-1 text-right text-xs font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border-gray-200" 
-                       placeholder="0" min="0">
-            </div>
-
-            <template x-if="discountAmount > 0">
-                <div class="space-y-1 my-1.5">
-                    <div class="flex justify-between text-xs">
-                        <span class="text-gray-600 dark:text-gray-400">Subtotal:</span>
-                        <span class="font-medium text-gray-900 dark:text-white" x-text="formatRupiah(cartTotalAmount)"></span>
-                    </div>
-                    <div class="flex justify-between text-xs text-rose-600 dark:text-rose-400 font-semibold">
-                        <span>Diskon:</span>
-                        <span x-text="'- ' + formatRupiah(discountAmount)"></span>
+        <div class="p-2.5 sm:p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 space-y-1.5 sm:space-y-2 shrink-0">
+            <!-- Summary & Diskon -->
+            <div class="space-y-1">
+                <div class="flex justify-between items-center text-xs text-gray-600 dark:text-gray-400">
+                    <span>{{ __('messages.pos.total_items') }}: <strong class="text-gray-900 dark:text-white" x-text="cartTotalQty + ' pcs'"></strong></span>
+                    <!-- Manual Discount Input Inline -->
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-medium text-[11px] text-gray-600 dark:text-gray-400">🏷️ Diskon:</span>
+                        <input type="number" x-model.number="discountAmount" @input="paidAmount = 0" 
+                               class="w-24 form-input !py-0.5 text-right text-xs font-bold text-gray-900 dark:text-white bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded" 
+                               placeholder="0" min="0">
                     </div>
                 </div>
-            </template>
 
-            <div class="flex justify-between text-xl font-bold">
-                <span class="text-gray-900 dark:text-white">{{ __('messages.pos.total') }}</span>
-                <span class="text-primary-600" x-text="formatRupiah(Math.max(0, cartTotalAmount - (discountAmount || 0)))"></span>
+                <template x-if="discountAmount > 0">
+                    <div class="flex justify-between text-xs text-rose-600 dark:text-rose-400 font-semibold pt-0.5">
+                        <span>Potongan Diskon:</span>
+                        <span x-text="'- ' + formatRupiah(discountAmount)"></span>
+                    </div>
+                </template>
+
+                <div class="flex justify-between items-center text-lg sm:text-xl font-bold pt-1 border-t border-gray-200/60 dark:border-gray-700/60">
+                    <span class="text-gray-900 dark:text-white">{{ __('messages.pos.total') }}</span>
+                    <span class="text-primary-600 dark:text-primary-400 font-extrabold" x-text="formatRupiah(Math.max(0, cartTotalAmount - (discountAmount || 0)))"></span>
+                </div>
             </div>
 
             <!-- Payment Method -->
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-1.5">
                 <button @click="paymentMethod = 'cash'" 
                         :class="paymentMethod === 'cash' ? 'bg-primary-600 text-white border-primary-600 font-bold' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'"
-                        class="flex-1 min-w-[70px] py-2.5 rounded-xl border font-medium text-sm transition-colors flex items-center justify-center gap-1">
+                        class="flex-1 min-w-[65px] py-1.5 sm:py-2 rounded-xl border font-medium text-xs sm:text-sm transition-colors flex items-center justify-center gap-1">
                     💵 {{ __('messages.pos.cash') }}
                 </button>
                 <button @click="paymentMethod = 'qris'" 
                         :class="paymentMethod === 'qris' ? 'bg-primary-600 text-white border-primary-600 font-bold' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'"
-                        class="flex-1 min-w-[70px] py-2.5 rounded-xl border font-medium text-sm transition-colors flex items-center justify-center gap-1">
+                        class="flex-1 min-w-[65px] py-1.5 sm:py-2 rounded-xl border font-medium text-xs sm:text-sm transition-colors flex items-center justify-center gap-1">
                     📱 {{ __('messages.pos.qris') }}
                 </button>
                 <button @click="paymentMethod = 'transfer'" 
                         :class="paymentMethod === 'transfer' ? 'bg-primary-600 text-white border-primary-600 font-bold' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'"
-                        class="flex-1 min-w-[70px] py-2.5 rounded-xl border font-medium text-sm transition-colors flex items-center justify-center gap-1">
+                        class="flex-1 min-w-[65px] py-1.5 sm:py-2 rounded-xl border font-medium text-xs sm:text-sm transition-colors flex items-center justify-center gap-1">
                     🏦 {{ __('messages.pos.transfer') }}
                 </button>
                 <button x-show="buyerType === 'member' && memberData" @click="paymentMethod = 'saldo'" 
                         :class="paymentMethod === 'saldo' ? 'bg-primary-600 text-white border-primary-600 font-bold' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'"
-                        class="flex-1 min-w-[70px] py-2.5 rounded-xl border font-medium text-sm transition-colors flex items-center justify-center gap-1">
+                        class="flex-1 min-w-[65px] py-1.5 sm:py-2 rounded-xl border font-medium text-xs sm:text-sm transition-colors flex items-center justify-center gap-1">
                     💳 {{ __('messages.pos.balance') }}
                 </button>
                 <button x-show="buyerType === 'member' && memberData" @click="paymentMethod = 'kredit'" 
                         :class="paymentMethod === 'kredit' ? 'bg-primary-600 text-white border-primary-600 font-bold' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'"
-                        class="flex-1 min-w-[70px] py-2.5 rounded-xl border font-medium text-sm transition-colors flex items-center justify-center gap-1">
+                        class="flex-1 min-w-[65px] py-1.5 sm:py-2 rounded-xl border font-medium text-xs sm:text-sm transition-colors flex items-center justify-center gap-1">
                     📝 {{ __('messages.pos.credit') }}
                 </button>
             </div>
 
             <!-- Cash Input -->
-            <div x-show="paymentMethod === 'cash'" x-transition>
-                <label class="text-xs text-gray-600 dark:text-gray-400 font-medium">{{ __('messages.pos.cash_amount') }}</label>
-                <input type="number" x-model="paidAmount" class="form-input py-2.5 text-right font-bold text-lg text-gray-900 dark:text-white bg-white dark:bg-gray-800" placeholder="0">
-                <div x-show="changeAmount >= 0 && paidAmount > 0" class="flex justify-between mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <span class="text-green-700 dark:text-green-400 font-medium">{{ __('messages.pos.change') }}</span>
-                    <span class="text-green-700 dark:text-green-400 font-bold" x-text="formatRupiah(changeAmount)"></span>
+            <div x-show="paymentMethod === 'cash'" x-transition class="space-y-1">
+                <div class="flex justify-between items-center text-xs">
+                    <label class="text-gray-600 dark:text-gray-400 font-medium">{{ __('messages.pos.cash_amount') }}</label>
+                    <div x-show="changeAmount >= 0 && paidAmount > 0" class="text-xs font-bold text-green-700 dark:text-green-400">
+                        {{ __('messages.pos.change') }}: <span x-text="formatRupiah(changeAmount)"></span>
+                    </div>
                 </div>
+                <input type="number" x-model="paidAmount" class="form-input py-1.5 text-right font-bold text-base text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-lg w-full" placeholder="0">
             </div>
 
             <!-- Credit Info -->
-            <div x-show="paymentMethod === 'kredit'" x-transition class="p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
-                <p class="text-sm text-orange-700 dark:text-orange-300 font-medium">📝 {{ __('messages.pos.credit_payment') }}</p>
-                <p class="text-xs text-orange-600 dark:text-orange-400 mt-1">{{ __('messages.pos.credit_note') }}</p>
-                <div x-show="memberData && Math.max(0, cartTotalAmount - (discountAmount || 0)) > (memberData?.credit_available || 0)" class="mt-2 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-600 dark:text-red-400">
+            <div x-show="paymentMethod === 'kredit'" x-transition class="p-2 sm:p-2.5 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg text-xs">
+                <p class="font-medium text-orange-700 dark:text-orange-300">📝 {{ __('messages.pos.credit_payment') }}</p>
+                <p class="text-[11px] text-orange-600 dark:text-orange-400 mt-0.5">{{ __('messages.pos.credit_note') }}</p>
+                <div x-show="memberData && Math.max(0, cartTotalAmount - (discountAmount || 0)) > (memberData?.credit_available || 0)" class="mt-1.5 p-1.5 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-600 dark:text-red-400">
                     {{ __('messages.pos.insufficient_credit') }} {{ __('messages.pos.available') }}: <span x-text="formatRupiah(memberData?.credit_available || 0)"></span>
                 </div>
                 <!-- Optional Tenor Selection -->
-                <div class="mt-2.5 pt-2 border-t border-orange-200 dark:border-orange-800/60">
+                <div class="mt-2 pt-1.5 border-t border-orange-200 dark:border-orange-800/60">
                     <div class="flex items-center justify-between mb-1">
-                        <label class="block text-xs font-semibold text-orange-800 dark:text-orange-300">Tenor Cicilan:</label>
+                        <label class="block text-[11px] font-semibold text-orange-800 dark:text-orange-300">Tenor Cicilan:</label>
                         <template x-if="hasMultiMonthEligibleProduct">
                             <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                                🛒 Produk Mendukung Cicilan
+                                🛒 Produk Cicilan
                             </span>
                         </template>
                         <template x-if="!hasMultiMonthEligibleProduct">
@@ -382,7 +376,7 @@
                         </template>
                     </div>
 
-                    <select x-model="creditTenor" class="form-input !py-1 text-xs w-full bg-white dark:bg-gray-800 border-orange-300 dark:border-orange-700 text-gray-800 dark:text-gray-200">
+                    <select x-model="creditTenor" class="form-input !py-0.5 text-xs w-full bg-white dark:bg-gray-800 border-orange-300 dark:border-orange-700 text-gray-800 dark:text-gray-200 rounded">
                         <option value="">1 Bulan (Tempo Standar Potong Gaji)</option>
                         <template x-for="tenor in availableCreditTenors.filter(t => t > 1)" :key="tenor">
                             <option :value="tenor" x-text="tenor + ' Bulan'"></option>
@@ -393,105 +387,75 @@
                         <span>Angsuran per bulan:</span>
                         <span class="font-bold" x-text="formatRupiah(Math.round(Math.max(0, cartTotalAmount - (discountAmount || 0)) / (creditTenor || 1)))"></span>
                     </div>
-
-                    <p x-show="!hasMultiMonthEligibleProduct" class="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
-                        *Barang di keranjang menggunakan tempo standar 1 bulan (dipotong pada gajian periode berjalan).
-                    </p>
                 </div>
             </div>
 
             <!-- Saldo Warning -->
-            <div x-show="paymentMethod === 'saldo'" x-transition class="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-                <p class="text-sm text-purple-700 dark:text-purple-300 font-medium">💳 {{ __('messages.pos.balance_payment') }}</p>
-                <div x-show="memberData && Math.max(0, cartTotalAmount - (discountAmount || 0)) > (memberData?.balance || 0)" class="mt-2 p-2 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-600 dark:text-red-400">
+            <div x-show="paymentMethod === 'saldo'" x-transition class="p-2 sm:p-2.5 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg text-xs">
+                <p class="font-medium text-purple-700 dark:text-purple-300">💳 {{ __('messages.pos.balance_payment') }}</p>
+                <div x-show="memberData && Math.max(0, cartTotalAmount - (discountAmount || 0)) > (memberData?.balance || 0)" class="mt-1.5 p-1.5 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-600 dark:text-red-400">
                     {{ __('messages.pos.insufficient_balance') }} {{ __('messages.pos.available') }}: <span x-text="formatRupiah(memberData?.balance || 0)"></span>
-                </div>
-                <div x-show="memberData && Math.max(0, cartTotalAmount - (discountAmount || 0)) <= (memberData?.balance || 0)" class="mt-2 text-xs text-purple-600 dark:text-purple-400">
-                    {{ __('messages.pos.balance_note') }}
                 </div>
             </div>
 
             <!-- Transfer Info -->
-            <div x-show="paymentMethod === 'transfer'" x-transition class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg space-y-2">
+            <div x-show="paymentMethod === 'transfer'" x-transition class="p-2 sm:p-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg space-y-1.5 text-xs">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-semibold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
+                    <span class="font-semibold text-blue-900 dark:text-blue-300 flex items-center gap-1">
                         🏦 Rekening Transfer
                     </span>
-                    <span class="px-2 py-0.5 text-[10px] font-bold bg-blue-200 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 rounded">
+                    <span class="px-1.5 py-0.5 text-[10px] font-bold bg-blue-200 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 rounded">
                         {{ $bankInfo['name'] ?? 'BCA' }}
                     </span>
                 </div>
 
-                <div class="bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-blue-100 dark:border-blue-900/50 flex items-center justify-between">
+                <div class="bg-white dark:bg-gray-800 p-2 rounded-lg border border-blue-100 dark:border-blue-900/50 flex items-center justify-between">
                     <div>
-                        <p class="text-[10px] text-gray-500 dark:text-gray-400">Nomor Rekening Tujuan:</p>
-                        <p class="font-mono font-bold text-sm text-gray-900 dark:text-white tracking-wider">
+                        <p class="font-mono font-bold text-xs sm:text-sm text-gray-900 dark:text-white tracking-wider">
                             {{ $bankInfo['account'] ?? '1092545625' }}
                         </p>
-                        <p class="text-[10px] text-gray-600 dark:text-gray-300 font-medium">
+                        <p class="text-[10px] text-gray-600 dark:text-gray-300">
                             a/n {{ $bankInfo['holder'] ?? 'Koperasi PT. SPINDO - SKF' }}
                         </p>
                     </div>
                     <button type="button" 
                             @click="navigator.clipboard.writeText('{{ $bankInfo['account'] ?? '1092545625' }}'); copiedBank = true; setTimeout(() => copiedBank = false, 2000)"
-                            class="px-2.5 py-1 text-xs font-medium rounded-lg border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800 transition flex items-center gap-1">
+                            class="px-2 py-0.5 text-[11px] font-medium rounded border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800 transition flex items-center gap-1">
                         <span x-text="copiedBank ? '✓ Tersalin' : '📋 Salin'"></span>
                     </button>
                 </div>
-
-                <div class="flex justify-between items-center text-xs pt-1 border-t border-blue-200 dark:border-blue-800">
-                    <span class="text-gray-600 dark:text-gray-400">Total Ditransfer:</span>
-                    <span class="font-bold text-sm text-blue-700 dark:text-blue-400" x-text="formatRupiah(Math.max(0, cartTotalAmount - (discountAmount || 0)))"></span>
-                </div>
-
-                <div>
-                    <label class="block text-[10px] font-semibold text-gray-600 dark:text-gray-400 mb-1">
-                        Catatan / Ref Transfer (Opsional):
-                    </label>
-                    <input type="text" x-model="transferRef" placeholder="Misal: Ref 123456 / Nama Pengirim" 
-                           class="form-input !py-1 text-xs w-full bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700 text-gray-800 dark:text-gray-200 rounded-lg">
-                </div>
-
-                <p class="text-[10px] text-blue-600 dark:text-blue-400 leading-tight">
-                    💡 Pastikan mutasi dana transfer telah masuk ke rekening sebelum menyelesaikan transaksi.
-                </p>
             </div>
 
             <!-- Backdate Control (Admin & Pengurus Only) -->
             @if(in_array(auth()->user()->role, ['admin', 'pengurus']))
-            <div class="border border-amber-200 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl p-3 text-xs space-y-2.5">
+            <div class="border border-amber-200 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 rounded-lg p-1.5 sm:p-2 text-xs space-y-1.5">
                 <div class="flex items-center justify-between">
-                    <label class="flex items-center gap-2 cursor-pointer font-semibold text-amber-900 dark:text-amber-200 select-none">
+                    <label class="flex items-center gap-1.5 cursor-pointer font-semibold text-amber-900 dark:text-amber-200 select-none text-[11px]">
                         <input type="checkbox" x-model="isBackdate" 
-                               class="rounded border-amber-300 text-amber-600 focus:ring-amber-500 size-4">
+                               class="rounded border-amber-300 text-amber-600 focus:ring-amber-500 size-3.5">
                         <span>🗓️ Transaksi Susulan (Backdate)</span>
                     </label>
-                    <span x-show="isBackdate" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
-                        Admin / Pengurus
+                    <span x-show="isBackdate" class="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
+                        Admin
                     </span>
                 </div>
 
-                <div x-show="isBackdate" x-transition class="space-y-2 pt-1 border-t border-amber-200/60 dark:border-amber-800/40">
-                    <div>
-                        <label class="block text-[11px] font-medium text-amber-800 dark:text-amber-300 mb-1">
-                            Tanggal Transaksi Riil <span class="text-rose-500">*</span>
-                        </label>
-                        <input type="date" x-model="backdateDate" 
-                               max="{{ now()->toDateString() }}" 
-                               min="{{ now()->subDays(60)->toDateString() }}"
-                               class="form-input !py-1.5 text-xs bg-white dark:bg-gray-800 w-full border-amber-300 dark:border-amber-700 text-gray-900 dark:text-white">
+                <div x-show="isBackdate" x-transition class="space-y-1 pt-1 border-t border-amber-200/60 dark:border-amber-800/40">
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <label class="block text-[10px] font-medium text-amber-800 dark:text-amber-300">Tanggal Riil <span class="text-rose-500">*</span></label>
+                            <input type="date" x-model="backdateDate" 
+                                   max="{{ now()->toDateString() }}" 
+                                   min="{{ now()->subDays(60)->toDateString() }}"
+                                   class="form-input !py-0.5 text-xs bg-white dark:bg-gray-800 w-full border-amber-300 dark:border-amber-700 text-gray-900 dark:text-white rounded">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-[10px] font-medium text-amber-800 dark:text-amber-300">No. Nota / Alasan <span class="text-rose-500">*</span></label>
+                            <input type="text" x-model="backdateReason" 
+                                   placeholder="Contoh: Nota #1029" 
+                                   class="form-input !py-0.5 text-xs bg-white dark:bg-gray-800 w-full border-amber-300 dark:border-amber-700 text-gray-900 dark:text-white rounded">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-[11px] font-medium text-amber-800 dark:text-amber-300 mb-1">
-                            No. Nota Fisik / Alasan Backdate <span class="text-rose-500">*</span>
-                        </label>
-                        <input type="text" x-model="backdateReason" 
-                               placeholder="Contoh: Nota Manual #1029 / Keterlambatan input" 
-                               class="form-input !py-1.5 text-xs bg-white dark:bg-gray-800 w-full border-amber-300 dark:border-amber-700 text-gray-900 dark:text-white">
-                    </div>
-                    <p class="text-[10px] text-amber-700 dark:text-amber-400 leading-tight">
-                        ⚠️ Tanggal transaksi & jurnal pembukuan akan dicatat pada tanggal ini dan terekam di <strong>Audit Log</strong>.
-                    </p>
                 </div>
             </div>
             @endif
@@ -503,7 +467,7 @@
                                ((paymentMethod === 'saldo' || paymentMethod === 'kredit') && !memberData) || 
                                (paymentMethod === 'kredit' && Math.max(0, cartTotalAmount - (discountAmount || 0)) > (memberData?.credit_available || 0)) ||
                                (paymentMethod === 'saldo' && Math.max(0, cartTotalAmount - (discountAmount || 0)) > (memberData?.balance || 0))" 
-                    class="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all">
+                    class="w-full py-2.5 sm:py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-base shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all active:scale-[0.98]">
                 <span x-show="!processing" x-text="paymentMethod === 'kredit' ? '📝 {{ __('messages.pos.process_credit') }}' : '💰 {{ __('messages.pos.pay_now') }}'"></span>
                 <span x-show="processing" class="flex items-center justify-center gap-2">
                     <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
