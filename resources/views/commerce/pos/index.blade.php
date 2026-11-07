@@ -589,8 +589,15 @@
             </div>
             
             <div class="bg-white p-4 rounded-xl shadow-inner border border-gray-200 inline-block mb-6">
-                @if(isset($qrisImage))
-                    <img src="{{ Storage::url($qrisImage) }}" alt="QRIS Code" class="w-64 h-64 object-contain">
+                @if(isset($qrisImage) && $qrisImage)
+                    <img src="{{ Storage::url($qrisImage) }}" alt="QRIS Code" class="w-64 h-64 object-contain" @error="qrisImgErr = true" x-show="!qrisImgErr">
+                    <div x-show="qrisImgErr" class="w-64 h-64 flex items-center justify-center bg-gray-50 text-gray-400 rounded-lg">
+                        <div class="text-center p-4">
+                            <p class="text-4xl mb-2">📱</p>
+                            <p class="text-xs text-gray-500 font-medium">Gambar QR Code belum tersedia</p>
+                            <p class="text-[10px] text-gray-400 mt-1">Silakan upload gambar QRIS di menu Pengaturan Toko</p>
+                        </div>
+                    </div>
                 @else
                     <div class="w-64 h-64 flex items-center justify-center bg-gray-100 text-gray-400 rounded">
                         <div class="text-center">
@@ -746,6 +753,7 @@ document.addEventListener('alpine:init', () => {
         creditTenor: '',
         copiedBank: false,
         transferRef: '',
+        qrisImgErr: false,
         isBackdate: false,
         backdateDate: '{{ now()->toDateString() }}',
         backdateReason: '',

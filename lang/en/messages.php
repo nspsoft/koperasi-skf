@@ -258,6 +258,13 @@ return [
         'qr_scan_note' => 'QR scan feature will use the camera. For now, please type the member ID manually.',
         'transaction_error' => 'An error occurred while processing the transaction',
         'qris_not_set' => 'QRIS has not been set up',
+        'cancel' => 'Cancel',
+        'confirm_payment' => 'Confirm Payment',
+        'scan_camera' => 'Scan Camera',
+        'scan_product' => 'Scan Product Barcode',
+        'scan_instruction' => 'Point camera at product barcode',
+        'scanned_success' => 'Barcode Detected',
+        'customer' => 'Customer',
     ],
 
     // SHU

@@ -222,7 +222,9 @@ class ShopController extends Controller
             }
         }
 
-        $settings = \App\Models\Setting::whereIn('key', ['bank_name', 'bank_account_number', 'bank_account_name', 'payment_qris_image'])->pluck('value', 'key');
+        $settings = \App\Models\Setting::whereIn('key', [
+            'bank_name', 'bank_account', 'bank_account_number', 'bank_holder', 'bank_account_name', 'payment_qris_image'
+        ])->pluck('value', 'key');
 
         $cartProductIds = array_keys($cart);
         $cartProducts = Product::whereIn('id', $cartProductIds)->get(['id', 'is_credit_eligible', 'credit_tenors']);
@@ -430,10 +432,12 @@ class ShopController extends Controller
                     }
                 }
 
-                // Create Journal Entry for Financial Reports
-                // Must reload items relationship so COGS can be calculated
-                $txn->load('items.product');
-                \App\Services\JournalService::journalSale($txn);
+                // Create Journal Entry for Financial Reports (only for paid/credit transactions)
+                // For pending online orders (transfer/cash_pickup), journal will be created when admin confirms the order
+                if (in_array($status, ['paid', 'credit'])) {
+                    $txn->load('items.product');
+                    \App\Services\JournalService::journalSale($txn);
+                }
 
                 return $txn;
             });

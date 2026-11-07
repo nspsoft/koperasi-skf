@@ -12,7 +12,7 @@
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Konfirmasi Pembayaran</h1>
         </div>
 
-        <form action="{{ route('shop.process') }}" method="POST" x-data="{ selectedMethod: '', deliveryMethod: 'pickup', creditTenor: '', total: {{ $total }} }" class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+        <form action="{{ route('shop.process') }}" method="POST" x-data="{ selectedMethod: '', deliveryMethod: 'pickup', creditTenor: '', total: {{ $total }}, copied: false, qrisErr: false }" class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
             @csrf
             
             <!-- LEFT COLUMN: Payment & Delivery Methods -->
@@ -195,21 +195,39 @@
                     <div class="mt-6">
                         <!-- Transfer Info -->
                         <div x-show="selectedMethod === 'transfer'" x-transition class="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-                            <h4 class="font-bold text-gray-900 dark:text-white mb-2 text-sm">Rekening Tujuan</h4>
-                            <div class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                                <p>Bank: <span class="font-bold text-gray-900 dark:text-white">{{ $settings['bank_name'] ?? 'BCA / Mandiri' }}</span></p>
-                                <p>No. Rekening: <span class="font-bold text-gray-900 dark:text-white font-mono bg-white dark:bg-gray-900 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 select-all">{{ $settings['bank_account_number'] ?? '123-456-7890' }}</span></p>
-                                <p>Atas Nama: <span class="font-bold text-gray-900 dark:text-white">{{ $settings['bank_account_name'] ?? 'Koperasi Spindo' }}</span></p>
+                            <h4 class="font-bold text-gray-900 dark:text-white mb-2 text-sm flex items-center justify-between">
+                                <span>Rekening Tujuan Transfer</span>
+                                <span class="text-xs px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold">
+                                    {{ $settings['bank_name'] ?? 'BCA' }}
+                                </span>
+                            </h4>
+                            <div class="text-sm text-gray-600 dark:text-gray-400 space-y-1.5">
+                                <p>Bank: <span class="font-bold text-gray-900 dark:text-white">{{ $settings['bank_name'] ?? 'BCA' }}</span></p>
+                                <div class="flex items-center gap-2">
+                                    <span>No. Rekening:</span>
+                                    <span class="font-bold text-gray-900 dark:text-white font-mono bg-white dark:bg-gray-900 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 select-all">
+                                        {{ $settings['bank_account'] ?? ($settings['bank_account_number'] ?? '1092545625') }}
+                                    </span>
+                                    <button type="button" 
+                                            @click="navigator.clipboard.writeText('{{ $settings['bank_account'] ?? ($settings['bank_account_number'] ?? '1092545625') }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                                            class="text-xs text-primary-600 hover:text-primary-700 font-semibold underline">
+                                        <span x-text="copied ? 'Tersalin!' : 'Salin'"></span>
+                                    </button>
+                                </div>
+                                <p>Atas Nama: <span class="font-bold text-gray-900 dark:text-white">{{ $settings['bank_holder'] ?? ($settings['bank_account_name'] ?? 'Koperasi PT. SPINDO - SKF') }}</span></p>
                             </div>
                         </div>
 
                          <!-- QRIS Info -->
                         <div x-show="selectedMethod === 'qris'" x-transition class="p-6 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 text-center">
-                            @if(isset($settings['payment_qris_image']))
-                                <div class="bg-white p-2 rounded-lg shadow-sm inline-block mb-3">
-                                    <img src="{{ Storage::url($settings['payment_qris_image']) }}" alt="QRIS" class="w-48 h-48 object-contain">
+                            @if(isset($settings['payment_qris_image']) && $settings['payment_qris_image'])
+                                <div class="bg-white p-2 rounded-lg shadow-sm inline-block mb-3" x-show="!qrisErr">
+                                    <img src="{{ Storage::url($settings['payment_qris_image']) }}" alt="QRIS" class="w-48 h-48 object-contain" @error="qrisErr = true">
                                 </div>
-                                <p class="text-xs text-gray-500">Scan QRIS di atas untuk melakukan pembayaran</p>
+                                <p class="text-xs text-gray-500" x-show="!qrisErr">Scan QRIS di atas untuk melakukan pembayaran</p>
+                                <div x-show="qrisErr" class="w-48 h-48 mx-auto bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center text-gray-400 text-xs text-center p-4">
+                                    QR Code belum diatur dalam sistem
+                                </div>
                             @else
                                 <div class="w-48 h-48 mx-auto bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center text-gray-400 text-xs text-center p-4">
                                     QR Code belum diatur dalam sistem

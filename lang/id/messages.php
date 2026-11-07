@@ -255,6 +255,13 @@ return [
         'qr_scan_note' => 'Fitur scan QR akan menggunakan kamera. Untuk sementara, silakan ketik ID member secara manual.',
         'transaction_error' => 'Terjadi kesalahan saat memproses transaksi',
         'qris_not_set' => 'QRIS belum disetting',
+        'cancel' => 'Batal',
+        'confirm_payment' => 'Konfirmasi Bayar',
+        'scan_camera' => 'Scan Kamera',
+        'scan_product' => 'Scan Barcode Produk',
+        'scan_instruction' => 'Arahkan kamera ke barcode produk',
+        'scanned_success' => 'Barcode Terdeteksi',
+        'customer' => 'Pelanggan',
     ],
 
     // SHU

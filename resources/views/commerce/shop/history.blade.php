@@ -84,6 +84,15 @@
                                                 <div class="text-[10px] text-gray-400">Tenor {{ $trx->credit_tenor_months }} bln • Rp {{ number_format($trx->credit_installment_amount, 0, ',', '.') }}/bln</div>
                                             @endif
                                         </div>
+                                    @elseif($trx->payment_method == 'transfer')
+                                        <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs">🏦</div>
+                                        <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">Transfer Bank</span>
+                                    @elseif($trx->payment_method == 'qris')
+                                        <div class="w-6 h-6 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center text-xs">📱</div>
+                                        <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">QRIS</span>
+                                    @elseif($trx->payment_method == 'va')
+                                        <div class="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs">🏢</div>
+                                        <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">Virtual Account</span>
                                     @else
                                         <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs">💳</div>
                                         <span class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ __('messages.shop_history.payment_method.balance') }}</span>
