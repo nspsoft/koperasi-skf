@@ -114,7 +114,8 @@
                 <select name="status" class="form-input py-2 w-full">
                     <option value="">{{ __('messages.credit_report.belum_lunas') }}</option>
                     <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>{{ __('messages.credit_report.lunas') }}</option>
-                    <option value="all" {{ request('status') == 'all' ? 'selected' : '' }}>{{ __('messages.pos.all_types') ?? 'Semua' }}</option>
+                    <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
+                    <option value="all" {{ request('status') == 'all' ? 'selected' : '' }}>Semua Status</option>
                 </select>
             </div>
             <div class="min-w-[150px]">
@@ -196,7 +197,7 @@
                 <!-- Header: Checkbox, Invoice & Status -->
                 <div class="flex justify-between items-start mb-3">
                     <div class="flex items-start gap-2.5">
-                        @if($credit->status !== 'completed')
+                        @if(!in_array($credit->status, ['completed', 'cancelled']))
                             <input type="checkbox" 
                                    class="credit-checkbox mt-0.5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
                                    value="{{ $credit->id }}"
@@ -213,7 +214,11 @@
                             <div class="text-[10px] text-gray-500 mt-0.5">{{ $credit->created_at->format('d/m/Y H:i') }}</div>
                         </div>
                     </div>
-                    @if($credit->status !== 'completed')
+                    @if($credit->status === 'cancelled')
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 uppercase tracking-wide">
+                            ✕ Dibatalkan
+                        </span>
+                    @elseif($credit->status !== 'completed')
                         <span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 uppercase tracking-wide">
                             ⏳ Belum Lunas
                         </span>
@@ -250,7 +255,11 @@
                 </div>
 
                 <!-- Action Button -->
-                @if($credit->status !== 'completed')
+                @if($credit->status === 'cancelled')
+                    <div class="w-full py-2.5 px-3 text-center bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-700 flex items-center justify-center gap-1.5 cursor-not-allowed" title="{{ $credit->notes ?: 'Transaksi ini telah dibatalkan' }}">
+                        <span>🔒 Dibatalkan</span>
+                    </div>
+                @elseif($credit->status !== 'completed')
                     <button onclick="openPaymentModal({{ $credit->id }}, '{{ $credit->invoice_number }}', {{ $credit->total_amount - $credit->paid_amount }}, '{{ addslashes($credit->user->name ?? 'Unknown') }}')" 
                             class="w-full btn-primary py-2.5 flex justify-center items-center gap-2 text-sm font-semibold">
                         💰 Lunasi Sekarang
@@ -287,7 +296,7 @@
                     @forelse($credits as $credit)
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                         <td class="px-3 py-4 text-center">
-                            @if($credit->status !== 'completed')
+                            @if(!in_array($credit->status, ['completed', 'cancelled']))
                                 <input type="checkbox" 
                                        class="credit-checkbox rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
                                        value="{{ $credit->id }}"
@@ -329,7 +338,11 @@
                             <span class="text-lg font-bold text-gray-900 dark:text-white font-mono">Rp {{ number_format($credit->total_amount, 0, ',', '.') }}</span>
                         </td>
                         <td class="px-4 py-4 text-center">
-                            @if($credit->status !== 'completed')
+                            @if($credit->status === 'cancelled')
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                    ✕ Dibatalkan
+                                </span>
+                            @elseif($credit->status !== 'completed')
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
                                     ⏳ {{ __('messages.credit_report.belum_lunas') }}
                                 </span>
@@ -346,7 +359,11 @@
                             <span class="text-sm text-gray-600 dark:text-gray-400">{{ $credit->cashier->name ?? '-' }}</span>
                         </td>
                         <td class="px-4 py-4 text-center">
-                            @if($credit->status !== 'completed')
+                            @if($credit->status === 'cancelled')
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 text-xs font-medium cursor-not-allowed border border-gray-200 dark:border-gray-700" title="{{ $credit->notes ?: 'Transaksi ini telah dibatalkan' }}">
+                                    🔒 Dibatalkan
+                                </span>
+                            @elseif($credit->status !== 'completed')
                                 <button onclick="openPaymentModal({{ $credit->id }}, '{{ $credit->invoice_number }}', {{ $credit->total_amount - $credit->paid_amount }}, '{{ addslashes($credit->user->name ?? 'Unknown') }}')" 
                                         class="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
                                     💰 {{ __('messages.credit_report.lunasi') }}

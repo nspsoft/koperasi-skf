@@ -663,6 +663,10 @@ class PosController extends Controller
             $pendingCount = 0;
             $totalPending = 0;
             $totalPaid = (clone $baseCreditQuery)->where('status', 'completed')->sum('total_amount');
+        } elseif ($request->status === 'cancelled') {
+            $pendingCount = (clone $baseCreditQuery)->where('status', 'cancelled')->count();
+            $totalPending = 0;
+            $totalPaid = 0;
         } elseif ($request->status === 'all') {
             $pendingCount = (clone $baseCreditQuery)->whereNotIn('status', ['completed', 'cancelled'])->count();
             $totalPending = (clone $baseCreditQuery)->whereNotIn('status', ['completed', 'cancelled'])->sum(\DB::raw('total_amount - paid_amount'));
@@ -684,7 +688,7 @@ class PosController extends Controller
                 $query->where('status', $request->status);
             }
         } else {
-            $query->where('status', '!=', 'completed');
+            $query->whereNotIn('status', ['completed', 'cancelled']);
         }
 
         $credits = $query->paginate(20)->withQueryString();
@@ -1223,9 +1227,17 @@ class PosController extends Controller
      */
     public function cancel(Request $request, Transaction $transaction)
     {
-        if (!auth()->user()->hasAdminAccess() && !auth()->user()->hasStoreAccess()) {
-            abort(403);
+        if (!in_array(auth()->user()->role, ['admin', 'pengurus', 'manager_toko'])) {
+            abort(403, 'Hanya Admin, Pengurus, atau Manager Toko yang berhak membatalkan transaksi.');
         }
+
+        $request->validate([
+            'reason' => 'required|string|min:3|max:500',
+        ], [
+            'reason.required' => 'Alasan pembatalan transaksi wajib diisi.',
+            'reason.min' => 'Alasan pembatalan minimal 3 karakter.',
+            'reason.max' => 'Alasan pembatalan maksimal 500 karakter.',
+        ]);
 
         if ($transaction->status === 'cancelled') {
             return redirect()->back()->with('error', 'Transaksi sudah dibatalkan sebelumnya.');
@@ -1289,12 +1301,12 @@ class PosController extends Controller
                     'status' => 'cancelled',
                     'notes' => ($transaction->notes ? $transaction->notes . ' | ' : '') . 
                                'Dibatalkan oleh ' . auth()->user()->name . ' pada ' . now()->format('d/m/Y H:i') . 
-                               ($request->reason ? ' Alasan: ' . $request->reason : '')
+                               ' Alasan: ' . $request->reason
                 ]);
 
                 \App\Models\AuditLog::log(
                     'cancel_transaction',
-                    "Membatalkan transaksi {$transaction->invoice_number}",
+                    "Membatalkan transaksi {$transaction->invoice_number} (Alasan: {$request->reason})",
                     $transaction
                 );
             });

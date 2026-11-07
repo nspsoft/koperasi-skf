@@ -80,6 +80,7 @@ class PayrollDeductionController extends Controller
         $creditInstallments = CreditInstallment::join('transactions', 'credit_installments.transaction_id', '=', 'transactions.id')
             ->whereBetween('credit_installments.due_date', [$startDate, $endDate])
             ->whereNotIn('credit_installments.status', ['cancelled'])
+            ->whereNotIn('transactions.status', ['cancelled'])
             ->select('transactions.user_id', DB::raw('SUM(credit_installments.amount) as total_amount'))
             ->groupBy('transactions.user_id')
             ->pluck('total_amount', 'user_id');
@@ -722,6 +723,7 @@ class PayrollDeductionController extends Controller
             ->where('transactions.user_id', $userId)
             ->whereBetween('credit_installments.due_date', [$startDate, $endDate])
             ->whereNotIn('credit_installments.status', ['cancelled'])
+            ->whereNotIn('transactions.status', ['cancelled'])
             ->pluck('credit_installments.transaction_id')
             ->toArray();
 
@@ -742,6 +744,7 @@ class PayrollDeductionController extends Controller
         $allTrxIds = array_unique(array_merge($installmentTrxIds, $directTrxIds));
 
         $transactions = Transaction::whereIn('id', $allTrxIds)
+            ->whereNotIn('status', ['cancelled'])
             ->with(['items.product', 'cashier', 'creditInstallments'])
             ->latest()
             ->get()

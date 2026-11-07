@@ -388,13 +388,13 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                 </a>
 
-                                @if($trx->status !== 'cancelled' && auth()->user()->hasStoreAccess())
-                                <form action="{{ route('pos.cancel', $trx) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan transaksi ini? Stok akan dikembalikan dan jurnal akan dibalik.')">
-                                    @csrf
-                                    <button type="submit" class="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-600 hover:text-white transition-colors" title="Batalkan Transaksi">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                    </button>
-                                </form>
+                                @if($trx->status !== 'cancelled' && in_array(auth()->user()->role, ['admin', 'pengurus', 'manager_toko']))
+                                <button type="button" 
+                                        onclick="openCancelModal('{{ $trx->id }}', '{{ $trx->invoice_number }}', '{{ number_format($trx->total_amount, 0, ',', '.') }}', '{{ addslashes($trx->user->name ?? $trx->customer_name ?? 'Tamu') }}')" 
+                                        class="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded hover:bg-red-600 hover:text-white dark:hover:bg-red-700 transition-colors" 
+                                        title="Batalkan Transaksi">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
                                 @endif
 
                                 @if(in_array($trx->status, ['paid', 'completed', 'delivered']) && ! $trx->journalEntry)
@@ -1165,6 +1165,83 @@
             });
         });
     });
+
+    window.openCancelModal = function(id, invoice, total, customer) {
+        document.getElementById('formCancelTransaction').action = '/pos/transactions/' + id + '/cancel';
+        document.getElementById('cancelModalInvoice').textContent = invoice;
+        document.getElementById('cancelModalTotal').textContent = 'Rp ' + total;
+        document.getElementById('cancelModalCustomer').textContent = customer;
+        document.getElementById('cancelModalReason').value = '';
+        document.getElementById('modalCancelTransaction').classList.remove('hidden');
+    };
+
+    window.closeCancelModal = function() {
+        document.getElementById('modalCancelTransaction').classList.add('hidden');
+    };
 </script>
 @endpush
+
+    <!-- Modal Input Alasan Pembatalan Transaksi -->
+    <div id="modalCancelTransaction" class="fixed inset-0 z-50 overflow-y-auto hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden transform transition-all">
+            <form id="formCancelTransaction" method="POST">
+                @csrf
+                <!-- Header -->
+                <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-red-50/50 dark:bg-red-950/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/50 text-red-600 flex items-center justify-center text-lg flex-shrink-0">
+                            ⚠️
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-gray-900 dark:text-white">Batalkan Transaksi</h3>
+                            <p id="cancelModalInvoice" class="text-xs font-mono font-semibold text-red-600 dark:text-red-400 mt-0.5">-</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeCancelModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1">
+                        ✕
+                    </button>
+                </div>
+
+                <div class="p-5 space-y-4">
+                    <!-- Ringkasan Info Transaksi -->
+                    <div class="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs space-y-1.5">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Customer / Pembeli:</span>
+                            <span id="cancelModalCustomer" class="font-medium text-gray-900 dark:text-white">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Total Transaksi:</span>
+                            <span id="cancelModalTotal" class="font-bold font-mono text-gray-900 dark:text-white">Rp 0</span>
+                        </div>
+                    </div>
+
+                    <!-- Warning Alert -->
+                    <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-800 dark:text-amber-300">
+                        ⚡ <strong>Konsekuensi Pembatalan:</strong> Stok barang akan dikembalikan, jurnal akuntansi akan dibalik otomatis, dan tagihan/angsuran kredit akan dibatalkan.
+                    </div>
+
+                    <!-- Input Alasan (Wajib) -->
+                    <div>
+                        <label class="form-label text-xs mb-1.5 font-semibold text-gray-700 dark:text-gray-300">
+                            Alasan Pembatalan <span class="text-red-500">*</span>
+                        </label>
+                        <textarea name="reason" id="cancelModalReason" rows="3" required minlength="3" maxlength="500" 
+                                  class="form-input text-xs w-full" 
+                                  placeholder="Tuliskan alasan pembatalan (misal: Salah input kasir / Permintaan pembeli / Salah nominal)..."></textarea>
+                        <p class="text-[10px] text-gray-400 mt-1">Alasan wajib diisi minimal 3 karakter untuk kebutuhan jejak audit.</p>
+                    </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-end gap-2.5">
+                    <button type="button" onclick="closeCancelModal()" class="btn-secondary py-2 px-4 text-xs font-semibold">
+                        Batal
+                    </button>
+                    <button type="submit" class="py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm flex items-center gap-1.5">
+                        <span>✕ Batalkan Transaksi</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 @endsection
