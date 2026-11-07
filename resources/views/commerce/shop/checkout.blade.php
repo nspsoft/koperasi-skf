@@ -222,7 +222,7 @@
                         <div x-show="selectedMethod === 'qris'" x-transition class="p-6 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 text-center">
                             @if(isset($settings['payment_qris_image']) && $settings['payment_qris_image'])
                                 <div class="bg-white p-2 rounded-lg shadow-sm inline-block mb-3" x-show="!qrisErr">
-                                    <img src="{{ Storage::url($settings['payment_qris_image']) }}" alt="QRIS" class="w-48 h-48 object-contain" @error="qrisErr = true">
+                                    <img src="{{ Storage::url($settings['payment_qris_image']) }}" alt="QRIS" class="w-48 h-48 object-contain" x-on:error="qrisErr = true">
                                 </div>
                                 <p class="text-xs text-gray-500" x-show="!qrisErr">Scan QRIS di atas untuk melakukan pembayaran</p>
                                 <div x-show="qrisErr" class="w-48 h-48 mx-auto bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center text-gray-400 text-xs text-center p-4">

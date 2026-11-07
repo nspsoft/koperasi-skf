@@ -590,7 +590,7 @@
             
             <div class="bg-white p-4 rounded-xl shadow-inner border border-gray-200 inline-block mb-6">
                 @if(isset($qrisImage) && $qrisImage)
-                    <img src="{{ Storage::url($qrisImage) }}" alt="QRIS Code" class="w-64 h-64 object-contain" @error="qrisImgErr = true" x-show="!qrisImgErr">
+                    <img src="{{ Storage::url($qrisImage) }}" alt="QRIS Code" class="w-64 h-64 object-contain" x-on:error="qrisImgErr = true" x-show="!qrisImgErr">
                     <div x-show="qrisImgErr" class="w-64 h-64 flex items-center justify-center bg-gray-50 text-gray-400 rounded-lg">
                         <div class="text-center p-4">
                             <p class="text-4xl mb-2">📱</p>
