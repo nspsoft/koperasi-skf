@@ -220,7 +220,7 @@ return [
         'view_cart' => 'View Cart',
         'cash' => 'Cash',
         'qris' => 'QRIS',
-        'transfer' => 'Bank Transfer',
+        'transfer' => 'Transfer',
         'balance' => 'Balance',
         'credit' => 'Credit',
         'cash_amount' => 'Cash Received',
@@ -1179,7 +1179,7 @@ return [
             'confirm_process' => 'Process payment for this partner?',
             'payment_method' => [
                 'cash' => 'Cash',
-                'transfer' => 'Bank Transfer',
+                'transfer' => 'Transfer',
                 'savings' => 'To Voluntary Savings',
             ],
             'card_sold' => 'Items Sold',

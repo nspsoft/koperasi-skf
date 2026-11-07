@@ -125,7 +125,7 @@
                                          :class="selectedMethod === 'transfer' ? 'scale-100' : ''"></div>
                                 </div>
                             </div>
-                            <span class="font-bold text-gray-900 dark:text-white text-base">Transfer Bank</span>
+                            <span class="font-bold text-gray-900 dark:text-white text-base">Transfer</span>
                             <span class="text-xs text-gray-500 dark:text-gray-400 mt-1">Verifikasi Manual (Admin)</span>
                         </label>
 

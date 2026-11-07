@@ -907,7 +907,7 @@ class PosController extends Controller
 
                 $methodLabel = match($request->payment_method) {
                     'payroll' => 'POTONG GAJI / PAYROLL',
-                    'transfer' => 'TRANSFER BANK',
+                    'transfer' => 'TRANSFER',
                     'saldo' => 'SALDO SUKARELA',
                     default => 'TUNAI'
                 };

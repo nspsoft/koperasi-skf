@@ -217,7 +217,7 @@ return [
         'view_cart' => 'Lihat Keranjang',
         'cash' => 'Tunai',
         'qris' => 'QRIS',
-        'transfer' => 'Transfer Bank',
+        'transfer' => 'Transfer',
         'balance' => 'Saldo',
         'credit' => 'Kredit',
         'cash_amount' => 'Uang Diterima',
@@ -1133,7 +1133,7 @@ return [
             'confirm_process' => 'Proses pembayaran untuk mitra ini?',
             'payment_method' => [
                 'cash' => 'Tunai / Cash',
-                'transfer' => 'Transfer Bank',
+                'transfer' => 'Transfer',
                 'savings' => 'Ke Simpanan Sukarela',
             ],
             'card_sold' => 'Item Terjual',

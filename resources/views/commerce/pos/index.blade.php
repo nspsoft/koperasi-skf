@@ -376,11 +376,11 @@
                 </div>
             </div>
 
-            <!-- Transfer Bank Info -->
+            <!-- Transfer Info -->
             <div x-show="paymentMethod === 'transfer'" x-transition class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg space-y-2">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-semibold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
-                        🏦 Transfer Bank Koperasi
+                        🏦 Rekening Transfer
                     </span>
                     <span class="px-2 py-0.5 text-[10px] font-bold bg-blue-200 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 rounded">
                         {{ $bankInfo['name'] ?? 'BCA' }}
@@ -640,7 +640,7 @@
                 <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 shadow-inner">
                     🏦
                 </div>
-                <h3 class="font-bold text-2xl text-gray-900 dark:text-white mb-1">Transfer Bank</h3>
+                <h3 class="font-bold text-2xl text-gray-900 dark:text-white mb-1">Transfer</h3>
                 <p class="text-gray-500 dark:text-gray-400 text-sm">Pastikan mutasi transfer telah diterima sebelum menyelesaikan transaksi</p>
             </div>
             
