@@ -221,6 +221,87 @@ class PayrollDeductionController extends Controller
     }
 
     /**
+     * Download Excel template for Toko AMIGO import.
+     */
+    public function downloadAmigoTemplate()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Template AMIGO');
+
+        // Global Font
+        $spreadsheet->getDefaultStyle()->getFont()->setName('Arial')->setSize(10);
+
+        // Header style
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FF1E40AF'], // Royal Blue
+            ],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+        ];
+
+        // Column Headers
+        $headers = ['Periode', 'Employee No', 'Employee Name', 'Total'];
+        $sheet->fromArray([$headers], null, 'A1');
+        $sheet->getStyle('A1:D1')->applyFromArray($headerStyle);
+        $sheet->getRowDimension(1)->setRowHeight(26);
+
+        // Fetch sample active members
+        $samplePeriod = now()->format('Y-m');
+        $members = Member::with('user')
+            ->where('status', 'active')
+            ->whereNotNull('employee_id')
+            ->orderByRaw("CAST(REGEXP_REPLACE(employee_id, '[^0-9]', '') AS UNSIGNED), employee_id ASC")
+            ->take(10)
+            ->get();
+
+        $rowIdx = 2;
+        if ($members->isNotEmpty()) {
+            foreach ($members as $m) {
+                $sheet->setCellValueExplicit("A{$rowIdx}", $samplePeriod, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                $sheet->setCellValueExplicit("B{$rowIdx}", $m->employee_id, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                $sheet->setCellValue("C{$rowIdx}", $m->user->name ?? 'Karyawan');
+                $sheet->setCellValue("D{$rowIdx}", 50000);
+                $rowIdx++;
+            }
+        } else {
+            $sheet->setCellValueExplicit("A2", $samplePeriod, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit("B2", "KA 008", \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValue("C2", "Masroni");
+            $sheet->setCellValue("D2", 50000);
+
+            $sheet->setCellValueExplicit("A3", $samplePeriod, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit("B3", "KA 009", \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValue("C3", "Iwan Setyawan");
+            $sheet->setCellValue("D3", 75000);
+            $rowIdx = 4;
+        }
+
+        // Apply borders & formats to data rows
+        $dataRange = "A2:D" . ($rowIdx - 1);
+        $sheet->getStyle($dataRange)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet->getStyle("A2:B" . ($rowIdx - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("D2:D" . ($rowIdx - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle("D2:D" . ($rowIdx - 1))->getNumberFormat()->setFormatCode('#,##0');
+
+        foreach (range('A', 'D') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $filename = 'Template_Import_Tagihan_AMIGO_' . date('Ymd') . '.xlsx';
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /**
      * Import Excel data for Toko AMIGO deductions.
      */
     public function importAmigo(Request $request)

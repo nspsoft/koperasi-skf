@@ -309,6 +309,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->group(fun
     Route::get('reports/credit-receivables', [ReportController::class, 'creditReceivables'])->name('reports.credit-receivables');
     Route::get('reports/financial-health', [App\Http\Controllers\FinancialHealthController::class, 'index'])->name('reports.financial-health');
     Route::get('reports/payroll-deductions', [PayrollDeductionController::class, 'index'])->name('reports.payroll-deductions.index');
+    Route::get('reports/payroll-deductions/download-amigo-template', [PayrollDeductionController::class, 'downloadAmigoTemplate'])->name('reports.payroll-deductions.download-amigo-template');
     Route::post('reports/payroll-deductions/import-amigo', [PayrollDeductionController::class, 'importAmigo'])->name('reports.payroll-deductions.import-amigo');
     Route::get('reports/payroll-deductions/export-excel', [PayrollDeductionController::class, 'exportExcel'])->name('reports.payroll-deductions.export-excel');
     Route::get('reports/payroll-deductions/member-credits', [PayrollDeductionController::class, 'getMemberCredits'])->name('reports.payroll-deductions.member-credits');

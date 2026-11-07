@@ -358,7 +358,14 @@
                 </div>
 
                 <div class="mb-5">
-                    <label class="form-label text-xs">Pilih File Excel (.xlsx, .xls, .csv)</label>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="form-label text-xs !mb-0">Pilih File Excel (.xlsx, .xls, .csv)</label>
+                        <a href="{{ route('reports.payroll-deductions.download-amigo-template') }}" 
+                           class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            <span>Unduh Template Excel</span>
+                        </a>
+                    </div>
                     <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="form-input text-xs">
                     <p class="text-[11px] text-gray-400 mt-2">
                         Format kolom yang didukung: <span class="font-mono font-semibold">Periode | Employee No | Employee Name | Total</span>
