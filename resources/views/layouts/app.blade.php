@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true', sidebarOpen: true, sidebarMobileOpen: false }" 
       x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))"
+      x-on:sidebar-collapse.window="sidebarOpen = false"
+      x-on:sidebar-toggle.window="sidebarOpen = !sidebarOpen"
       :class="{ 'dark': darkMode }">
     <head>
         <meta charset="utf-8">

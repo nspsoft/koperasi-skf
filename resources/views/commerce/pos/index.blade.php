@@ -3,29 +3,64 @@
 @section('title', __('messages.pos.title'))
 
 @section('content')
-<div class="w-full flex flex-col lg:flex-row gap-6 h-[calc(100vh-7rem)]" x-data="posSystem()">
+<div class="w-full flex flex-col lg:flex-row gap-4 xl:gap-6 h-[calc(100vh-6.5rem)]" x-data="posSystem()">
     <!-- Flying Image Container -->
     <div id="flying-container" class="fixed inset-0 pointer-events-none z-[100]"></div>
     
     <!-- Left: Products Section -->
     <div class="flex-1 flex flex-col min-w-0">
-        <!-- Header with Search & Category Filter -->
-        <div class="glass-card-solid p-4 mb-4">
-            <div class="flex flex-col md:flex-row gap-3">
+        <!-- Header with Search, Actions & Category Filter -->
+        <div class="glass-card-solid p-3 sm:p-4 mb-3 sm:mb-4">
+            <div class="flex flex-col md:flex-row gap-2 sm:gap-3 items-stretch md:items-center">
+                <!-- Search Box with Barcode Scan Support -->
                 <div class="flex-[3] relative">
                     <input type="text" x-model="search" @input="currentPage = 1" 
                            @keydown.enter.prevent="handleBarcodeScan()"
                            placeholder="{{ __('messages.pos.search_placeholder') }}" 
-                           class="w-full form-input pl-4 pr-10 py-3 text-base" autofocus>
+                           class="w-full form-input pl-4 pr-10 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl" autofocus>
                     <button x-show="search" @click="search = ''; currentPage = 1" 
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                         ✕
                     </button>
                 </div>
-                <button @click="startScanner()" class="bg-gray-800 text-white p-3 rounded-lg hover:bg-gray-700 transition-colors" title="{{ __('messages.pos.scan_camera') }}">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                </button>
-                <select x-model="selectedCategory" @change="currentPage = 1" class="form-input py-3 flex-1 md:max-w-[180px]">
+
+                <!-- Action Toolbar: Camera Scanner, Fullscreen, Menu Toggle -->
+                <div class="flex items-center gap-2">
+                    <!-- Camera Barcode Scanner Button -->
+                    <button type="button" @click="startScanner()" 
+                            class="bg-gray-800 text-white p-2.5 sm:p-3 rounded-xl hover:bg-gray-700 active:scale-95 transition-all shadow-sm flex items-center justify-center shrink-0" 
+                            title="{{ __('messages.pos.scan_camera') }}">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                    </button>
+
+                    <!-- Fullscreen Kiosk Mode Button -->
+                    <button type="button" @click="toggleFullscreen()" 
+                            class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 p-2.5 sm:p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 active:scale-95 transition-all border border-gray-200 dark:border-gray-600 flex items-center justify-center shrink-0 shadow-sm" 
+                            :title="isFullscreen ? 'Keluar Layar Penuh (Esc)' : 'Mode Layar Penuh (Fullscreen)'">
+                        <template x-if="!isFullscreen">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                            </svg>
+                        </template>
+                        <template x-if="isFullscreen">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </template>
+                    </button>
+
+                    <!-- Sidebar Toggle Button (Desktop/Tablet) -->
+                    <button type="button" @click="$dispatch('sidebar-toggle')" 
+                            class="hidden lg:flex items-center justify-center bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 p-2.5 sm:p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 active:scale-95 transition-all border border-gray-200 dark:border-gray-600 shrink-0 shadow-sm" 
+                            title="Buka / Lipat Menu Navigasi">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Category Filter Dropdown -->
+                <select x-model="selectedCategory" @change="currentPage = 1" class="form-input py-2.5 sm:py-3 flex-1 md:max-w-[190px] rounded-xl text-sm">
                     <option value="">{{ __('messages.pos.all_categories') }}</option>
                     @foreach(\App\Models\Category::all() as $cat)
                         <option value="{{ $cat->id }}">{{ $cat->icon }} {{ $cat->name }}</option>
@@ -108,7 +143,7 @@
     <!-- Mobile: Fixed Bottom Sheet / Desktop: Fixed Sidebar -->
     <div 
         :class="showMobileCart ? 'translate-y-0' : 'translate-y-full lg:translate-y-0'"
-        class="fixed inset-x-0 bottom-0 z-50 h-[85vh] bg-white dark:bg-gray-800 rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-in-out lg:translate-y-0 lg:static lg:h-auto lg:w-[450px] lg:min-w-[450px] lg:max-w-[450px] lg:rounded-2xl lg:shadow-xl lg:border lg:border-gray-100 lg:dark:border-gray-700 lg:flex lg:flex-col lg:overflow-hidden flex flex-col"
+        class="fixed inset-x-0 bottom-0 z-50 h-[85vh] bg-white dark:bg-gray-800 rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-in-out lg:translate-y-0 lg:static lg:h-auto lg:w-[380px] lg:min-w-[350px] lg:max-w-[400px] xl:w-[420px] xl:min-w-[400px] xl:max-w-[440px] lg:rounded-2xl lg:shadow-xl lg:border lg:border-gray-100 lg:dark:border-gray-700 lg:flex lg:flex-col lg:overflow-hidden flex flex-col shrink-0"
         style="will-change: transform;">
         
         <!-- Mobile Handle -->
@@ -230,16 +265,16 @@
                         <h4 class="font-medium text-sm text-gray-900 dark:text-gray-100 truncate" x-text="item.name"></h4>
                         <p class="text-xs text-gray-600 dark:text-gray-300" x-text="formatRupiah(item.price)"></p>
                     </div>
-                    <div class="flex items-center gap-1">
-                        <button @click="updateQty(index, -1)" class="w-7 h-7 rounded-full bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 hover:bg-red-50 dark:hover:bg-red-900 hover:border-red-300 text-gray-700 dark:text-gray-200 flex items-center justify-center font-bold text-sm transition-colors">−</button>
+                    <div class="flex items-center gap-1 sm:gap-1.5">
+                        <button @click="updateQty(index, -1)" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 hover:bg-red-50 dark:hover:bg-red-900 hover:border-red-300 text-gray-700 dark:text-gray-200 flex items-center justify-center font-bold text-sm sm:text-base transition-all active:scale-90 shadow-sm">−</button>
                         <span class="w-8 text-center font-bold text-sm text-gray-900 dark:text-gray-100" x-text="item.qty"></span>
-                        <button @click="updateQty(index, 1)" class="w-7 h-7 rounded-full bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 hover:bg-green-50 dark:hover:bg-green-900 hover:border-green-300 text-gray-700 dark:text-gray-200 flex items-center justify-center font-bold text-sm transition-colors">+</button>
+                        <button @click="updateQty(index, 1)" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 hover:bg-green-50 dark:hover:bg-green-900 hover:border-green-300 text-gray-700 dark:text-gray-200 flex items-center justify-center font-bold text-sm sm:text-base transition-all active:scale-90 shadow-sm">+</button>
                     </div>
                     <div class="w-20 text-right">
                         <span class="font-bold text-sm text-primary-600 dark:text-primary-400" x-text="formatRupiah(item.price * item.qty)"></span>
                     </div>
-                    <button @click="cart.splice(index, 1)" class="p-1 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/50 rounded transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    <button @click="cart.splice(index, 1)" class="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/50 rounded-lg transition-colors active:scale-90" title="Hapus">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
                 </div>
             </template>
@@ -759,6 +794,44 @@ document.addEventListener('alpine:init', () => {
         backdateReason: '',
         processing: false,
         processedImageId: null,
+
+        // Fullscreen & Kiosk State
+        isFullscreen: false,
+
+        init() {
+            // Auto-collapse sidebar on tablet & desktop when entering POS to give maximum space for cashier
+            window.dispatchEvent(new CustomEvent('sidebar-collapse'));
+
+            // Track fullscreen state changes (standard & webkit)
+            const updateFs = () => {
+                this.isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+            };
+            document.addEventListener('fullscreenchange', updateFs);
+            document.addEventListener('webkitfullscreenchange', updateFs);
+        },
+
+        toggleFullscreen() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                const docEl = document.documentElement;
+                if (docEl.requestFullscreen) {
+                    docEl.requestFullscreen().then(() => {
+                        this.isFullscreen = true;
+                    }).catch(err => console.log('Fullscreen error:', err));
+                } else if (docEl.webkitRequestFullscreen) {
+                    docEl.webkitRequestFullscreen();
+                    this.isFullscreen = true;
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().then(() => {
+                        this.isFullscreen = false;
+                    }).catch(err => console.log('Exit fullscreen error:', err));
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                    this.isFullscreen = false;
+                }
+            }
+        },
 
         // Scanner State
         scanner: null,
