@@ -130,8 +130,8 @@
                 @include('layouts.topnav')
 
                 <!-- Page Content -->
-                <main class="flex-1 {{ request()->routeIs('pos.*') ? 'overflow-hidden p-2 sm:p-3 lg:p-3' : 'overflow-y-auto p-4 lg:py-6 lg:px-4' }} scrollbar-thin">
-                    <div class="max-w-[1600px] mx-auto animate-fade-in {{ request()->routeIs('pos.*') ? 'h-full' : 'px-2 sm:px-4 lg:px-6' }}">
+                <main class="flex-1 {{ request()->routeIs('pos.index') ? 'overflow-hidden p-2 sm:p-3 lg:p-3' : 'overflow-y-auto p-4 lg:py-6 lg:px-4' }} scrollbar-thin">
+                    <div class="max-w-[1600px] mx-auto animate-fade-in {{ request()->routeIs('pos.index') ? 'h-full' : 'px-2 sm:px-4 lg:px-6' }}">
                         @yield('content')
                     </div>
                 </main>

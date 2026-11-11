@@ -288,6 +288,7 @@ return [
         'member' => 'Anggota',
         'saving_balance' => 'Saldo Simpanan',
         'total_transactions' => 'Total Transaksi',
+        'transactions' => 'Transaksi',
         'shu_jasa_modal' => 'SHU Jasa Modal',
         'shu_jasa_usaha' => 'SHU Jasa Usaha',
         'total_shu' => 'Total SHU',
